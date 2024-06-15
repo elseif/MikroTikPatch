@@ -66,7 +66,7 @@ jobs:
         sudo rm -f Python-3.11.9.tar.xz
         sudo mkdir ./python-root/
         cd Python-3.11.9
-        /configure --enable-optimizations  --prefix=./python-root/ LDFLAGS="-static" CFLAGS="-static" --disable-shared --disable-test-modules --without-static-libpython 
+        ./configure --enable-optimizations  --prefix=./python-root/ LDFLAGS="-static" CFLAGS="-static" --disable-shared --disable-test-modules --without-static-libpython 
         make -j$(nproc)
         sudo make altinstall
         cd ..
