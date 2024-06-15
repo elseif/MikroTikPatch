@@ -67,7 +67,7 @@ jobs:
         sudo mkdir -p /pckg/python3/
         cd Python-3.11.9
         sudo apt install -y pkg-config libbz2-dev liblzma-dev libssl-dev libgd-dev libreadline-dev zlib1g-dev
-        ./configure --enable-optimizations  --prefix=/pckg/python3/ LDFLAGS="-static" CFLAGS="-static" CPPFLAGS="-static" --disable-shared --disable-test-modules --without-static-libpython 
+        ./configure --enable-optimizations  --prefix=/pckg/python3/ CONFIGURE_LDFLAGS="-static" --disable-test-modules --without-static-libpython 
         make -j$(nproc)
         sudo make altinstall
         cd ..
