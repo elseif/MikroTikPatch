@@ -284,10 +284,10 @@ if __name__=='__main__':
             print('Invalid')
             exit(1)
     elif args.command =='create':
-        print(f'Creating option.npk from {args.npk_file}')
+        print(f'Creating option.npk from {args.input}')
         kcdsa_private_key = bytes.fromhex(os.environ['CUSTOM_LICENSE_PRIVATE_KEY'])
         eddsa_private_key = bytes.fromhex(os.environ['CUSTOM_NPK_SIGN_PRIVATE_KEY'])
-        option_npk = NovaPackage.load(args.npk_file)
+        option_npk = NovaPackage.load(args.input)
         option_npk[NpkPartID.NAME_INFO].data.name = args.name
         option_npk[NpkPartID.DESCRIPTION].data = args.description or args.name.encode()
         option_npk[NpkPartID.NULL_BLOCK].data = b''
