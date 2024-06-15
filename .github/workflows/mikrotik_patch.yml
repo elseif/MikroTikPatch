@@ -59,11 +59,11 @@ jobs:
         sudo mksquashfs option-root option.sfs -quiet -comp xz -no-xattrs -b 256k
         sudo rm -rf option-root
 
-    - name: Get routeros-${{ env.LATEST_VERSION }}.npk
-      run: sudo wget -nv -O routeros-$LATEST_VERSION.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/routeros-$LATEST_VERSION.npk
+    # - name: Get routeros-${{ env.LATEST_VERSION }}.npk
+    #   run: sudo wget -nv -O routeros-$LATEST_VERSION.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/routeros-$LATEST_VERSION.npk
     
-    - name: Patch routeros-${{ env.LATEST_VERSION }}.npk
-      run: sudo -E python3 patch.py routeros-$LATEST_VERSION.npk
+    # - name: Patch routeros-${{ env.LATEST_VERSION }}.npk
+    #   run: sudo -E python3 patch.py routeros-$LATEST_VERSION.npk
 
     - name: Get mikrotik-${{ env.LATEST_VERSION }}.iso
       run: |
@@ -80,7 +80,8 @@ jobs:
         sudo umount ./iso
         sudo rm -rf ./iso
         sudo rm -f mikrotik-$LATEST_VERSION.iso
-        sudo rm -rf ./new_iso/routeros-$LATEST_VERSION.npk
+        sudo mv ./new_iso/routeros-$LATEST_VERSION.npk ./
+        sudo -E python3 patch.py routeros-$LATEST_VERSION.npk
         sudo cp keygen.exe ./new_iso/
         NPK_FILES=$(find ./new_iso/*.npk)
         for file in $NPK_FILES; do
@@ -129,7 +130,7 @@ jobs:
         sudo cp routeros-$LATEST_VERSION.npk ./install/1.npk
         sudo cp keygen.exe ./install/
         sudo cp option-$LATEST_VERSION.npk ./install/100.npk
-        sudo cp linux ./new_iso/isolinux/
+        sudo cp linux ./install/
         sudo umount ./install
         sudo rm -rf ./install
         sudo zip install-image-$LATEST_VERSION.zip ./install-image-$LATEST_VERSION.img
