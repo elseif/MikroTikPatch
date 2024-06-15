@@ -88,7 +88,6 @@ jobs:
 
     - name: Get latest routeros stable version  
       run: |
-        ls -R
         echo $(uname -a)
         LATEST_VERSION=$(wget -nv -O - $LATEST_STABLE_VERSION_URL | cut -d ' ' -f1)
         echo Latest Stabel Version:$LATEST_VERSION

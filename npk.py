@@ -289,7 +289,7 @@ if __name__=='__main__':
         eddsa_private_key = bytes.fromhex(os.environ['CUSTOM_NPK_SIGN_PRIVATE_KEY'])
         option_npk = NovaPackage.load(args.input)
         option_npk[NpkPartID.NAME_INFO].data.name = args.name
-        option_npk[NpkPartID.DESCRIPTION].data = args.description or args.name.encode()
+        option_npk[NpkPartID.DESCRIPTION].data = args.description.encode() if args.description else args.name.encode()
         option_npk[NpkPartID.NULL_BLOCK].data = b''
         option_npk[NpkPartID.SQUASHFS].data = open(args.squashfs,'rb').read() 
         option_npk.sign(kcdsa_private_key,eddsa_private_key)
