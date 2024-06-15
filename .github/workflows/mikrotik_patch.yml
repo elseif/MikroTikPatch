@@ -61,18 +61,19 @@ jobs:
 
     - name: Create squashfs for python3 npk        
       run: |
-        sudo wget -nv https://www.python.org/ftp/python/3.11.9/Python-3.11.9.tar.xz
-        sudo tar -xf Python-3.11.9.tar.xz
-        sudo rm -f Python-3.11.9.tar.xz
+        wget -nv https://www.python.org/ftp/python/3.11.9/Python-3.11.9.tar.xz
+        tar -xf Python-3.11.9.tar.xz
+        rm -f Python-3.11.9.tar.xz
         sudo mkdir -p /pckg/python3/
         cd Python-3.11.9
         ./configure --enable-optimizations  --prefix=/pckg/python3/ LDFLAGS="-static" CFLAGS="-static" --disable-shared --disable-test-modules --without-static-libpython 
         make -j$(nproc)
         sudo make altinstall
         cd ..
-        sudo rm -rf Python-3.11.9
+        rm -rf Python-3.11.9
         sudo mksquashfs /pckg/python3 python3.sfs -quiet -comp xz -no-xattrs -b 256
         sudo rm -rf /pckg
+        
     - name: Archive Generated File
       uses: actions/upload-artifact@v2
       with:
