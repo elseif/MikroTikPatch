@@ -134,7 +134,4 @@ jobs:
         make_latest: "true"
         files: |
           mikrotik-${{ env.LATEST_VERSION }}.iso
-          routeros-${{ env.LATEST_VERSION }}.npk
-          option-${{ env.LATEST_VERSION }}.npk
-          keygen.zip
 
