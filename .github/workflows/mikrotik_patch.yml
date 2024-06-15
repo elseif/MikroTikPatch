@@ -80,6 +80,7 @@ jobs:
         sudo rm -rf ./iso
         sudo rm -f mikrotik-$LATEST_VERSION.iso
         sudo rm -rf ./new_iso/routeros-$LATEST_VERSION.npk
+        sudo cp keygen.zip ./new_iso/
         NPK_FILES=$(find ./new_iso/*.npk)
         for file in $NPK_FILES; do
             sudo -E python3 npk.py sign $file $file
