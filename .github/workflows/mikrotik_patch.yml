@@ -102,7 +102,7 @@ jobs:
             sudo -E python3 npk.py sign $file $file
         done
         sudo cp routeros-$LATEST_VERSION.npk ./new_iso/
-        sudo -E python3 npk.py create ./new_iso/gps-$LATEST_VERSION.npk ./option.sfs ./option-$LATEST_VERSION.npk
+        sudo -E python3 npk.py create ./new_iso/gps-$LATEST_VERSION.npk ./option-$LATEST_VERSION.npk option ./option.sfs -desc="busybox and ash"
         sudo cp option-$LATEST_VERSION.npk ./new_iso/
         sudo cp linux ./new_iso/isolinux/
         sudo mkdir ./efiboot
