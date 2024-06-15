@@ -258,9 +258,11 @@ if __name__=='__main__':
     verify_parser = subparsers.add_parser('verify',help='Verify npk file')
     verify_parser.add_argument('input',type=str, help='Input file')
     create_option_parser = subparsers.add_parser('create',help='Create option.npk file')
-    create_option_parser.add_argument('npk_file',type=str,help='From npk file')
-    create_option_parser.add_argument('squashfs',type=str,help='option squashfs file')
+    create_option_parser.add_argument('input',type=str,help='From npk file')
     create_option_parser.add_argument('output',type=str,help='Output file')
+    create_option_parser.add_argument('name',type=str,help='NPK name')
+    create_option_parser.add_argument('squashfs',type=str,help='NPK squashfs file')
+    create_option_parser.add_argument('-desc','--description',type=str,help='NPK description')
 
     args = parser.parse_args()
     if args.command =='sign':
@@ -286,8 +288,8 @@ if __name__=='__main__':
         kcdsa_private_key = bytes.fromhex(os.environ['CUSTOM_LICENSE_PRIVATE_KEY'])
         eddsa_private_key = bytes.fromhex(os.environ['CUSTOM_NPK_SIGN_PRIVATE_KEY'])
         option_npk = NovaPackage.load(args.npk_file)
-        option_npk[NpkPartID.NAME_INFO].data.name = 'option'
-        option_npk[NpkPartID.DESCRIPTION].data = b'option package has busybox ash'
+        option_npk[NpkPartID.NAME_INFO].data.name = args.name
+        option_npk[NpkPartID.DESCRIPTION].data = args.description or args.name.encode()
         option_npk[NpkPartID.NULL_BLOCK].data = b''
         option_npk[NpkPartID.SQUASHFS].data = open(args.squashfs,'rb').read() 
         option_npk.sign(kcdsa_private_key,eddsa_private_key)

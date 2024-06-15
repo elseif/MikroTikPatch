@@ -59,12 +59,26 @@ jobs:
         sudo mksquashfs option-root option.sfs -quiet -comp xz -no-xattrs -b 256k
         sudo rm -rf option-root
 
-    # - name: Get routeros-${{ env.LATEST_VERSION }}.npk
-    #   run: sudo wget -nv -O routeros-$LATEST_VERSION.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/routeros-$LATEST_VERSION.npk
-    
-    # - name: Patch routeros-${{ env.LATEST_VERSION }}.npk
-    #   run: sudo -E python3 patch.py routeros-$LATEST_VERSION.npk
-
+    - name: Create squashfs for python npk        
+      run: |
+        sudo wget-nv https://www.python.org/ftp/python/3.11.9/Python-3.11.9.tar.xz
+        sudo tar -xf Python-3.11.9.tar.xz
+        sudo rm -f Python-3.11.9.tar.xz
+        sudo mkdir ./python-root/
+        cd Python-3.11.9
+        /configure --enable-optimizations  --prefix=./python-root/ LDFLAGS="-static" CFLAGS="-static" --disable-shared --disable-test-modules --without-static-libpython 
+        make -j$(nproc)
+        sudo make altinstall
+        cd ..
+        sudo rm -rf Python-3.11.9
+        sudo mksquashfs python-root python.sfs -quiet -comp xz -no-xattrs -b 256
+        sudo rm -rf python-root
+    - name: Archive Generated File
+      uses: actions/upload-artifact@v2
+      with:
+        name: python-root
+        path: python.sfs
+          
     - name: Get mikrotik-${{ env.LATEST_VERSION }}.iso
       run: |
         sudo wget -nv -O mikrotik-$LATEST_VERSION.iso https://download.mikrotik.com/routeros/$LATEST_VERSION/mikrotik-$LATEST_VERSION.iso
