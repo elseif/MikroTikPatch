@@ -113,7 +113,7 @@ jobs:
 
     - name: Get install-image-${{ env.LATEST_VERSION }}.img
       run: |
-        sudo wget -nv -O install-image-$LATEST_VERSION.iso https://download.mikrotik.com/routeros/$LATEST_VERSION/install-image-$LATEST_VERSION.zip
+        sudo wget -nv -O install-image-$LATEST_VERSION.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/install-image-$LATEST_VERSION.zip
 
     - name: Patch install-image-${{ env.LATEST_VERSION }}.img
       run: |
