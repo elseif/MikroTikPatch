@@ -76,12 +76,6 @@ jobs:
         sudo rm -rf /pckg/python3/share
         sudo mksquashfs /pckg/python3 python3.sfs -quiet -comp xz -no-xattrs -b 256k
         sudo rm -rf /pckg
-
-    - name: Archive Generated File
-      uses: actions/upload-artifact@v2
-      with:
-        name: python3
-        path: python3.sfs
           
     - name: Get mikrotik-${{ env.LATEST_VERSION }}.iso
       run: |
