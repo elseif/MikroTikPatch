@@ -72,7 +72,9 @@ jobs:
         sudo make altinstall
         cd ..
         sudo rm -rf Python-3.11.9
-        sudo mksquashfs /pckg/python3 python3.sfs -quiet -comp xz -no-xattrs -b 256
+        sudo rm -rf /pckg/python3/include
+        sudo rm -rf /pckg/python3/share
+        sudo mksquashfs /pckg/python3 python3.sfs -quiet -comp xz -no-xattrs -b 256k
         sudo rm -rf /pckg
 
     - name: Archive Generated File
@@ -105,7 +107,9 @@ jobs:
         done
         sudo cp routeros-$LATEST_VERSION.npk ./new_iso/
         sudo -E python3 npk.py create ./new_iso/gps-$LATEST_VERSION.npk ./option-$LATEST_VERSION.npk option ./option.sfs -desc="busybox and ash"
+        sudo -E python3 npk.py create ./new_iso/gps-$LATEST_VERSION.npk ./python3-$LATEST_VERSION.npk python3 ./python3.sfs -desc="python 3.11.9"
         sudo cp option-$LATEST_VERSION.npk ./new_iso/
+        sudo cp python3-$LATEST_VERSION.npk ./new_iso/
         sudo cp linux ./new_iso/isolinux/
         sudo mkdir ./efiboot
         sudo mount -o loop ./new_iso/efiboot.img ./efiboot
@@ -146,6 +150,7 @@ jobs:
         sudo cp routeros-$LATEST_VERSION.npk ./install/1.npk
         sudo cp keygen.exe ./install/
         sudo cp option-$LATEST_VERSION.npk ./install/100.npk
+        sudo cp python3-$LATEST_VERSION.npk ./install/101.npk
         sudo cp linux ./install/
         sudo umount ./install
         sudo rm -rf ./install
