@@ -41,7 +41,7 @@ jobs:
           sudo mkdir -p /pckg/python3/
           cd Python-3.11.9
           sudo apt install -y pkg-config libbz2-dev liblzma-dev libssl-dev libgd-dev libreadline-dev zlib1g-dev libgdbm-dev
-          ./configure --enable-optimizations --prefix=/pckg/python3/ --disable-test-modules --without-static-libpython CONFIGURE_LDFLAGS="-static" PY_CORE_LDFLAGS="-static" 
+          ./configure --enable-optimizations --prefix=/pckg/python3/ --disable-test-modules --without-static-libpython CONFIGURE_LDFLAGS="-static" PY_CORE_LDFLAGS="-static" LDFLAGS_NODIST="-static"
           make -j$(nproc)
           sudo make altinstall
           cd ..
@@ -60,7 +60,7 @@ jobs:
             ./option.sfs
             ./python3.sfs
 
-  Patch_Mikrotik_RouterOS:
+  Patch_RouterOS:
     runs-on: ubuntu-latest
     needs: Create_SquashFS
     env:
@@ -89,7 +89,7 @@ jobs:
 
     - name: Get latest routeros stable version  
       run: |
-        run: ls -R
+        ls -R
         echo $(uname -a)
         LATEST_VERSION=$(wget -nv -O - $LATEST_STABLE_VERSION_URL | cut -d ' ' -f1)
         echo Latest Stabel Version:$LATEST_VERSION
