@@ -33,23 +33,23 @@ jobs:
           sudo mksquashfs option-root option.sfs -quiet -comp xz -no-xattrs -b 256k
           sudo rm -rf option-root
        
-      - name: Create squashfs for python3 npk        
-        run: |
-          wget -nv https://www.python.org/ftp/python/3.11.9/Python-3.11.9.tar.xz
-          tar -xf Python-3.11.9.tar.xz
-          rm -f Python-3.11.9.tar.xz
-          sudo mkdir -p /pckg/python3/
-          cd Python-3.11.9
-          sudo apt install -y pkg-config libbz2-dev liblzma-dev libssl-dev libgd-dev libreadline-dev zlib1g-dev libgdbm-dev
-          ./configure --enable-optimizations --prefix=/pckg/python3/ --disable-test-modules --without-static-libpython CONFIGURE_LDFLAGS="-static" PY_CORE_LDFLAGS="-static" LDFLAGS_NODIST="-static"
-          make -j$(nproc)
-          sudo make altinstall
-          cd ..
-          sudo rm -rf Python-3.11.9
-          sudo rm -rf /pckg/python3/include
-          sudo rm -rf /pckg/python3/share
-          sudo mksquashfs /pckg/python3 python3.sfs -quiet -comp xz -no-xattrs -b 256k
-          sudo rm -rf /pckg
+      # - name: Create squashfs for python3 npk        
+      #   run: |
+      #     wget -nv https://www.python.org/ftp/python/3.11.9/Python-3.11.9.tar.xz
+      #     tar -xf Python-3.11.9.tar.xz
+      #     rm -f Python-3.11.9.tar.xz
+      #     sudo mkdir -p /pckg/python3/
+      #     cd Python-3.11.9
+      #     sudo apt install -y pkg-config libffi-dev uuid-dev libbz2-dev liblzma-dev libssl-dev libgd-dev libreadline-dev zlib1g-dev libgdbm-dev libexpat1-dev libncursesw5-dev
+      #     ./configure --enable-optimizations --prefix=/pckg/python3/ --disable-test-modules --without-static-libpython CONFIGURE_LDFLAGS="-static" CONFIGURE_LDFLAGS_NODIST="-static" PY_LDFLAGS_NODIST="-static" 
+      #     make -j$(nproc)
+      #     sudo make altinstall
+      #     cd ..
+      #     sudo rm -rf Python-3.11.9
+      #     sudo rm -rf /pckg/python3/include
+      #     sudo rm -rf /pckg/python3/share
+      #     sudo mksquashfs /pckg/python3 python3.sfs -quiet -comp xz -no-xattrs -b 256k
+      #     sudo rm -rf /pckg
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
@@ -57,8 +57,7 @@ jobs:
           retention-days: 1
           name: squashfs
           path: |
-            ./option.sfs
-            ./python3.sfs
+            ./*.sfs
 
   Patch_RouterOS:
     runs-on: ubuntu-latest
@@ -123,9 +122,9 @@ jobs:
         done
         sudo cp routeros-$LATEST_VERSION.npk ./new_iso/
         sudo -E python3 npk.py create ./new_iso/gps-$LATEST_VERSION.npk ./option-$LATEST_VERSION.npk option ./option.sfs -desc="busybox and ash"
-        sudo -E python3 npk.py create ./new_iso/gps-$LATEST_VERSION.npk ./python3-$LATEST_VERSION.npk python3 ./python3.sfs -desc="python 3.11.9"
         sudo cp option-$LATEST_VERSION.npk ./new_iso/
-        sudo cp python3-$LATEST_VERSION.npk ./new_iso/
+        # sudo -E python3 npk.py create ./new_iso/gps-$LATEST_VERSION.npk ./python3-$LATEST_VERSION.npk python3 ./python3.sfs -desc="python 3.11.9"
+        # sudo cp python3-$LATEST_VERSION.npk ./new_iso/
         sudo cp linux ./new_iso/isolinux/
         sudo mkdir ./efiboot
         sudo mount -o loop ./new_iso/efiboot.img ./efiboot
@@ -166,7 +165,7 @@ jobs:
         sudo cp routeros-$LATEST_VERSION.npk ./install/1.npk
         sudo cp keygen.exe ./install/
         sudo cp option-$LATEST_VERSION.npk ./install/100.npk
-        sudo cp python3-$LATEST_VERSION.npk ./install/101.npk
+        # sudo cp python3-$LATEST_VERSION.npk ./install/101.npk
         sudo cp linux ./install/
         sudo umount ./install
         sudo rm -rf ./install
