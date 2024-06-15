@@ -61,7 +61,7 @@ jobs:
 
     - name: Create squashfs for python npk        
       run: |
-        sudo wget-nv https://www.python.org/ftp/python/3.11.9/Python-3.11.9.tar.xz
+        sudo wget -nv https://www.python.org/ftp/python/3.11.9/Python-3.11.9.tar.xz
         sudo tar -xf Python-3.11.9.tar.xz
         sudo rm -f Python-3.11.9.tar.xz
         sudo mkdir ./python-root/
