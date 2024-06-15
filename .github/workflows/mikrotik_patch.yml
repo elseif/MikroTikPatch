@@ -66,8 +66,8 @@ jobs:
         rm -f Python-3.11.9.tar.xz
         sudo mkdir -p /pckg/python3/
         cd Python-3.11.9
-        sudo apt install -y build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev libffi-dev liblzma-dev tk-dev libgdbm-dev libdb5.3-dev libexpat1 libncursesw5-dev libssl-dev xz-utils
-        ./configure --enable-optimizations  --prefix=/pckg/python3/ LDFLAGS="-static" CFLAGS="-static" --disable-shared --disable-test-modules --without-static-libpython 
+        sudo apt install -y pkg-config libbz2-dev liblzma-dev libssl-dev libgd-dev libreadline-dev zlib1g-dev
+        ./configure --enable-optimizations  --prefix=/pckg/python3/ LDFLAGS="-static" CFLAGS="-static" CPPFLAGS="-static" --disable-shared --disable-test-modules --without-static-libpython 
         make -j$(nproc)
         sudo make altinstall
         cd ..
