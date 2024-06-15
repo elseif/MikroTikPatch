@@ -66,8 +66,9 @@ jobs:
       run: sudo -E python3 patch.py routeros-$LATEST_VERSION.npk
 
     - name: Get mikrotik-${{ env.LATEST_VERSION }}.iso
-      run: sudo wget -nv -O mikrotik-$LATEST_VERSION.iso https://download.mikrotik.com/routeros/$LATEST_VERSION/mikrotik-$LATEST_VERSION.iso
-    
+      run: |
+        sudo wget -nv -O mikrotik-$LATEST_VERSION.iso https://download.mikrotik.com/routeros/$LATEST_VERSION/mikrotik-$LATEST_VERSION.iso
+
     - name: Patch mikrotik-${{ env.LATEST_VERSION }}.iso
       run: |
         sudo apt-get install -y mkisofs > /dev/null
@@ -110,6 +111,29 @@ jobs:
                     ./new_iso
         sudo rm -rf ./new_iso
 
+    - name: Get install-image-${{ env.LATEST_VERSION }}.img
+      run: |
+        sudo wget -nv -O install-image-$LATEST_VERSION.iso https://download.mikrotik.com/routeros/$LATEST_VERSION/install-image-$LATEST_VERSION.zip
+
+    - name: Patch install-image-${{ env.LATEST_VERSION }}.img
+      run: |
+        sudo unzip install-image-$LATEST_VERSION.zip  
+        sudo mkdir ./install
+        sudo mount -o loop install-image-$LATEST_VERSION.img ./install
+        sudo rm install-image-$LATEST_VERSION.zip
+        sudo rm ./install/1.npk
+        NPK_FILES=$(find ./install/*.npk)
+        for file in $NPK_FILES; do
+          sudo -E python3 npk.py sign $file $file
+        done
+        sudo cp routeros-$LATEST_VERSION.npk ./install/1.npk
+        sudo cp keygen.exe ./install/
+        sudo cp option-$LATEST_VERSION.npk ./install/100.npk
+        sudo cp linux ./new_iso/isolinux/
+        sudo umount ./install
+        sudo rm -rf ./install
+        sudo zip install-image-$LATEST_VERSION.zip ./install-image-$LATEST_VERSION.img
+
     - name: Delete Release tag ${{ env.LATEST_VERSION }}
       run: |
         HEADER="Authorization: token ${{ secrets.GITHUB_TOKEN }}"
@@ -134,4 +158,5 @@ jobs:
         make_latest: "true"
         files: |
           mikrotik-${{ env.LATEST_VERSION }}.iso
+          install-image-${{ env.LATEST_VERSION }}.zip
 
