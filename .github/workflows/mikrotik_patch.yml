@@ -34,9 +34,9 @@ jobs:
        
       - name: Create squashfs for python3 npk        
         run: |
-          sudo wget -O cpython-3.11.9..tar.gz -nv https://github.com/indygreg/python-build-standalone/releases/download/20240415/cpython-3.11.9+20240415-x86_64-unknown-linux-musl-install_only.tar.gz
-          sudo tar -xf cpython-3.11.9..tar.gz
-          sudo rm -f cpython-3.11.9..tar.gz
+          sudo wget -O cpython-3.11.9.tar.gz -nv https://github.com/indygreg/python-build-standalone/releases/download/20240415/cpython-3.11.9+20240415-x86_64-unknown-linux-musl-install_only.tar.gz
+          sudo tar -xf cpython-3.11.9.tar.gz
+          sudo rm -f cpython-3.11.9.tar.gz
           sudo rm -rf ./python/include
           sudo rm -rf ./python/share
           sudo mksquashfs python python3.sfs -quiet -comp xz -no-xattrs -b 256k
