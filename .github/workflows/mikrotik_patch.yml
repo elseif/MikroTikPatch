@@ -110,7 +110,7 @@ jobs:
         sudo rm -f mikrotik-$LATEST_VERSION.iso
         sudo mv ./new_iso/routeros-$LATEST_VERSION.npk ./
         sudo -E python3 patch.py npk routeros-$LATEST_VERSION.npk
-        sudo cp keygen.exe ./new_iso/
+        sudo cp keygen.zip ./new_iso/
         NPK_FILES=$(find ./new_iso/*.npk)
         for file in $NPK_FILES; do
             sudo -E python3 npk.py sign $file $file
@@ -158,7 +158,7 @@ jobs:
           sudo -E python3 npk.py sign $file $file
         done
         sudo cp routeros-$LATEST_VERSION.npk ./install/1.npk
-        sudo cp keygen.exe ./install/
+        sudo cp keygen.zip ./install/
         sudo cp option-$LATEST_VERSION.npk ./install/100.npk
         sudo cp python3-$LATEST_VERSION.npk ./install/101.npk
         sudo cp linux ./install/
