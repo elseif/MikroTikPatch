@@ -98,6 +98,7 @@ jobs:
       run: |
         sudo wget -nv -O netinstall-$LATEST_VERSION.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/netinstall-$LATEST_VERSION.zip
         sudo unzip netinstall-$LATEST_VERSION.zip
+        sudo rm netinstall-$LATEST_VERSION.zip
     - name: Patch netinstall.exe
       run: |
         sudo -E python3 patch.py netinstall netinstall.exe
@@ -156,13 +157,13 @@ jobs:
       run: |
         sudo wget -nv -O chr-$LATEST_VERSION.img.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/chr-$LATEST_VERSION.img.zip
         sudo unzip chr-$LATEST_VERSION.img.zip
+        sudo rm chr-$LATEST_VERSION.img.zip
         
     - name: Patch chr-${{ env.LATEST_VERSION }}.img
       run: |
         sudo modprobe nbd
         sudo apt install -y qemu-utils > /dev/null
         sudo qemu-img convert -f raw -O qcow2 chr-$LATEST_VERSION.img chr-$LATEST_VERSION.qcow2
-        sudo rm chr-$LATEST_VERSION.img.zip
         sudo rm chr-$LATEST_VERSION.img
         sudo qemu-nbd -c /dev/nbd0 chr-$LATEST_VERSION.qcow2
         sudo -E python3 patch.py boot /dev/nbd0p1
