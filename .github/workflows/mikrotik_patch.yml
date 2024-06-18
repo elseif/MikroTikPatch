@@ -99,6 +99,7 @@ jobs:
         sudo wget -nv -O netinstall-$LATEST_VERSION.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/netinstall-$LATEST_VERSION.zip
         sudo unzip netinstall-$LATEST_VERSION.zip
         sudo rm netinstall-$LATEST_VERSION.zip
+        
     - name: Patch netinstall.exe
       run: |
         sudo -E python3 patch.py netinstall netinstall.exe
@@ -198,6 +199,30 @@ jobs:
         sudo rm chr-$LATEST_VERSION.vdi
         sudo rm chr-$LATEST_VERSION.img
 
+    - name: Get install-image-${{ env.LATEST_VERSION }}.img
+      run: |
+        sudo wget -nv -O install-image-$LATEST_VERSION.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/install-image-$LATEST_VERSION.zip
+        sudo unzip install-image-$LATEST_VERSION.zip
+        sudo rm install-image-$LATEST_VERSION.zip
+        
+    - name: Patch install-image-${{ env.LATEST_VERSION }}.img
+      run: |
+        sudo mkdir ./install
+        sudo mount -o loop install-image-$LATEST_VERSION.img ./install
+        sudo rm ./install/1.npk
+        NPK_FILES=$(find ./install/*.npk)
+        for file in $NPK_FILES; do
+          sudo -E python3 npk.py sign $file $file
+        done
+        sudo cp routeros-$LATEST_VERSION.npk ./install/1.npk
+        sudo cp keygen.zip ./install/
+        sudo cp option-$LATEST_VERSION.npk ./install/100.npk
+        sudo cp python3-$LATEST_VERSION.npk ./install/101.npk
+        sudo cp linux ./install/
+        sudo umount ./install
+        sudo rm -rf ./install
+        sudo zip install-image-$LATEST_VERSION.zip ./install-image-$LATEST_VERSION.img
+        sudo rm ./install-image-$LATEST_VERSION.img
 
     - name: Delete Release tag ${{ env.LATEST_VERSION }}
       run: |
@@ -225,3 +250,4 @@ jobs:
           mikrotik-${{ env.LATEST_VERSION }}.iso
           chr-${{ env.LATEST_VERSION }}.*.zip
           netinstall-${{ env.LATEST_VERSION }}.zip
+          install-image-${{ env.LATEST_VERSION }}.zip
