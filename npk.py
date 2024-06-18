@@ -239,14 +239,7 @@ class NovaPackage:
         assert int.from_bytes(data[4:8],'little') == len(data) - 8, 'Invalid Nova Package Size'
         return NovaPackage(data[8:])
   
-def get_latest_version(channel:str) -> str:
-    import requests
-    response = requests.get(f'https://upgrade.mikrotik.com/routeros/NEWESTa7.{channel}')
-    return response.text.split(' ')[0]
 
-def create_option_npk(npk_file:str,squashfs_file:str)->NovaPackage:
-
-    return option_npk
     
 if __name__=='__main__':
     import argparse,os

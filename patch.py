@@ -64,36 +64,40 @@ def patch_squashfs(path,key_dict):
                         data = data.replace(old_public_key,new_public_key)
                         open(file,'wb').write(data)
 
-def patch_system_npk(key_dict,input_file,output_file=None):
-    npk = NovaPackage.load(input_file)
-    file_container = NpkFileContainer.unserialize_from(npk[NpkPartID.FILE_CONTAINER].data)
-    for item in file_container:
-        if item.name == b'boot/EFI/BOOT/BOOTX64.EFI':
-            print(f'patch {item.name} ...')
-            item.data = patch_bzimage(item.data,key_dict)
-            open('linux','wb').write(item.data)
-            break
-    npk[NpkPartID.FILE_CONTAINER].data = file_container.serialize()
-    try:
-        squashfs_file = 'squashfs.sfs'
-        extract_dir = 'squashfs-root'
-        open(squashfs_file,'wb').write(npk[NpkPartID.SQUASHFS].data)
-        print(f"extract {squashfs_file} ...")
-        _, stderr = run_shell_command(f"unsquashfs -d {extract_dir} {squashfs_file}")
-        print(stderr.decode())
-        patch_squashfs(extract_dir,key_dict)
-        print(f"pack {extract_dir} ...")
+def patch_npk_file(key_dict,kcdsa_private_key,eddsa_private_key,input_file,output_file=None):
+    npk = NovaPackage.load(input_file)    
+    if npk[NpkPartID.NAME_INFO].data.name == 'system':
+        file_container = NpkFileContainer.unserialize_from(npk[NpkPartID.FILE_CONTAINER].data)
+        for item in file_container:
+            if item.name == b'boot/EFI/BOOT/BOOTX64.EFI':
+                print(f'patch {item.name} ...')
+                item.data = patch_bzimage(item.data,key_dict)
+                open('linux','wb').write(item.data)
+            elif item.name == b'boot/kernel':
+                from netinstall import patch_elf
+                print(f'patch {item.name} ...')
+                item.data = patch_elf(item.data,key_dict)
+                open('linux','wb').write(item.data)
+        npk[NpkPartID.FILE_CONTAINER].data = file_container.serialize()
+        try:
+            squashfs_file = 'squashfs.sfs'
+            extract_dir = 'squashfs-root'
+            open(squashfs_file,'wb').write(npk[NpkPartID.SQUASHFS].data)
+            print(f"extract {squashfs_file} ...")
+            _, stderr = run_shell_command(f"unsquashfs -d {extract_dir} {squashfs_file}")
+            print(stderr.decode())
+            patch_squashfs(extract_dir,key_dict)
+            print(f"pack {extract_dir} ...")
+            run_shell_command(f"rm -f {squashfs_file}")
+            _, stderr = run_shell_command(f"mksquashfs {extract_dir} {squashfs_file} -quiet -comp xz -no-xattrs -b 256k")
+            print(stderr.decode())
+        except Exception as e:
+            print(e)
+        print(f"clean ...")
+        run_shell_command(f"rm -rf {extract_dir}")
+        npk[NpkPartID.SQUASHFS].data = open(squashfs_file,'rb').read()
         run_shell_command(f"rm -f {squashfs_file}")
-        _, stderr = run_shell_command(f"mksquashfs {extract_dir} {squashfs_file} -quiet -comp xz -no-xattrs -b 256k")
-        print(stderr.decode())
-    except Exception as e:
-        print(e)
-    print(f"clean ...")
-    run_shell_command(f"rm -rf {extract_dir}")
-    npk[NpkPartID.SQUASHFS].data = open(squashfs_file,'rb').read()
-    run_shell_command(f"rm -f {squashfs_file}")
-    kcdsa_private_key = bytes.fromhex(os.environ['CUSTOM_LICENSE_PRIVATE_KEY'])
-    eddsa_private_key = bytes.fromhex(os.environ['CUSTOM_NPK_SIGN_PRIVATE_KEY'])
+
     npk.sign(kcdsa_private_key,eddsa_private_key)
     npk.save(output_file or input_file)
 
@@ -101,26 +105,26 @@ if __name__ == '__main__':
     import argparse,os
     parser = argparse.ArgumentParser(description='MikroTik patcher')
     subparsers = parser.add_subparsers(dest="command")
-    npk_parser = subparsers.add_parser('npk',help='patch routeros.npk file')
+    npk_parser = subparsers.add_parser('npk',help='patch and sign npk file')
     npk_parser.add_argument('input',type=str, help='Input file')
     npk_parser.add_argument('-o','--output',type=str,help='Output file')
-
     netinstall_parser = subparsers.add_parser('netinstall',help='patch netinstall file')
     netinstall_parser.add_argument('input',type=str, help='Input file')
     netinstall_parser.add_argument('-o','--output',type=str,help='Output file')
     args = parser.parse_args()
-
     key_dict = {
         bytes.fromhex(os.environ['MIKRO_LICENSE_PUBLIC_KEY']):bytes.fromhex(os.environ['CUSTOM_LICENSE_PUBLIC_KEY']),
         bytes.fromhex(os.environ['MIKRO_NPK_SIGN_PUBLIC_LKEY']):bytes.fromhex(os.environ['CUSTOM_NPK_SIGN_PUBLIC_KEY'])
     }
+    kcdsa_private_key = bytes.fromhex(os.environ['CUSTOM_LICENSE_PRIVATE_KEY'])
+    eddsa_private_key = bytes.fromhex(os.environ['CUSTOM_NPK_SIGN_PRIVATE_KEY'])
     if args.command =='npk':
         print(f'patching {args.input} ...')
-        patch_system_npk(key_dict,args.input)
+        patch_npk_file(key_dict,kcdsa_private_key,eddsa_private_key,args.input,args.output)
     elif args.command == 'netinstall':
         from netinstall import patch_netinstall
         print(f'patching {args.input} ...')
-        patch_netinstall(key_dict,args.input)
+        patch_netinstall(key_dict,args.input,args.output)
     else:
         parser.print_help()
 
