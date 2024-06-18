@@ -32,7 +32,7 @@
     在RouterOS内增加静态域名解析，使升级时可以安装ISO文件内的npk文件
 ## 所有的修补操作都自动运行在[Github Action](https://github.com/elseif/MikroTikPatch/blob/main/.github/workflows/mikrotik_patch.yml)。
 
-###  [MikroTik RouterOS 授权签名验证分析](https://blog.csdn.net/chivalrys/article/details/139770711) 
+
 
 
 
