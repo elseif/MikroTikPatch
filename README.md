@@ -11,15 +11,15 @@
 ![](keygen.png)
 
 ## How generate license key
-    unzip keygen.zip
-    keygen.exe software_id
+    run unzip keygen.zip
+    run keygen.exe software_id
 ## How to use shell
     install option-{version}.npk package
-    telnet routeros with username devel and password is same admin
+    run telnet to routeros with username devel and password is same as admin
 ## How to use python3
     install python3-{version}.npk package
-    telnet routeros with username devel and password is same admin
-    python -V
+    run telnet to routeros with username devel and password is same as admin
+    run python -V
 ### npk.py
     Sign，Verify，Create, Extract npk file.
 ### patch.py
