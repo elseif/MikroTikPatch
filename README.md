@@ -5,7 +5,7 @@
 ![](install.png)
 ![](routeros.png)
 
-### Uses keygen to generate license key (keygen.exe in iso).
+### Uses keygen to generate license key (keygen in iso or img).
 ![](keygen.png)
 ### all patches are applied automatically with [github workflow](https://github.com/elseif/MikroTikPatch/blob/main/.github/workflows/mikrotik_patch.yml).
 

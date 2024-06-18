@@ -1,6 +1,7 @@
 from mitmproxy import http
 import os
-class MwrAddon:
+
+class UpgradeAddon:
     def request(self,flow: http.HTTPFlow) -> None:
         if len(flow.request.path_components)==3 and flow.request.path_components[0] == 'routeros':
             version = flow.request.path_components[1]
@@ -26,7 +27,7 @@ class MwrAddon:
                     )
                 else:
                     flow.response = http.Response.make(status_code=404)
-addons = [MwrAddon()]
+
 async def start_listen(port):
     from mitmproxy.tools.dump import DumpMaster
     from mitmproxy import options
@@ -34,7 +35,7 @@ async def start_listen(port):
     print(f'listening at *:{port}')
     print(f'open http://127.0.0.1:{port}')
     master = DumpMaster(opts)
-    master.addons.add(*addons)
+    master.addons.add([UpgradeAddon()])
     try:
         await master.run()
     except KeyboardInterrupt:

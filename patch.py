@@ -98,7 +98,6 @@ def patch_system_npk(key_dict,input_file,output_file=None):
     npk.save(output_file or input_file)
 
 if __name__ == '__main__':
-    
     import argparse,os
     parser = argparse.ArgumentParser(description='MikroTik patcher')
     subparsers = parser.add_subparsers(dest="command")
