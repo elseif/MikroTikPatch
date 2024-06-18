@@ -152,29 +152,50 @@ jobs:
                     ./new_iso
         sudo rm -rf ./new_iso
 
-    - name: Get install-image-${{ env.LATEST_VERSION }}.img
+    - name: Get chr-${{ env.LATEST_VERSION }}.img
       run: |
-        sudo wget -nv -O install-image-$LATEST_VERSION.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/install-image-$LATEST_VERSION.zip
+        sudo wget -nv -O chr-$LATEST_VERSION.img.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/chr-$LATEST_VERSION.img.zip
+        sudo unzip chr-$LATEST_VERSION.img.zip
+        
+    - name: Patch chr-${{ env.LATEST_VERSION }}.img
+      run: |
+        sudo apt -y install qemu-utils 2> /dev/null
+        sudo qemu-img convert -f raw -O qcow2 chr-$LATEST_VERSION.img chr-$LATEST_VERSION.qcow2
+        sudo rm chr-$LATEST_VERSION.img.zip
+        sudo rm chr-$LATEST_VERSION.img
+        sudo qemu-nbd -c /dev/nbd0 chr-$LATEST_VERSION.qcow2
+        sudo -E python3 patch.py boot /dev/nbd0p1
+        sudo mkdir ./routeros
+        sudo mount /dev/nbd0p2 ./routeros
+        sudo mkdir -p ./qcow2/routeros/rw/disk
+        sudo cp keygen.zip ./qcow2/routeros/rw/disk
+        sudo mkdir -p ./qcow2/routeros/var/pdb/option
+        sudo cp option-$LATEST_VERSION.npk ./qcow2/routeros/var/pdb/option/image
+        sudo cp routeros-$LATEST_VERSION.npk ./qcow2/routeros/var/pdb/system/image
+        sudo umount /dev/nbd0p2
+        sudo rm -rf ./routeros
+        sudo qemu-nbd -d /dev/nbd0
 
-    - name: Patch install-image-${{ env.LATEST_VERSION }}.img
-      run: |
-        sudo unzip install-image-$LATEST_VERSION.zip  
-        sudo mkdir ./install
-        sudo mount -o loop install-image-$LATEST_VERSION.img ./install
-        sudo rm install-image-$LATEST_VERSION.zip
-        sudo rm ./install/1.npk
-        NPK_FILES=$(find ./install/*.npk)
-        for file in $NPK_FILES; do
-          sudo -E python3 npk.py sign $file $file
-        done
-        sudo cp routeros-$LATEST_VERSION.npk ./install/1.npk
-        sudo cp keygen.zip ./install/
-        sudo cp option-$LATEST_VERSION.npk ./install/100.npk
-        sudo cp python3-$LATEST_VERSION.npk ./install/101.npk
-        sudo cp linux ./install/
-        sudo umount ./install
-        sudo rm -rf ./install
-        sudo zip install-image-$LATEST_VERSION.zip ./install-image-$LATEST_VERSION.img
+        sudo qemu-img convert -f qcow2 -O vmdk chr-$LATEST_VERSION.qcow2 chr-$LATEST_VERSION.vmdk
+        sudo qemu-img convert -f qcow2 -O vpc chr-$LATEST_VERSION.qcow2 chr-$LATEST_VERSION.vhd
+        sudo qemu-img convert -f qcow2 -O vhdx chr-$LATEST_VERSION.qcow2 chr-$LATEST_VERSION.vhdx
+        sudo qemu-img convert -f qcow2 -O vdi chr-$LATEST_VERSION.qcow2 chr-$LATEST_VERSION.vdi
+        sudo qemu-img convert -f qcow2 -O raw chr-$LATEST_VERSION.qcow2 chr-$LATEST_VERSION.img
+
+        sudo zip chr-$LATEST_VERSION.qcow2.zip chr-$LATEST_VERSION.qcow2
+        sudo zip chr-$LATEST_VERSION.vmdk.zip chr-$LATEST_VERSION.vmdk
+        sudo zip chr-$LATEST_VERSION.vhd.zip chr-$LATEST_VERSION.vhd
+        sudo zip chr-$LATEST_VERSION.vhdx.zip chr-$LATEST_VERSION.vhdx
+        sudo zip chr-$LATEST_VERSION.vdi.zip chr-$LATEST_VERSION.vdi
+        sudo zip chr-$LATEST_VERSION.img.zip chr-$LATEST_VERSION.img
+
+        sudo rm chr-$LATEST_VERSION.qcow2
+        sudo rm chr-$LATEST_VERSION.vmdk
+        sudo rm chr-$LATEST_VERSION.vhd
+        sudo rm chr-$LATEST_VERSION.vhdx
+        sudo rm chr-$LATEST_VERSION.vdi
+        sudo rm chr-$LATEST_VERSION.img
+
 
     - name: Delete Release tag ${{ env.LATEST_VERSION }}
       run: |
@@ -200,5 +221,5 @@ jobs:
         make_latest:  ${{ matrix.channel == 'stable' }}
         files: |
           mikrotik-${{ env.LATEST_VERSION }}.iso
-          install-image-${{ env.LATEST_VERSION }}.zip
+          chr-${{ env.LATEST_VERSION }}.*.zip
           netinstall-${{ env.LATEST_VERSION }}.zip
