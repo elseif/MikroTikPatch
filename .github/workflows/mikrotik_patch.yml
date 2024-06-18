@@ -5,7 +5,12 @@ on:
   schedule:
     - cron: "0 0 * * *"
   workflow_dispatch:
-
+    inputs:
+      version:
+        description: 'Mikrotik RouterOS version'
+        required: true
+        type: string
+        default: ''
 permissions:
   contents: write
 
@@ -82,7 +87,10 @@ jobs:
     - name: Get latest routeros version  
       run: |
         echo $(uname -a)
-        LATEST_VERSION=$(wget -nv -O - ${{ env.LATEST_VERSION_URL }}${{ matrix.channel }} | cut -d ' ' -f1)
+        if [ "${{ inputs.version }}" == "" ]; then
+          LATEST_VERSION=$(wget -nv -O - ${{ env.LATEST_VERSION_URL }}${{ matrix.channel }} | cut -d ' ' -f1)
+        else
+          LATEST_VERSION=${{ inputs.version }}
         echo Latest Version:$LATEST_VERSION
         echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_ENV
 
