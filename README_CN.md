@@ -11,6 +11,7 @@
 ![](keygen.png)
 
 ## 如何生成授权许可
+    keygen.zip在iso或者img文件的根目录下；chr镜像文件/rw/disk/目录下，和winbox打开后files目录一致。
     解压缩 keygen.zip
     运行 keygen.exe software_id
 ## 如何使用Shell
