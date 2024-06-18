@@ -87,10 +87,10 @@ jobs:
       run: |
         sudo wget -nv -O netinstall-$LATEST_VERSION.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/netinstall-$LATEST_VERSION.zip
         sudo unzip netinstall-$LATEST_VERSION.zip
-    - name: Patch netinstall-${{ env.LATEST_VERSION }}.exe
+    - name: Patch netinstall.exe
       run: |
-        sudo -E python3 patch.py netinstall netinstall-$LATEST_VERSION.exe
-        sudo zip netinstall-$LATEST_VERSION.zip ./netinstall-$LATEST_VERSION.exe
+        sudo -E python3 patch.py netinstall netinstall.exe
+        sudo zip netinstall-$LATEST_VERSION.zip ./netinstall.exe
 
 
     - name: Get mikrotik-${{ env.LATEST_VERSION }}.iso
