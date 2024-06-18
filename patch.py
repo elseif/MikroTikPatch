@@ -159,7 +159,7 @@ if __name__ == '__main__':
     if args.command =='npk':
         print(f'patching {args.input} ...')
         patch_npk_file(key_dict,kcdsa_private_key,eddsa_private_key,args.input,args.output)
-    if args.command =='boot':
+    elif args.command =='boot':
         print(f'patching {args.dev} ...')
         patch_bootloader(key_dict,args.dev)
     elif args.command == 'netinstall':

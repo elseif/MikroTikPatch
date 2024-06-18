@@ -160,7 +160,7 @@ jobs:
     - name: Patch chr-${{ env.LATEST_VERSION }}.img
       run: |
         sudo modprobe nbd
-        sudo apt -y install qemu-utils debugfs 2> /dev/null
+        sudo apt install -y qemu-utils 2> /dev/null
         sudo qemu-img convert -f raw -O qcow2 chr-$LATEST_VERSION.img chr-$LATEST_VERSION.qcow2
         sudo rm chr-$LATEST_VERSION.img.zip
         sudo rm chr-$LATEST_VERSION.img
