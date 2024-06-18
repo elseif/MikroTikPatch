@@ -19,7 +19,7 @@ class NpkPartID(IntEnum):
     SQUASHFS                =0x15	# SquashFS 
     NULL_BLOCK              =0X16
     GIT_COMMIT              =0x17	# Git commit
-    CHANNEL                 =0x18	# Release type (e.g. stable, bugfix)
+    CHANNEL                 =0x18	# Release type (e.g. stable, testing, etc.)
     HEADER                  =0x19	
 
 @dataclass
@@ -256,30 +256,27 @@ if __name__=='__main__':
     create_option_parser.add_argument('name',type=str,help='NPK name')
     create_option_parser.add_argument('squashfs',type=str,help='NPK squashfs file')
     create_option_parser.add_argument('-desc','--description',type=str,help='NPK description')
-
     args = parser.parse_args()
+    kcdsa_private_key = bytes.fromhex(os.environ['CUSTOM_LICENSE_PRIVATE_KEY'])
+    eddsa_private_key = bytes.fromhex(os.environ['CUSTOM_NPK_SIGN_PRIVATE_KEY'])
+    kcdsa_public_key = bytes.fromhex(os.environ['CUSTOM_LICENSE_PUBLIC_KEY'])
+    eddsa_public_key = bytes.fromhex(os.environ['CUSTOM_NPK_SIGN_PUBLIC_KEY'])
     if args.command =='sign':
         print(f'Signing {args.input}')
         npk = NovaPackage.load(args.input)
-        kcdsa_private_key = bytes.fromhex(os.environ['CUSTOM_LICENSE_PRIVATE_KEY'])
-        eddsa_private_key = bytes.fromhex(os.environ['CUSTOM_NPK_SIGN_PRIVATE_KEY'])
         npk.sign(kcdsa_private_key,eddsa_private_key)
         npk.save(args.output)
     elif args.command == 'verify':
         npk = NovaPackage.load(args.input)
         print(f'Verifying {args.input} ',end="")
-        kcdsa_public_key = bytes.fromhex(os.environ['CUSTOM_LICENSE_PUBLIC_KEY'])
-        eddsa_public_key = bytes.fromhex(os.environ['CUSTOM_NPK_SIGN_PUBLIC_KEY'])
         if npk.verify(kcdsa_public_key,eddsa_public_key):
             print('Valid')
             exit(0)
         else:
             print('Invalid')
-            exit(1)
+            exit(-1)
     elif args.command =='create':
         print(f'Creating option.npk from {args.input}')
-        kcdsa_private_key = bytes.fromhex(os.environ['CUSTOM_LICENSE_PRIVATE_KEY'])
-        eddsa_private_key = bytes.fromhex(os.environ['CUSTOM_NPK_SIGN_PRIVATE_KEY'])
         option_npk = NovaPackage.load(args.input)
         option_npk[NpkPartID.NAME_INFO].data.name = args.name
         option_npk[NpkPartID.DESCRIPTION].data = args.description.encode() if args.description else args.name.encode()
