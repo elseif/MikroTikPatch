@@ -3,7 +3,6 @@ import struct,os
 from npk import NovaPackage,NpkPartID,NpkFileContainer
 
 def patch_bzimage(data:bytes,key_dict:dict):
-    print(f'bzImage size : {len(data)}')
     PE_TEXT_SECTION_OFFSET = 414
     HEADER_PAYLOAD_OFFSET = 584
     HEADER_PAYLOAD_LENGTH_OFFSET = HEADER_PAYLOAD_OFFSET + 4
@@ -11,13 +10,9 @@ def patch_bzimage(data:bytes,key_dict:dict):
     payload_offset =  text_section_raw_data +struct.unpack_from('<I',data,HEADER_PAYLOAD_OFFSET)[0]
     payload_length = struct.unpack_from('<I',data,HEADER_PAYLOAD_LENGTH_OFFSET)[0]
     payload_length = payload_length - 4 #last 4 bytes is uncompressed size(z_output_len)
-    print(f'vmlinux xz offset : {payload_offset}')
-    print(f'vmlinux xz size : {payload_length}')
     z_output_len = struct.unpack_from('<I',data,payload_offset+payload_length)[0]
-    print(f'z_output_len : {z_output_len}')
     vmlinux_xz = data[payload_offset:payload_offset+payload_length]
     vmlinux = lzma.decompress(vmlinux_xz)
-    print(f'vmlinux size : {len(vmlinux)}')
     assert z_output_len == len(vmlinux), 'vmlinux size is not equal to expected'
     CPIO_HEADER_MAGIC = b'07070100'
     CPIO_FOOTER_MAGIC = b'TRAILER!!!\x00\x00\x00\x00' #545241494C455221212100000000
@@ -36,7 +31,6 @@ def patch_bzimage(data:bytes,key_dict:dict):
             {"id": lzma.FILTER_LZMA2, "preset": 8,'dict_size': 32*1024*1024},
         ])
     new_payload_length = len(new_vmlinux_xz)
-    print(f'new vmlinux xz size : {new_payload_length}')
     assert new_payload_length <= payload_length , 'new vmlinux.xz size is too big'
     new_payload_length = new_payload_length + 4 #last 4 bytes is uncompressed size(z_output_len)
     new_data = bytearray(data)
@@ -45,7 +39,6 @@ def patch_bzimage(data:bytes,key_dict:dict):
     new_vmlinux_xz += struct.pack('<I',z_output_len)
     new_vmlinux_xz = new_vmlinux_xz.ljust(len(vmlinux_xz),b'\0')
     new_data = new_data.replace(vmlinux_xz,new_vmlinux_xz)
-    print(f'new bzImage size : {len(new_data)}')
     return new_data
 
 def run_shell_command(command):
