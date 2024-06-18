@@ -64,8 +64,8 @@ def patch_squashfs(path,key_dict):
                         data = data.replace(old_public_key,new_public_key)
                         open(file,'wb').write(data)
 
-def patch_system_npk(npk_file,key_dict):
-    npk = NovaPackage.load(npk_file)
+def patch_system_npk(key_dict,input_file,output_file=None):
+    npk = NovaPackage.load(input_file)
     file_container = NpkFileContainer.unserialize_from(npk[NpkPartID.FILE_CONTAINER].data)
     for item in file_container:
         if item.name == b'boot/EFI/BOOT/BOOTX64.EFI':
@@ -95,17 +95,35 @@ def patch_system_npk(npk_file,key_dict):
     kcdsa_private_key = bytes.fromhex(os.environ['CUSTOM_LICENSE_PRIVATE_KEY'])
     eddsa_private_key = bytes.fromhex(os.environ['CUSTOM_NPK_SIGN_PRIVATE_KEY'])
     npk.sign(kcdsa_private_key,eddsa_private_key)
-    npk.save(npk_file)
+    npk.save(output_file or input_file)
 
 if __name__ == '__main__':
-    import os,sys
+    
+    import argparse,os
+    parser = argparse.ArgumentParser(description='MikroTik patcher')
+    subparsers = parser.add_subparsers(dest="command")
+    npk_parser = subparsers.add_parser('npk',help='patch routeros.npk file')
+    npk_parser.add_argument('input',type=str, help='Input file')
+    npk_parser.add_argument('-o','--output',type=str,help='Output file')
+
+    netinstall_parser = subparsers.add_parser('netinstall',help='patch netinstall file')
+    netinstall_parser.add_argument('input',type=str, help='Input file')
+    netinstall_parser.add_argument('-o','--output',type=str,help='Output file')
+    args = parser.parse_args()
+
     key_dict = {
         bytes.fromhex(os.environ['MIKRO_LICENSE_PUBLIC_KEY']):bytes.fromhex(os.environ['CUSTOM_LICENSE_PUBLIC_KEY']),
         bytes.fromhex(os.environ['MIKRO_NPK_SIGN_PUBLIC_LKEY']):bytes.fromhex(os.environ['CUSTOM_NPK_SIGN_PUBLIC_KEY'])
     }
-    if len(sys.argv) == 2:
-        print(f'patching {sys.argv[1]} ...')
-        patch_system_npk(sys.argv[1],key_dict)
+    if args.command =='npk':
+        print(f'patching {args.input} ...')
+        patch_system_npk(key_dict,args.input)
+    elif args.command == 'netinstall':
+        from netinstall import patch_netinstall
+        print(f'patching {args.input} ...')
+        patch_netinstall(key_dict,args.input)
     else:
-        print('usage: python patch.py npk_file')
+        parser.print_help()
+
+
     

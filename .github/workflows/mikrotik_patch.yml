@@ -83,10 +83,16 @@ jobs:
         echo Latest Stabel Version:$LATEST_VERSION
         echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_ENV
 
-    - name: Create keygen 
+    - name: Get netinstall-${{ env.LATEST_VERSION }}.zip
       run: |
-       zip keygen.zip ./keygen.exe
-          
+        sudo wget -nv -O netinstall-$LATEST_VERSION.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/netinstall-$LATEST_VERSION.zip
+        sudo unzip netinstall-$LATEST_VERSION.zip
+    - name: Patch netinstall-${{ env.LATEST_VERSION }}.exe
+      run: |
+        sudo -E python3 patch.py netinstall netinstall-$LATEST_VERSION.exe
+        sudo zip netinstall-$LATEST_VERSION.zip ./netinstall-$LATEST_VERSION.exe
+
+
     - name: Get mikrotik-${{ env.LATEST_VERSION }}.iso
       run: |
         sudo wget -nv -O mikrotik-$LATEST_VERSION.iso https://download.mikrotik.com/routeros/$LATEST_VERSION/mikrotik-$LATEST_VERSION.iso
@@ -103,7 +109,7 @@ jobs:
         sudo rm -rf ./iso
         sudo rm -f mikrotik-$LATEST_VERSION.iso
         sudo mv ./new_iso/routeros-$LATEST_VERSION.npk ./
-        sudo -E python3 patch.py routeros-$LATEST_VERSION.npk
+        sudo -E python3 patch.py npk routeros-$LATEST_VERSION.npk
         sudo cp keygen.exe ./new_iso/
         NPK_FILES=$(find ./new_iso/*.npk)
         for file in $NPK_FILES; do
@@ -163,16 +169,16 @@ jobs:
     - name: Delete Release tag ${{ env.LATEST_VERSION }}
       run: |
         HEADER="Authorization: token ${{ secrets.GITHUB_TOKEN }}"
-        RELEASE_INFO=$(curl -s -H $HEADER https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ env.LATEST_VERSION }})
+        RELEASE_INFO=$(curl -s -H $HEADER https://api.github.com/repos/${{ github.repository }}/releases/tags/$LATEST_VERSION)
         RELEASE_ID=$(echo $RELEASE_INFO | jq -r '.id')
         echo "Release ID: $RELEASE_ID"
         if [ "$RELEASE_ID" != "null" ]; then
-            curl -X DELETE -H "$HEADER" https://api.github.com/repos/${{ github.repository }}/git/refs/tags/${{ env.LATEST_VERSION }}
-            echo "Tag ${{ env.LATEST_VERSION }} deleted successfully."
+            curl -X DELETE -H "$HEADER" https://api.github.com/repos/${{ github.repository }}/git/refs/tags/$LATEST_VERSION
+            echo "Tag $LATEST_VERSION deleted successfully."
             curl -X DELETE -H "$HEADER" https://api.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID
-            echo "Release with tag ${{ env.LATEST_VERSION }} deleted successfully."
+            echo "Release with tag $LATEST_VERSION deleted successfully."
         else
-            echo "Release not found for tag: ${{ env.LATEST_VERSION }})"
+            echo "Release not found for tag: $LATEST_VERSION)"
         fi
 
     - name: Create Release tag ${{ env.LATEST_VERSION }}
@@ -185,4 +191,5 @@ jobs:
         files: |
           mikrotik-${{ env.LATEST_VERSION }}.iso
           install-image-${{ env.LATEST_VERSION }}.zip
+          netinstall-${{ env.LATEST_VERSION }}.zip
 
