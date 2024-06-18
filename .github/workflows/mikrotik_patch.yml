@@ -83,7 +83,7 @@ jobs:
       run: |
         echo $(uname -a)
         LATEST_VERSION=$(wget -nv -O - ${{ env.LATEST_VERSION_URL }}${{ matrix.channel }} | cut -d ' ' -f1)
-        echo Latest Stabel Version:$LATEST_VERSION
+        echo Latest Version:$LATEST_VERSION
         echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_ENV
 
     - name: Get netinstall-${{ env.LATEST_VERSION }}.zip
@@ -94,7 +94,6 @@ jobs:
       run: |
         sudo -E python3 patch.py netinstall netinstall.exe
         sudo zip netinstall-$LATEST_VERSION.zip ./netinstall.exe
-
 
     - name: Get mikrotik-${{ env.LATEST_VERSION }}.iso
       run: |
@@ -141,7 +140,7 @@ jobs:
                     -eltorito-alt-boot \
                     -e efiboot.img \
                     -no-emul-boot \
-                    -R \
+                    -R -J \
                     ./new_iso
         sudo rm -rf ./new_iso
 
@@ -190,6 +189,7 @@ jobs:
         name: "MikroTik ${{ env.LATEST_VERSION }}"
         body: "MikroTik ${{ env.LATEST_VERSION }}"
         tag_name: ${{ env.LATEST_VERSION }}
+        make_latest:  ${{ matrix.channel == 'stable' }}
         files: |
           mikrotik-${{ env.LATEST_VERSION }}.iso
           install-image-${{ env.LATEST_VERSION }}.zip
