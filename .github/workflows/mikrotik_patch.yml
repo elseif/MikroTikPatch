@@ -331,7 +331,7 @@ jobs:
         name: "MikroTik ${{ env.LATEST_VERSION }}"
         body: "MikroTik ${{ env.LATEST_VERSION }}"
         tag_name: ${{ env.LATEST_VERSION }}
-        make_latest: "true"
+        make_latest: "false"
         files: |
           mikrotik-${{ env.LATEST_VERSION }}.iso
           install-image-${{ env.LATEST_VERSION }}.zip
