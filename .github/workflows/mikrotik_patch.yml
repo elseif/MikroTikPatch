@@ -82,7 +82,7 @@ jobs:
     - name: Get latest routeros version  
       run: |
         echo $(uname -a)
-        LATEST_VERSION=$(wget -nv -O - $LATEST_VERSION_URL${{ matrix.channel }} | cut -d ' ' -f1)
+        LATEST_VERSION=$(wget -nv -O - ${{ env.LATEST_VERSION_URL }}${{ matrix.channel }} | cut -d ' ' -f1)
         echo Latest Stabel Version:$LATEST_VERSION
         echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_ENV
 
