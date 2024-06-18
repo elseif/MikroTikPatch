@@ -63,7 +63,7 @@ def patch_bootloader(key_dict,boot_dev):
     inode = int(tmp[1])
     print(f'inode : {inode}')
     #sudo debugfs /dev/sda1 -R 'stat <12>' 2> /dev/null | sed -n '11p' 
-    stdout,stderr = run_shell_command(f"debugfs /dev/sda1 -R 'stat <12>' 2> /dev/null | sed -n '11p' ")
+    stdout,stderr = run_shell_command(f"debugfs {boot_dev} -R 'stat <12>' 2> /dev/null | sed -n '11p' ")
     blocks_info = stdout.decode().strip().split(',')
     blocks = []
     ind_block_id = None
@@ -76,7 +76,7 @@ def patch_bootloader(key_dict,boot_dev):
             block_range = _tmp[1].strip().replace('(','').replace(')','').split('-')
             blocks += [id for id in range(int(block_range[0]),int(block_range[1])+1)]
     print(f' blocks : {len(blocks)} ind_block_id : {ind_block_id}')
-    stdout,stderr = run_shell_command(f"debugfs /dev/sda1 -R 'cat <{inode}>' 2> /dev/null")
+    stdout,stderr = run_shell_command(f"debugfs {boot_dev} -R 'cat <{inode}>' 2> /dev/null")
     bzImage = stdout
     new_bzImage = patch_bzimage(bzImage,key_dict)
     print(f'write block {len(blocks)} : [',end="")
