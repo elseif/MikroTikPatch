@@ -7,10 +7,11 @@
 ![](install.png)
 ![](routeros.png)
 
-### Uses keygen to generate license key (keygen in iso or img).
+### Uses keygen to generate license key.
 ![](keygen.png)
 
 ## How generate license key
+    keygen.zip in iso or img root directory,for chr image it's in /flash/rw/disk/ directory,same as winbox file manager directory
     run unzip keygen.zip
     run keygen.exe software_id
 ## How to use shell
