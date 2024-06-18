@@ -1,8 +1,6 @@
-# Patch MikroTik RouterOS
+# Patch MikroTik RouterOS [[中文](README_CN.md)]
 
-## [中文](README_CN.md)
-
-###  [MikroTik RouterOS 授权签名验证分析](https://blog.csdn.net/chivalrys/article/details/139770711) 
+### [[Discord](https://discord.gg/keV6MWQFtX)] [[Telegram](https://t.me/+TDpUU_5bKgdhNGY1)]
 
 ### Download [Latest Patched](https://github.com/elseif/MikroTikPatch/releases/latest) iso file,install it and enjoy.
 

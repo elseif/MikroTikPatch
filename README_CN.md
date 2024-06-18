@@ -1,6 +1,4 @@
-# Patch MikroTik RouterOS 
-
-## [English](README.md)
+# Patch MikroTik RouterOS [[English](README.md)]
 
 ###  [MikroTik RouterOS 授权签名验证分析](https://blog.csdn.net/chivalrys/article/details/139770711) 
 
