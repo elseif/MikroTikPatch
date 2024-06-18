@@ -1,5 +1,7 @@
 # Patch MikroTik RouterOS
 
+## [中文](README_CN.md)
+
 ### Download [Latest Patched](https://github.com/elseif/MikroTikPatch/releases/latest) iso file,install it and enjoy.
 
 ![](install.png)
