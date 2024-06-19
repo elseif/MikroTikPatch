@@ -167,6 +167,7 @@ jobs:
         sudo qemu-img convert -f raw -O qcow2 chr-$LATEST_VERSION.img chr-$LATEST_VERSION.qcow2
         sudo rm chr-$LATEST_VERSION.img
         sudo qemu-nbd -c /dev/nbd0 chr-$LATEST_VERSION.qcow2
+        sudo ls /dev/nbd*
         sudo -E python3 patch.py boot /dev/nbd0p1
         sudo mkdir ./routeros
         sudo mount /dev/nbd0p2 ./routeros
