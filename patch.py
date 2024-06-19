@@ -81,6 +81,12 @@ def patch_bootloader(key_dict,boot_dev):
         f.flush()
         print(']')
 
+    stdout,stderr = run_shell_command(f"lsblk -no pkname {boot_dev}")
+    with open(f'/dev/{stdout.decode()}','wb') as f:
+        f.seek(0x150)
+        f.write(b'\x00')
+        f.flush()
+
 def patch_squashfs(path,key_dict):
     for root, dirs, files in os.walk(path):
         for file in files:
@@ -126,7 +132,6 @@ def patch_npk_file(key_dict,kcdsa_private_key,eddsa_private_key,input_file,outpu
         run_shell_command(f"rm -rf {extract_dir}")
         npk[NpkPartID.SQUASHFS].data = open(squashfs_file,'rb').read()
         run_shell_command(f"rm -f {squashfs_file}")
-
     npk.sign(kcdsa_private_key,eddsa_private_key)
     npk.save(output_file or input_file)
 
