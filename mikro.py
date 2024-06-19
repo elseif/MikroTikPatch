@@ -194,7 +194,7 @@ def mikro_kcdsa_verify(data:bytes, signature:bytes, public_key:bytes)->bool:
     YY = ((x**3) + (curve.a * x**2) + x).sqrt()
     public_keys = []
     for y in YY:
-        public_keys += [AffineCurvePoint(x, int(y), curve)]
+        public_keys += [AffineCurvePoint(int(x), int(y), curve)]
 
     data_hash = bytearray(mikro_sha256(data))
     nonce_hash = signature[:16]

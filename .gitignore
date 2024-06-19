@@ -1,2 +1,6 @@
 __pycache__/
+venv/
 test_*.py
+keygen.py
+keygen.bat
+mikrotik.ico
