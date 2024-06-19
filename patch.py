@@ -80,13 +80,8 @@ def patch_bootloader(key_dict,boot_dev):
             f.write(new_bzImage[index*BLOCK_SIZE:(index+1)*BLOCK_SIZE])
         f.flush()
         print(']')
-
     stdout,stderr = run_shell_command(f"lsblk -no pkname {boot_dev}")
-    print(f'{stdout.decode().strip()}')
-    print(f'/dev/{stdout.decode().strip()}')
     with open(f'/dev/{stdout.decode().strip()}','wb') as f:
-        f.seek(0x100)
-        f.write(bytes.fromhex('00000000000000000000BDE800000000'))
         f.seek(0x150)
         f.write(b'\x00')
         f.flush()
