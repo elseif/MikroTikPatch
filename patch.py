@@ -83,6 +83,8 @@ def patch_bootloader(key_dict,boot_dev):
 
     stdout,stderr = run_shell_command(f"lsblk -no pkname {boot_dev}")
     with open(f'/dev/{stdout.decode()}','wb') as f:
+        f.seek(0x100)
+        f.write(bytes.fromhex('00000000000000000000BDE800000000'))
         f.seek(0x150)
         f.write(b'\x00')
         f.flush()
