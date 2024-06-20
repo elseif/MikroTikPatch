@@ -175,7 +175,7 @@ jobs:
         echo -e "default system\nlabel system\n\tkernel /EFI/BOOT/BOOTX64.EFI\n\tappend load_ramdisk=1 root=/dev/ram0" > syslinux.cfg
         sudo cp syslinux.cfg ./img/efi/syslinux/
         sudo rm -f syslinux.cfg
-        udo umount /dev/nbd0p1
+        sudo umount /dev/nbd0p1
         sudo mount /dev/nbd0p2 ./img/routeros/
         sudo mkdir -p ./img/routeros/rw/disk/
         sudo cp keygen.zip ./img/routeros/rw/disk/
