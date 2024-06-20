@@ -179,11 +179,32 @@ jobs:
         sudo rm -rf ./routeros
         sudo qemu-nbd -d /dev/nbd0
 
+        sudo cp -af chr-$LATEST_VERSION.qcow2 chr-$LATEST_VERSION-efi.qcow2
+        sudo qemu-nbd -c /dev/nbd0 chr-$LATEST_VERSION.qcow2
+        sudo qemu-nbd -c /dev/nbd1 chr-$LATEST_VERSION-efi.qcow2
+        sudo mkfs -t fat /dev/nbd1p1
+        sudo mkdir ./boot/bios
+        sudo mkdir ./boot/efi
+        sudo mount /dev/nbd0p1 ./boot/bios
+        sudo mount /dev/nbd1p1 ./boot/efi
+        sudo rsync -a ./boot/bios ./boot/efi
+        sudo umount /dev/nbd0p1
+        sudo umount /dev/nbd1p1
+        sudo rm -rf ./boot
+        sudo qemu-nbd -d /dev/nbd0
+        sudo qemu-nbd -d /dev/nbd1
+
         sudo qemu-img convert -f qcow2 -O vmdk chr-$LATEST_VERSION.qcow2 chr-$LATEST_VERSION.vmdk
         sudo qemu-img convert -f qcow2 -O vpc chr-$LATEST_VERSION.qcow2 chr-$LATEST_VERSION.vhd
         sudo qemu-img convert -f qcow2 -O vhdx chr-$LATEST_VERSION.qcow2 chr-$LATEST_VERSION.vhdx
         sudo qemu-img convert -f qcow2 -O vdi chr-$LATEST_VERSION.qcow2 chr-$LATEST_VERSION.vdi
         sudo qemu-img convert -f qcow2 -O raw chr-$LATEST_VERSION.qcow2 chr-$LATEST_VERSION.img
+        
+        sudo qemu-img convert -f qcow2 -O vmdk chr-$LATEST_VERSION-efi.qcow2 chr-$LATEST_VERSION-efi.vmdk
+        sudo qemu-img convert -f qcow2 -O vpc chr-$LATEST_VERSION-efi.qcow2 chr-$LATEST_VERSION-efi.vhd
+        sudo qemu-img convert -f qcow2 -O vhdx chr-$LATEST_VERSION-efi.qcow2 chr-$LATEST_VERSION-efi.vhdx
+        sudo qemu-img convert -f qcow2 -O vdi chr-$LATEST_VERSION-efi.qcow2 chr-$LATEST_VERSION-efi.vdi
+        sudo qemu-img convert -f qcow2 -O raw chr-$LATEST_VERSION-efi.qcow2 chr-$LATEST_VERSION-efi.img
 
         sudo zip chr-$LATEST_VERSION.qcow2.zip chr-$LATEST_VERSION.qcow2
         sudo zip chr-$LATEST_VERSION.vmdk.zip chr-$LATEST_VERSION.vmdk
@@ -192,12 +213,19 @@ jobs:
         sudo zip chr-$LATEST_VERSION.vdi.zip chr-$LATEST_VERSION.vdi
         sudo zip chr-$LATEST_VERSION.img.zip chr-$LATEST_VERSION.img
 
-        sudo rm chr-$LATEST_VERSION.qcow2
-        sudo rm chr-$LATEST_VERSION.vmdk
-        sudo rm chr-$LATEST_VERSION.vhd
-        sudo rm chr-$LATEST_VERSION.vhdx
-        sudo rm chr-$LATEST_VERSION.vdi
-        sudo rm chr-$LATEST_VERSION.img
+        sudo zip chr-$LATEST_VERSION-efi.qcow2.zip chr-$LATEST_VERSION-efi.qcow2
+        sudo zip chr-$LATEST_VERSION-efi.vmdk.zip chr-$LATEST_VERSION-efi.vmdk
+        sudo zip chr-$LATEST_VERSION-efi.vhd.zip chr-$LATEST_VERSION-efi.vhd
+        sudo zip chr-$LATEST_VERSION-efi.vhdx.zip chr-$LATEST_VERSION-efi.vhdx
+        sudo zip chr-$LATEST_VERSION.vdi.zip chr-$LATEST_VERSION-efi.vdi
+        sudo zip chr-$LATEST_VERSION-efi.img.zip chr-$LATEST_VERSION-efi.img
+
+        sudo rm *.qcow2
+        sudo rm *.vmdk
+        sudo rm *.vhd
+        sudo rm *.vhdx
+        sudo rm *.vdi
+        sudo rm *.img
 
     - name: Get install-image-${{ env.LATEST_VERSION }}.img
       run: |

@@ -13,7 +13,8 @@
 ## How generate license key (***keygen.exe run on windows***)
     keygen.zip in iso or img root directory,for chr image it's in /flash/rw/disk/ directory,same as winbox file manager directory
     run unzip keygen.zip
-    run keygen.exe software_id
+    run keygen.exe
+    input your software id
 ## How to use shell
     install option-{version}.npk package
     run telnet to routeros with username devel and password is same as admin
