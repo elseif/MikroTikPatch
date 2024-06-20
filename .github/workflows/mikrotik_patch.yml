@@ -206,26 +206,6 @@ jobs:
         sudo rm -rf ./boot
         sudo qemu-nbd -d /dev/nbd0
 
-        (
-        echo 2 # use GPT
-        echo t # change partition code
-        echo 1 # select first partition
-        echo 8300 # change code to Linux filesystem 8300
-        echo r # Recovery/transformation
-        echo h # Hybrid MBR
-        echo 1 2 # partitions added to the hybrid MBR
-        echo n # Place EFI GPT (0xEE) partition first in MBR (good for GRUB)? (Y/N)
-        echo   # Enter an MBR hex code (default 83)
-        echo y # Set the bootable flag? (Y/N)
-        echo   # Enter an MBR hex code (default 83)
-        echo n # Set the bootable flag? (Y/N)
-        echo n # Unused partition space(s) found. Use one to protect more partitions? (Y/N)
-        echo w # write changes to disk
-        echo y # confirm
-        ) | sudo -E gdisk /dev/nbd1
-
-        sudo qemu-nbd -d /dev/nbd1
-
         sudo qemu-img convert -f qcow2 -O vmdk chr-$LATEST_VERSION-efi.qcow2 chr-$LATEST_VERSION-efi.vmdk
         sudo qemu-img convert -f qcow2 -O vpc chr-$LATEST_VERSION-efi.qcow2 chr-$LATEST_VERSION-efi.vhd
         sudo qemu-img convert -f qcow2 -O vhdx chr-$LATEST_VERSION-efi.qcow2 chr-$LATEST_VERSION-efi.vhdx

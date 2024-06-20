@@ -276,7 +276,7 @@ if __name__=='__main__':
             print('Invalid')
             exit(-1)
     elif args.command =='create':
-        print(f'Creating option.npk from {args.input}')
+        print(f'Creating {args.output} from {args.input}')
         option_npk = NovaPackage.load(args.input)
         option_npk[NpkPartID.NAME_INFO].data.name = args.name
         option_npk[NpkPartID.DESCRIPTION].data = args.description.encode() if args.description else args.name.encode()
