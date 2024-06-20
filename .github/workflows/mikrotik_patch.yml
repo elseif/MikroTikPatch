@@ -205,6 +205,7 @@ jobs:
         sudo umount /dev/nbd1p1
         sudo rm -rf ./boot
         sudo qemu-nbd -d /dev/nbd0
+        sudo qemu-nbd -d /dev/nbd1
 
         sudo qemu-img convert -f qcow2 -O vmdk chr-$LATEST_VERSION-efi.qcow2 chr-$LATEST_VERSION-efi.vmdk
         sudo qemu-img convert -f qcow2 -O vpc chr-$LATEST_VERSION-efi.qcow2 chr-$LATEST_VERSION-efi.vhd
