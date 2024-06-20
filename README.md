@@ -3,6 +3,7 @@
 ### [[Discord](https://discord.gg/keV6MWQFtX)] [[Telegram](https://t.me/+99Mw06p3K7NlMmNl)]
 
 ### Download [Latest Patched](https://github.com/elseif/MikroTikPatch/releases/latest) iso file,install it and enjoy.
+### CHR image is both support BIOS and UEFI boot mode.
 
 ![](install.png)
 ![](routeros.png)

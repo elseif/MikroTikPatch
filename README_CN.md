@@ -3,6 +3,8 @@
 ###  [MikroTik RouterOS 授权签名验证分析](https://blog.csdn.net/chivalrys/article/details/139770711) 
 
 ### 下载 [最新](https://github.com/elseif/MikroTikPatch/releases/latest) 的iso文件安装RouterOS.
+### CHR镜像文件同时支持BIOS和UEFI启动模式
+
 
 ![](install.png)
 ![](routeros.png)
