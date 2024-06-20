@@ -195,7 +195,7 @@ jobs:
         sudo cp -af chr-$LATEST_VERSION.qcow2 chr-$LATEST_VERSION-efi.qcow2
         sudo qemu-nbd -c /dev/nbd0 chr-$LATEST_VERSION.qcow2
         sudo qemu-nbd -c /dev/nbd1 chr-$LATEST_VERSION-efi.qcow2
-        sudo mkfs -t fat /dev/nbd1p1
+        sudo mkfs.vfat -v -n "RouterOS Boot" /dev/nbd1p1
         sudo mkdir -p ./boot/bios/
         sudo mkdir -p ./boot/efi/
         sudo mount /dev/nbd0p1 ./boot/bios/
