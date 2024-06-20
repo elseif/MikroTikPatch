@@ -164,14 +164,12 @@ jobs:
       run: |
         sudo modprobe nbd
         sudo apt install -y qemu-utils extlinux syslinux > /dev/null
-        sudo mkdir -p ./img/{bios,efi,routeros}
         sudo qemu-nbd -c /dev/nbd0 -f raw chr-$LATEST_VERSION.img
-        sudo mount /dev/nbd0p1 ./img/efi/
-        sudo rsync -a ./img/efi/ ./img/bios/
-        sudo umount /dev/nbd0p1
+        sudo mkdir -p ./img/{efi,routeros}
         sudo mkfs.vfat -v -n "Boot" /dev/nbd0p1
         sudo mount /dev/nbd0p1 ./img/efi/
-        sudo rsync -a ./img/bios/ ./img/efi/
+        sudo mkdir -p ./img/efi/EFI/BOOT/
+        sudo cp linux ./img/efi/EFI/BOOT/BOOTX64.EFI
         sudo mkdir -p ./img/efi/syslinux/
         sudo extlinux --install ./img/efi/syslinux/
         sudo echo -e "default system\nlabel system\n\tkernel /EFI/BOOT/BOOTX64.EFI\n\tappend load_ramdisk=1 root=/dev/ram0" > ./img/efi/syslinux/syslinux.cfg
