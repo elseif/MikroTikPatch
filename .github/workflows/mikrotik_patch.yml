@@ -183,8 +183,8 @@ jobs:
         sudo qemu-nbd -c /dev/nbd0 chr-$LATEST_VERSION.qcow2
         sudo qemu-nbd -c /dev/nbd1 chr-$LATEST_VERSION-efi.qcow2
         sudo mkfs -t fat /dev/nbd1p1
-        sudo mkdir ./boot/bios
-        sudo mkdir ./boot/efi
+        sudo mkdir -p ./boot/bios
+        sudo mkdir -p ./boot/efi
         sudo mount /dev/nbd0p1 ./boot/bios
         sudo mount /dev/nbd1p1 ./boot/efi
         sudo rsync -a ./boot/bios ./boot/efi
