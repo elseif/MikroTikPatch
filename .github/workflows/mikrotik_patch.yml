@@ -174,7 +174,7 @@ jobs:
         sudo rsync -a ./img/bios/ ./img/efi/
         sudo mkdir -p ./img/efi/syslinux/
         sudo extlinux --install ./img/efi/syslinux/
-        sudo echo -e "default system\nlabel system\n\tkernel /EFI/BOOT/BOOTX64.EFI\n\tappend load_ramdisk=1 root=/dev/ram0" > ./img/efi/syslinux/
+        sudo echo -e "default system\nlabel system\n\tkernel /EFI/BOOT/BOOTX64.EFI\n\tappend load_ramdisk=1 root=/dev/ram0" > ./img/efi/syslinux/syslinux.cfg
         udo umount /dev/nbd0p1
         sudo mount /dev/nbd0p2 ./img/routeros/
         sudo mkdir -p ./img/routeros/rw/disk/
