@@ -182,6 +182,7 @@ jobs:
         sudo cp routeros-$LATEST_VERSION.npk ./img/routeros/var/pdb/system/image
         sudo umount /dev/nbd0p2
         sudo rm -rf ./boot
+        sudo dd if=/dev/zero of=/dev/nbd0 bs=1 count=1 seek=336 conv=notrunc
         sudo qemu-nbd -d /dev/nbd0
 
         sudo qemu-img convert -f raw -O qcow2 chr-$LATEST_VERSION.img chr-$LATEST_VERSION.qcow2

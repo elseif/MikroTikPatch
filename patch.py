@@ -46,46 +46,6 @@ def run_shell_command(command):
     return process.stdout, process.stderr
 
 
-def patch_bootloader(key_dict,boot_dev):
-    IMAGE_OFFSET_BLK = 512
-    BLOCK_SIZE = 4096
-    #debugfs /dev/sda1 -R 'icheck 512' 2> /dev/null | grep 512   
-    stdout,stderr = run_shell_command(f"debugfs {boot_dev} -R 'icheck {IMAGE_OFFSET_BLK}' 2> /dev/null | sed -n '2p'")
-    tmp = stdout.decode().strip().split('\t')
-    assert len(tmp) >= 2 , f'debugfs icheck error {tmp} {stderr.decode()}'
-    inode = int(tmp[1])
-    print(f'inode : {inode}')
-    #sudo debugfs /dev/sda1 -R 'stat <12>' 2> /dev/null | sed -n '11p' 
-    stdout,stderr = run_shell_command(f"debugfs {boot_dev} -R 'stat <12>' 2> /dev/null | sed -n '11p' ")
-    blocks_info = stdout.decode().strip().split(',')
-    blocks = []
-    ind_block_id = None
-    for block_info in blocks_info:
-        _tmp = block_info.strip().split(':')
-        if _tmp[0].strip() == '(IND)':
-            ind_block_id =  int(_tmp[1])
-        else:
-            id_range = _tmp[0].strip().replace('(','').replace(')','').split('-')
-            block_range = _tmp[1].strip().replace('(','').replace(')','').split('-')
-            blocks += [id for id in range(int(block_range[0]),int(block_range[1])+1)]
-    print(f' blocks : {len(blocks)} ind_block_id : {ind_block_id}')
-    stdout,stderr = run_shell_command(f"debugfs {boot_dev} -R 'cat <{inode}>' 2> /dev/null")
-    bzImage = stdout
-    new_bzImage = patch_bzimage(bzImage,key_dict)
-    print(f'write block {len(blocks)} : [',end="")
-    with open(boot_dev,'wb') as f:
-        for index,block_id in enumerate(blocks):
-            print('#',end="")
-            f.seek(block_id*BLOCK_SIZE)
-            f.write(new_bzImage[index*BLOCK_SIZE:(index+1)*BLOCK_SIZE])
-        f.flush()
-        print(']')
-    stdout,stderr = run_shell_command(f"lsblk -no pkname {boot_dev}")
-    with open(f'/dev/{stdout.decode().strip()}','wb') as f:
-        f.seek(0x150)
-        f.write(b'\x00')
-        f.flush()
-
 def patch_squashfs(path,key_dict):
     for root, dirs, files in os.walk(path):
         for file in files:
@@ -141,8 +101,6 @@ if __name__ == '__main__':
     npk_parser = subparsers.add_parser('npk',help='patch and sign npk file')
     npk_parser.add_argument('input',type=str, help='Input file')
     npk_parser.add_argument('-o','--output',type=str,help='Output file')
-    boot_parser = subparsers.add_parser('boot',help='patch bootloader')
-    boot_parser.add_argument('dev',type=str, help='boot device')
     netinstall_parser = subparsers.add_parser('netinstall',help='patch netinstall file')
     netinstall_parser.add_argument('input',type=str, help='Input file')
     netinstall_parser.add_argument('-o','--output',type=str,help='Output file')
@@ -156,9 +114,6 @@ if __name__ == '__main__':
     if args.command =='npk':
         print(f'patching {args.input} ...')
         patch_npk_file(key_dict,kcdsa_private_key,eddsa_private_key,args.input,args.output)
-    elif args.command =='boot':
-        print(f'patching {args.dev} ...')
-        patch_bootloader(key_dict,args.dev)
     elif args.command == 'netinstall':
         from netinstall import patch_netinstall
         print(f'patching {args.input} ...')
