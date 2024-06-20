@@ -277,6 +277,6 @@ jobs:
         prerelease:  ${{ matrix.channel == 'testing' }}
         files: |
           mikrotik-${{ env.LATEST_VERSION }}.iso
-          chr-${{ env.LATEST_VERSION }}.*.zip
+          chr-${{ env.LATEST_VERSION }}*.zip
           netinstall-${{ env.LATEST_VERSION }}.zip
           install-image-${{ env.LATEST_VERSION }}.zip
