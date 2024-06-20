@@ -200,7 +200,7 @@ jobs:
         sudo mkdir -p ./boot/efi
         sudo mount /dev/nbd0p1 ./boot/bios
         sudo mount /dev/nbd1p1 ./boot/efi
-        sudo rsync -a ./boot/bios ./boot/efi
+        sudo rsync -a ./boot/bios/ ./boot/efi/
         sudo umount /dev/nbd0p1
         sudo umount /dev/nbd1p1
         sudo rm -rf ./boot
