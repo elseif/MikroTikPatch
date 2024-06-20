@@ -164,18 +164,25 @@ jobs:
       run: |
         sudo modprobe nbd
         sudo apt install -y qemu-utils extlinux syslinux > /dev/null
-        sudo mkdir -p ./boot/{bios,efi}
+        sudo mkdir -p ./img/{bios,efi,routeros}
         sudo qemu-nbd -c /dev/nbd0 -f raw chr-$LATEST_VERSION.img
-        sudo mount /dev/nbd0p1 ./boot/efi/
-        sudo rsync -a ./boot/efi/ ./boot/bios/
+        sudo mount /dev/nbd0p1 ./img/efi/
+        sudo rsync -a ./img/efi/ ./img/bios/
         sudo umount /dev/nbd0p1
-        sudo mkfs.vfat -v -n "Boot" /dev/nbd1p1
-        sudo mount /dev/nbd0p1 ./boot/efi/
-        sudo rsync -a ./boot/bios/ ./boot/efi/
-        sudo mkdir -p ./boot/efi/syslinux/
-        sudo extlinux --install ./boot/efi/syslinux/
-        sudo echo -e "default system\nlabel system\n\tkernel /EFI/BOOT/BOOTX64.EFI\n\tappend load_ramdisk=1 root=/dev/ram0" > ./boot/efi/syslinux/
+        sudo mkfs.vfat -v -n "Boot" /dev/nbd0p1
+        sudo mount /dev/nbd0p1 ./img/efi/
+        sudo rsync -a ./img/bios/ ./img/efi/
+        sudo mkdir -p ./img/efi/syslinux/
+        sudo extlinux --install ./img/efi/syslinux/
+        sudo echo -e "default system\nlabel system\n\tkernel /EFI/BOOT/BOOTX64.EFI\n\tappend load_ramdisk=1 root=/dev/ram0" > ./img/efi/syslinux/
         udo umount /dev/nbd0p1
+        sudo mount /dev/nbd0p2 ./img/routeros/
+        sudo mkdir -p ./img/routeros/rw/disk/
+        sudo cp keygen.zip ./img/routeros/rw/disk/
+        sudo mkdir -p ./img/routeros/var/pdb/option/
+        sudo cp option-$LATEST_VERSION.npk ./img/routeros/var/pdb/option/image
+        sudo cp routeros-$LATEST_VERSION.npk ./img/routeros/var/pdb/system/image
+        sudo umount /dev/nbd0p2
         sudo rm -rf ./boot
         sudo qemu-nbd -d /dev/nbd0
 
