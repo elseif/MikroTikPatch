@@ -13,7 +13,7 @@
 ## 如何生成授权许可 (Keygen.exe在windows命令行下运行)
     keygen.zip在iso或者img文件的根目录下；chr镜像文件/rw/disk/目录下，和winbox打开后files目录一致。
     解压缩 keygen.zip
-    运行 keygen.exe software_id
+    运行 keygen.exe 输入software_id
 ## 如何使用Shell
     安装 option-{version}.npk 包
     telnet到RouterOS,用户名devel,密码与admin的密码相同

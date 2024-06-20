@@ -166,13 +166,15 @@ jobs:
         sudo apt install -y qemu-utils extlinux syslinux > /dev/null
         sudo qemu-nbd -c /dev/nbd0 -f raw chr-$LATEST_VERSION.img
         sudo mkdir -p ./img/{efi,routeros}
-        sudo mkfs.vfat -v -n "Boot" /dev/nbd0p1
+        sudo mkfs.vfat -n "Boot" /dev/nbd0p1
         sudo mount /dev/nbd0p1 ./img/efi/
         sudo mkdir -p ./img/efi/EFI/BOOT/
         sudo cp linux ./img/efi/EFI/BOOT/BOOTX64.EFI
         sudo mkdir -p ./img/efi/syslinux/
         sudo extlinux --install ./img/efi/syslinux/
-        sudo echo -e "default system\nlabel system\n\tkernel /EFI/BOOT/BOOTX64.EFI\n\tappend load_ramdisk=1 root=/dev/ram0" > ./img/efi/syslinux/syslinux.cfg
+        echo -e "default system\nlabel system\n\tkernel /EFI/BOOT/BOOTX64.EFI\n\tappend load_ramdisk=1 root=/dev/ram0" > syslinux.cfg
+        sudo cp syslinux.cfg ./img/efi/syslinux/
+        sudo rm -f syslinux.cfg
         udo umount /dev/nbd0p1
         sudo mount /dev/nbd0p2 ./img/routeros/
         sudo mkdir -p ./img/routeros/rw/disk/
