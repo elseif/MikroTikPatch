@@ -163,27 +163,27 @@ jobs:
     - name: Patch chr-${{ env.LATEST_VERSION }}.img
       run: |
         sudo modprobe nbd
-        sudo apt install -y qemu-utils > /dev/null
-        sudo qemu-img convert -f raw -O qcow2 chr-$LATEST_VERSION.img chr-$LATEST_VERSION.qcow2
-        sudo rm chr-$LATEST_VERSION.img
-        sudo qemu-nbd -c /dev/nbd0 chr-$LATEST_VERSION.qcow2
-        sudo -E python3 patch.py boot /dev/nbd0p1
-        sudo mkdir ./routeros
-        sudo mount /dev/nbd0p2 ./routeros
-        sudo mkdir -p ./routeros/rw/disk
-        sudo cp keygen.zip ./routeros/rw/disk
-        sudo mkdir -p ./routeros/var/pdb/option
-        sudo cp option-$LATEST_VERSION.npk ./routeros/var/pdb/option/image
-        sudo cp routeros-$LATEST_VERSION.npk ./routeros/var/pdb/system/image
-        sudo umount /dev/nbd0p2
-        sudo rm -rf ./routeros
+        sudo apt install -y qemu-utils extlinux syslinux > /dev/null
+        sudo mkdir -p ./boot/{bios,efi}
+        sudo qemu-nbd -c /dev/nbd0 -f raw chr-$LATEST_VERSION.img
+        sudo mount /dev/nbd0p1 ./boot/efi/
+        sudo rsync -a ./boot/efi/ ./boot/bios/
+        sudo umount /dev/nbd0p1
+        sudo mkfs.vfat -v -n "Boot" /dev/nbd1p1
+        sudo mount /dev/nbd0p1 ./boot/efi/
+        sudo rsync -a ./boot/bios/ ./boot/efi/
+        sudo mkdir -p ./boot/efi/syslinux/
+        sudo extlinux --install ./boot/efi/syslinux/
+        sudo echo -e "default system\nlabel system\n\tkernel /EFI/BOOT/BOOTX64.EFI\n\tappend load_ramdisk=1 root=/dev/ram0" > ./boot/efi/syslinux/
+        udo umount /dev/nbd0p1
+        sudo rm -rf ./boot
         sudo qemu-nbd -d /dev/nbd0
 
-        sudo qemu-img convert -f qcow2 -O vmdk chr-$LATEST_VERSION.qcow2 chr-$LATEST_VERSION.vmdk
-        sudo qemu-img convert -f qcow2 -O vpc chr-$LATEST_VERSION.qcow2 chr-$LATEST_VERSION.vhd
-        sudo qemu-img convert -f qcow2 -O vhdx chr-$LATEST_VERSION.qcow2 chr-$LATEST_VERSION.vhdx
-        sudo qemu-img convert -f qcow2 -O vdi chr-$LATEST_VERSION.qcow2 chr-$LATEST_VERSION.vdi
-        sudo qemu-img convert -f qcow2 -O raw chr-$LATEST_VERSION.qcow2 chr-$LATEST_VERSION.img
+        sudo qemu-img convert -f raw -O qcow2 chr-$LATEST_VERSION.img chr-$LATEST_VERSION.qcow2
+        sudo qemu-img convert -f raw -O vmdk chr-$LATEST_VERSION.img chr-$LATEST_VERSION.vmdk
+        sudo qemu-img convert -f raw -O vpc chr-$LATEST_VERSION.img chr-$LATEST_VERSION.vhd
+        sudo qemu-img convert -f raw -O vhdx chr-$LATEST_VERSION.img chr-$LATEST_VERSION.vhdx
+        sudo qemu-img convert -f raw -O vdi chr-$LATEST_VERSION.img chr-$LATEST_VERSION.vdi
 
         sudo zip chr-$LATEST_VERSION.qcow2.zip chr-$LATEST_VERSION.qcow2
         sudo zip chr-$LATEST_VERSION.vmdk.zip chr-$LATEST_VERSION.vmdk
@@ -191,34 +191,6 @@ jobs:
         sudo zip chr-$LATEST_VERSION.vhdx.zip chr-$LATEST_VERSION.vhdx
         sudo zip chr-$LATEST_VERSION.vdi.zip chr-$LATEST_VERSION.vdi
         sudo zip chr-$LATEST_VERSION.img.zip chr-$LATEST_VERSION.img
-
-        sudo cp -af chr-$LATEST_VERSION.qcow2 chr-$LATEST_VERSION-efi.qcow2
-        sudo qemu-nbd -c /dev/nbd0 chr-$LATEST_VERSION.qcow2
-        sudo qemu-nbd -c /dev/nbd1 chr-$LATEST_VERSION-efi.qcow2
-        sudo mkfs.vfat -v -n "ROS Boot" /dev/nbd1p1
-        sudo mkdir -p ./boot/bios/
-        sudo mkdir -p ./boot/efi/
-        sudo mount /dev/nbd0p1 ./boot/bios/
-        sudo mount /dev/nbd1p1 ./boot/efi/
-        sudo rsync -a ./boot/bios/ ./boot/efi/
-        sudo umount /dev/nbd0p1
-        sudo umount /dev/nbd1p1
-        sudo rm -rf ./boot
-        sudo qemu-nbd -d /dev/nbd0
-        sudo qemu-nbd -d /dev/nbd1
-
-        sudo qemu-img convert -f qcow2 -O vmdk chr-$LATEST_VERSION-efi.qcow2 chr-$LATEST_VERSION-efi.vmdk
-        sudo qemu-img convert -f qcow2 -O vpc chr-$LATEST_VERSION-efi.qcow2 chr-$LATEST_VERSION-efi.vhd
-        sudo qemu-img convert -f qcow2 -O vhdx chr-$LATEST_VERSION-efi.qcow2 chr-$LATEST_VERSION-efi.vhdx
-        sudo qemu-img convert -f qcow2 -O vdi chr-$LATEST_VERSION-efi.qcow2 chr-$LATEST_VERSION-efi.vdi
-        sudo qemu-img convert -f qcow2 -O raw chr-$LATEST_VERSION-efi.qcow2 chr-$LATEST_VERSION-efi.img
-
-        sudo zip chr-$LATEST_VERSION-efi.qcow2.zip chr-$LATEST_VERSION-efi.qcow2
-        sudo zip chr-$LATEST_VERSION-efi.vmdk.zip chr-$LATEST_VERSION-efi.vmdk
-        sudo zip chr-$LATEST_VERSION-efi.vhd.zip chr-$LATEST_VERSION-efi.vhd
-        sudo zip chr-$LATEST_VERSION-efi.vhdx.zip chr-$LATEST_VERSION-efi.vhdx
-        sudo zip chr-$LATEST_VERSION-efi.vdi.zip chr-$LATEST_VERSION-efi.vdi
-        sudo zip chr-$LATEST_VERSION-efi.img.zip chr-$LATEST_VERSION-efi.img
 
         sudo rm *.qcow2
         sudo rm *.vmdk
