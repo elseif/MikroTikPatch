@@ -176,8 +176,7 @@ jobs:
           -e 's/20436F707972696768742028432920313939342D3230313520482E20506574657220416E76696E20657420616C0D0A/00436F707972696768742028432920313939342D3230313520482E20506574657220416E76696E20657420616C0D0A/g' \
           -e 's/203230323130383131/003230323130383131/g' \
           -e 's/43485300454444/00485300004444/g' | xxd -p -r >extlinux
-        sudo cp extlinux /usr/bin/extlinux
-        sudo extlinux --install -H 64 -S 32 ./img/efi/boot/
+        sudo ./extlinux --install -H 64 -S 32 ./img/efi/boot/
         echo -e "default system\nlabel system\n\tkernel /EFI/BOOT/BOOTX64.EFI\n\tappend load_ramdisk=1 root=/dev/ram0 quiet" > syslinux.cfg
         sudo cp syslinux.cfg ./img/efi/boot/
         sudo rm -f syslinux.cfg
