@@ -23,6 +23,11 @@
     install python3-{version}.npk package
     run telnet to routeros with username devel and password is same as admin
     run python -V
+## How Covert x86 and Chr
+    to Chr,run this command in shell
+    echo -e "\x01" | dd of=/dev/sda bs=1 count=1 seek=336 conv=notrunc
+    to x86,run this command in shell
+    echo -e "\x00" | dd of=/dev/sda bs=1 count=1 seek=336 conv=notrunc
 ### npk.py
     Sign，Verify，Create, Extract npk file.
 ### patch.py

@@ -23,6 +23,11 @@
     安装 python3-{version}.npk 包
     telnet到RouterOS,用户名devel,密码与admin的密码相同
     运行 python -V
+## x86和Chr如何转换
+    转换到Chr,在shell中运行下面命令
+    echo -e "\x01" | dd of=/dev/sda bs=1 count=1 seek=336 conv=notrunc
+    转换到x86,在shell中运行下面命令
+    echo -e "\x00" | dd of=/dev/sda bs=1 count=1 seek=336 conv=notrunc
 ### npk.py
     对npk文件进行解包，修改，创建，签名和验证
 ### patch.py
