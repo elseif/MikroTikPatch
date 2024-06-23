@@ -154,44 +154,50 @@ jobs:
                     ./new_iso
         sudo rm -rf ./new_iso
 
-    - name: Get chr-${{ env.LATEST_VERSION }}.img
-      run: |
-        sudo wget -nv -O chr-$LATEST_VERSION.img.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/chr-$LATEST_VERSION.img.zip
-        sudo unzip chr-$LATEST_VERSION.img.zip
-        sudo rm chr-$LATEST_VERSION.img.zip
-        
-    - name: Patch chr-${{ env.LATEST_VERSION }}.img
+    - name: Create chr-${{ env.LATEST_VERSION }}.img
       run: |
         sudo modprobe nbd
         sudo apt install -y qemu-utils extlinux > /dev/null
+        sudo truncate --size 128M chr-$LATEST_VERSION.img
+        sudo sgdisk --clear --set-alignment=2 \
+            --new=1::+32M --typecode=1:8300 --change-name=1:"RouterOS Boot" --attributes=1:set:2 \
+            --new=2::-0 --typecode=2:8300 --change-name=2:"RouterOS" \
+            chr-$LATEST_VERSION.img
+        sudo dd if=chr-$LATEST_VERSION.img of=pt.bin bs=1 count=66 skip=446
+        echo -e "\x80" | sudo dd of=dbt.bin  bs=1 count=1  conv=notrunc
+        sudo sgdisk --mbrtogpt --clear --set-alignment=2 \
+            --new=1::+32M --typecode=1:8300 --change-name=1:"RouterOS Boot" --attributes=1:set:2 \
+            --new=2::-0 --typecode=2:8300 --change-name=2:"RouterOS" \
+            chr-$LATEST_VERSION.img
+        sudo dd if=mbr.bin of=chr-$LATEST_VERSION.img  bs=1 count=446 conv=notrunc
+        sudo dd if=pt.bin of=chr-$LATEST_VERSION.img  bs=1 count=66 seek=446 conv=notrunc
+
         sudo qemu-nbd -c /dev/nbd0 -f raw chr-$LATEST_VERSION.img
-        sudo mkdir -p ./img/{efi,routeros}
         sudo mkfs.vfat -n "Boot" /dev/nbd0p1
-        sudo mount /dev/nbd0p1 ./img/efi/
-        sudo mkdir -p ./img/efi/EFI/BOOT/
-        sudo cp linux ./img/efi/EFI/BOOT/BOOTX64.EFI
-        sudo mkdir -p ./img/efi/boot/
-        xxd -p -u /usr/bin/extlinux | tr -d '\n' | sed  \
+        sudo mkfs.ext4 -F -L "RouterOS"  -m 0 -i 16384 -I 128 /dev/nbd0p2
+        sudo mkdir -p ./img/{boot,routeros}
+        sudo mount /dev/nbd0p1 ./img/boot/
+        sudo mkdir -p  ./img/boot/{BOOT,EFI/BOOT}
+        sudo cp linux ./img/boot/EFI/BOOT/BOOTX64.EFI
+        sudo xxd -p -u /usr/bin/extlinux | tr -d '\n' | sed  \
           -e 's/0D0A5359534C494E555820362E30342000/4C6F6164696E672073797374656D0D0A00/g' \
           -e 's/20436F707972696768742028432920313939342D3230313520482E20506574657220416E76696E20657420616C0D0A/00436F707972696768742028432920313939342D3230313520482E20506574657220416E76696E20657420616C0D0A/g' \
           -e 's/203230323130383131/003230323130383131/g' \
           -e 's/43485300454444/00485300004444/g' | xxd -p -r >extlinux
         sudo chmod +x extlinux
-        sudo ./extlinux --install -H 64 -S 32 ./img/efi/boot/
+        sudo ./extlinux --install  -H 64 -S 32 ./img/boot/BOOT
         sudo rm extlinux
         echo -e "default system\nlabel system\n\tkernel /EFI/BOOT/BOOTX64.EFI\n\tappend load_ramdisk=1 root=/dev/ram0 quiet" > syslinux.cfg
-        sudo cp syslinux.cfg ./img/efi/boot/
-        sudo rm -f syslinux.cfg
+        sudo cp syslinux.cfg ./img/boot/BOOT/
+        sudo rm syslinux.cfg
         sudo umount /dev/nbd0p1
-        sudo mount /dev/nbd0p2 ./img/routeros/
-        sudo mkdir -p ./img/routeros/rw/disk/
+        sudo mount  /dev/nbd0p2 ./img/routeros/
+        sudo mkdir -p ./img/routeros/{var/pdb/{system,option},rw/disk}
         sudo cp keygen.zip ./img/routeros/rw/disk/
-        sudo mkdir -p ./img/routeros/var/pdb/option/
         sudo cp option-$LATEST_VERSION.npk ./img/routeros/var/pdb/option/image
         sudo cp routeros-$LATEST_VERSION.npk ./img/routeros/var/pdb/system/image
         sudo umount /dev/nbd0p2
-        sudo rm -rf ./boot
-        sudo dd if=/dev/zero of=/dev/nbd0 bs=1 count=1 seek=336 conv=notrunc
+        sudo rm -rf ./img
         sudo qemu-nbd -d /dev/nbd0
 
         sudo qemu-img convert -f raw -O qcow2 chr-$LATEST_VERSION.img chr-$LATEST_VERSION.qcow2
