@@ -23,11 +23,12 @@
     安装 python3-{version}.npk 包
     telnet到RouterOS,用户名devel,密码与admin的密码相同
     运行 python -V
-## x86和Chr如何转换
+## x86和Chr如何转换(Chr模式自动扩容硬盘)
     转换到Chr,在shell中运行下面命令
     echo -e "\x01" | dd of=/dev/sda bs=1 count=1 seek=336 conv=notrunc
     转换到x86,在shell中运行下面命令
     echo -e "\x00" | dd of=/dev/sda bs=1 count=1 seek=336 conv=notrunc
+    如果硬盘扩容了，需要切换到Chr启动后，硬盘才会自动扩容，然后再切换为x86模式重新启动。
 ### npk.py
     对npk文件进行解包，修改，创建，签名和验证
 ### patch.py
