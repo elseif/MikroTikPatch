@@ -149,7 +149,6 @@ jobs:
         cd ./new_iso
         sudo zip ../all_packages-x86-$LATEST_VERSION.zip *.npk
         cd ..
-        #sudo rm -rf ./new_iso
 
     - name: Create chr-${{ env.LATEST_VERSION }}.img
       run: |
@@ -228,7 +227,7 @@ jobs:
         sudo mount /dev/nbd0 ./install
         sudo mkdir -p ./install/EFI/BOOT
         sudo wget -nv -O refind-bin-0.14.2.zip https://nchc.dl.sourceforge.net/project/refind/0.14.2/refind-bin-0.14.2.zip
-        sudo unzip refind-bin-0.14.2.zip
+        sudo unzip -q refind-bin-0.14.2.zip
         sudo rm refind-bin-0.14.2.zip
         sudo cp refind-bin-0.14.2/refind/refind_x64.efi ./install/EFI/BOOT/BOOTX64.EFI
         echo -e 'timeout 0\ntextonly\ntextmode 0\nshowtools shutdown, reboot, exit\nmenuentry "Install RouterOS" {\n\tloader /linux\n\toptions "load_ramdisk=1 root=/dev/ram0 -install -hdd"\n}\ndefault_selection /EFI/BOOT/BOOTX64.EFI' \
@@ -244,8 +243,10 @@ jobs:
         NPK_FILES=($(find ./new_iso/*.npk))
         for ((i=1; i<=${#NPK_FILES[@]}; i++))
         do
-          sudo cp ${NPK_FILES[$i]} ./install/$i.npk
+          echo "${NPK_FILES[$i-1]}=>$i.npk" 
+          sudo cp ${NPK_FILES[$i-1]} ./install/$i.npk
         done
+        sudo cp keygen.zip ./install/
         sudo umount /dev/nbd0
         sudo qemu-nbd -d /dev/nbd0
         sudo rm -rf ./install
