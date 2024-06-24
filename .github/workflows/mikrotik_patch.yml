@@ -251,6 +251,8 @@ jobs:
           sudo cp ${NPK_FILES[$i-1]} ./install/$i.npk
         done
         sudo cp keygen.zip ./install/
+        sudo touch ./install/CHOOSE
+        sudo touch ./install/autorun.scr 
         sudo umount /dev/nbd0
         sudo qemu-nbd -d /dev/nbd0
         sudo rm -rf ./install
