@@ -121,7 +121,11 @@ jobs:
         sudo umount ./iso
         sudo rm -rf ./iso
         sudo rm -f mikrotik-$LATEST_VERSION.iso
-        sudo mv ./new_iso/routeros-$LATEST_VERSION.npk ./
+        if [ ${{ matrix.branch }} == 7 ]; then
+          sudo mv ./new_iso/routeros-$LATEST_VERSION.npk ./
+        else
+          sudo mv ./new_iso/system-$LATEST_VERSION.npk ./routeros-$LATEST_VERSION.npk
+        fi
         sudo -E python3 patch.py npk routeros-$LATEST_VERSION.npk
         sudo cp keygen.zip ./new_iso/
         NPK_FILES=$(find ./new_iso/*.npk)
@@ -134,25 +138,40 @@ jobs:
         sudo -E python3 npk.py create ./new_iso/gps-$LATEST_VERSION.npk ./python3-$LATEST_VERSION.npk python3 ./python3.sfs -desc="python 3.11.9"
         sudo cp python3-$LATEST_VERSION.npk ./new_iso/
         sudo cp linux ./new_iso/isolinux/
-        sudo mkdir ./efiboot
-        sudo mount -o loop ./new_iso/efiboot.img ./efiboot
-        sudo cp linux ./efiboot/linux.x86_64
-        sudo umount ./efiboot
-        sudo rm -rf ./efiboot
-        sudo mkisofs -o mikrotik-$LATEST_VERSION.iso \
-                    -V "MikroTik $LATEST_VERSION Patched" \
-                    -sysid "" -preparer "MiKroTiK" \
-                    -publisher "" -A "MiKroTiK RouterOS" \
-                    -b isolinux/isolinux.bin \
-                    -c isolinux/boot.cat \
-                    -no-emul-boot \
-                    -boot-load-size 4 \
-                    -boot-info-table \
-                    -eltorito-alt-boot \
-                    -e efiboot.img \
-                    -no-emul-boot \
-                    -R -J \
-                    ./new_iso
+        if [ ${{ matrix.branch }} == 7 ]; then
+          sudo mkdir ./efiboot
+          sudo mount -o loop ./new_iso/efiboot.img ./efiboot
+          sudo cp linux ./efiboot/linux.x86_64
+          sudo umount ./efiboot
+          sudo rm -rf ./efiboot
+          sudo mkisofs -o mikrotik-$LATEST_VERSION.iso \
+                      -V "MikroTik $LATEST_VERSION Patched" \
+                      -sysid "" -preparer "MiKroTiK" \
+                      -publisher "" -A "MiKroTiK RouterOS" \
+                      -b isolinux/isolinux.bin \
+                      -c isolinux/boot.cat \
+                      -no-emul-boot \
+                      -boot-load-size 4 \
+                      -boot-info-table \
+                      -eltorito-alt-boot \
+                      -e efiboot.img \
+                      -no-emul-boot \
+                      -R -J \
+                      ./new_iso
+        else
+          sudo mkisofs -o mikrotik-$LATEST_VERSION.iso \
+                      -V "MikroTik $LATEST_VERSION Patched" \
+                      -sysid "" -preparer "MiKroTiK" \
+                      -publisher "" -A "MiKroTiK RouterOS" \
+                      -b isolinux/isolinux.bin \
+                      -c isolinux/boot.cat \
+                      -no-emul-boot \
+                      -boot-load-size 4 \
+                      -boot-info-table \
+                      -no-emul-boot \
+                      -R -J \
+                      ./new_iso
+        fi
         cd ./new_iso
         sudo zip ../all_packages-x86-$LATEST_VERSION.zip *.npk
         cd ..
@@ -191,7 +210,6 @@ jobs:
           -e 's/43485300454444/00485300004444/g' | xxd -p -r >extlinux
         sudo chmod +x extlinux
         sudo ./extlinux --install  -H 64 -S 32 ./img/boot/BOOT
-        sudo rm extlinux
         echo -e "default system\nlabel system\n\tkernel /EFI/BOOT/BOOTX64.EFI\n\tappend load_ramdisk=1 root=/dev/ram0 quiet" > syslinux.cfg
         sudo cp syslinux.cfg ./img/boot/BOOT/
         sudo rm syslinux.cfg
@@ -237,12 +255,20 @@ jobs:
       run: |
         sudo mkdir ./install
         sudo mount -o loop install-image-$LATEST_VERSION.img ./install
-        sudo rm ./install/1.npk
+        if [ ${{ matrix.branch }} == 7 ]; then
+          sudo rm ./install/1.npk
+        else
+          sudo rm ./install/20.npk
+        fi
         NPK_FILES=$(find ./install/*.npk)
         for file in $NPK_FILES; do
           sudo -E python3 npk.py sign $file $file
         done
-        sudo cp routeros-$LATEST_VERSION.npk ./install/1.npk
+        if [ ${{ matrix.branch }} == 7 ]; then
+          sudo cp routeros-$LATEST_VERSION.npk ./install/1.npk
+        else
+          sudo cp routeros-$LATEST_VERSION.npk ./install/20.npk
+        fi
         sudo cp keygen.zip ./install/
         sudo cp option-$LATEST_VERSION.npk ./install/100.npk
         sudo cp python3-$LATEST_VERSION.npk ./install/101.npk
