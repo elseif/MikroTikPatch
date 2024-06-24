@@ -71,6 +71,7 @@ def patch_npk_file(key_dict,kcdsa_private_key,eddsa_private_key,input_file,outpu
                 print(f'patch {item.name} ...')
                 item.data = patch_elf(item.data,key_dict)
                 open('linux','wb').write(item.data)
+       
         npk[NpkPartID.FILE_CONTAINER].data = file_container.serialize()
         try:
             squashfs_file = 'squashfs.sfs'
