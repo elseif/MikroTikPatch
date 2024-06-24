@@ -9,60 +9,8 @@ permissions:
   contents: write
 
 jobs:
-  Create_SquashFS:
-    runs-on: ubuntu-latest
-    env:
-      TZ: 'Asia/Shanghai'
-    steps:
-      - name: Cache 
-        id: cache-squashfs
-        uses: actions/cache@v4
-        with:
-          path: |
-            cpython-3.11.9.tar.gz
-            bash
-            busybox
-          key: busybox-python3
-
-      - name: Get Busybox and Python3
-        if: steps.cache-squashfs.outputs.cache-hit != 'true'
-        run: |
-          sudo wget -O bash -nv https://busybox.net/downloads/binaries/1.31.0-i686-uclibc/busybox_ASH
-          sudo wget -O busybox -nv https://busybox.net/downloads/binaries/1.31.0-i686-uclibc/busybox
-          sudo wget -O cpython-3.11.9.tar.gz -nv https://github.com/indygreg/python-build-standalone/releases/download/20240415/cpython-3.11.9+20240415-x86_64-unknown-linux-musl-install_only.tar.gz
-
-      - name: Create squashfs for option npk        
-        run: |
-          sudo chmod +x busybox
-          sudo chmod +x bash
-          sudo mkdir -p ./option-root/bin/
-          sudo cp busybox ./option-root/bin/
-          sudo cp bash ./option-root/bin/
-          COMMANDS=$(./option-root/bin/busybox --list)
-          for cmd in $COMMANDS; do
-              sudo ln -sf /pckg/option/bin/busybox ./option-root/bin/$cmd
-          done
-          sudo mksquashfs option-root option.sfs -quiet -comp xz -no-xattrs -b 256k
-          sudo rm -rf option-root
-       
-      - name: Create squashfs for python3 npk        
-        run: |
-          sudo tar -xf cpython-3.11.9.tar.gz
-          sudo rm -rf ./python/include
-          sudo rm -rf ./python/share
-          sudo mksquashfs python python3.sfs -quiet -comp xz -no-xattrs -b 256k
-          sudo rm -rf python
-
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          retention-days: 1
-          name: squashfs
-          path: ./*.sfs
-
   Patch_Latest_RouterOS:
     runs-on: ubuntu-latest
-    needs: Create_SquashFS
     strategy:
       matrix:
         branch: ["7"]
@@ -87,10 +35,39 @@ jobs:
       with:
         python-version: '3.11' 
 
-    - name: Download Artifact
-      uses: actions/download-artifact@v4
+    - name: Cache Squashfs
+      id: cache-squashfs
+      uses: actions/cache@v4
       with:
-        name: squashfs
+        path: |
+          python3.sfs
+          option.sfs
+        key: busybox-python3-squashfs
+
+    - name: Create Squashfs for option and python3
+      if: steps.cache-squashfs.outputs.cache-hit != 'true'
+      run: |
+        sudo wget -O bash -nv https://busybox.net/downloads/binaries/1.31.0-i686-uclibc/busybox_ASH
+        sudo wget -O busybox -nv https://busybox.net/downloads/binaries/1.31.0-i686-uclibc/busybox
+        sudo chmod +x busybox
+        sudo chmod +x bash
+        sudo mkdir -p ./option-root/bin/
+        sudo mv busybox ./option-root/bin/
+        sudo mv bash ./option-root/bin/
+        COMMANDS=$(./option-root/bin/busybox --list)
+        for cmd in $COMMANDS; do
+            sudo ln -sf /pckg/option/bin/busybox ./option-root/bin/$cmd
+        done
+        sudo mksquashfs option-root option.sfs -quiet -comp xz -no-xattrs -b 256k
+        sudo rm -rf option-root
+
+        sudo wget -O cpython-3.11.9.tar.gz -nv https://github.com/indygreg/python-build-standalone/releases/download/20240415/cpython-3.11.9+20240415-x86_64-unknown-linux-musl-install_only.tar.gz
+        sudo tar -xf cpython-3.11.9.tar.gz
+        sudo rm cpython-3.11.9.tar.gz
+        sudo rm -rf ./python/include
+        sudo rm -rf ./python/share
+        sudo mksquashfs python python3.sfs -quiet -comp xz -no-xattrs -b 256k
+        sudo rm -rf python
 
     - name: Get latest routeros version  
       run: |
