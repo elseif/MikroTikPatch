@@ -5,11 +5,6 @@ on:
   schedule:
     - cron: "0 0 * * *"
   workflow_dispatch:
-    inputs:
-      version:
-        description: 'RouterOS version, e.g.: 7.15.1, blank for latest'
-        type: string
-        default: ''
 permissions:
   contents: write
 
@@ -58,10 +53,11 @@ jobs:
     needs: Create_SquashFS
     strategy:
       matrix:
+        newest: ["7","6"]
         channel: [stable, testing]
     env:
       TZ: 'Asia/Shanghai'
-      LATEST_VERSION_URL: 'https://upgrade.mikrotik.com/routeros/NEWESTa7.'
+      LATEST_VERSION_URL: 'https://upgrade.mikrotik.com/routeros/NEWESTa'
       LATEST_VERSION: ""
       CUSTOM_LICENSE_PRIVATE_KEY: ${{ secrets.CUSTOM_LICENSE_PRIVATE_KEY }}
       CUSTOM_LICENSE_PUBLIC_KEY: ${{ secrets.CUSTOM_LICENSE_PUBLIC_KEY }}
@@ -86,11 +82,7 @@ jobs:
     - name: Get latest routeros version  
       run: |
         echo $(uname -a)
-        if [ "${{ inputs.version }}" == "" ]; then
-          LATEST_VERSION=$(wget -nv -O - ${{ env.LATEST_VERSION_URL }}${{ matrix.channel }} | cut -d ' ' -f1)
-        else
-          LATEST_VERSION=${{ inputs.version }}
-        fi
+        LATEST_VERSION=$(wget -nv -O - ${{ env.LATEST_VERSION_URL }}${{ matrix.channel }}.${{ matrix.channel }} | cut -d ' ' -f1)
         echo Latest Version:$LATEST_VERSION
         echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_ENV
 
