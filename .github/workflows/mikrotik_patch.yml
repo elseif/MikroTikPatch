@@ -105,13 +105,13 @@ jobs:
 
     - name: Patch netinstall.exe
       run: |
+        sudo unzip netinstall-$LATEST_VERSION.zip
         sudo -E python3 patch.py netinstall netinstall.exe
         sudo zip netinstall-$LATEST_VERSION.zip ./netinstall.exe
 
     - name: Patch mikrotik-${{ env.LATEST_VERSION }}.iso
       run: |
         sudo apt-get install -y mkisofs > /dev/null
-        sudo unzip netinstall-$LATEST_VERSION.zip
         sudo mkdir ./iso 
         sudo mount -o loop,ro mikrotik-$LATEST_VERSION.iso ./iso
         sudo mkdir ./new_iso
