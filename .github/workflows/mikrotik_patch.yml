@@ -90,7 +90,7 @@ jobs:
             LATEST_VERSION=$(wget -nv -O - ${{ env.LATEST6_VERSION_URL }}fix | cut -d ' ' -f1)
           else 
             LATEST_VERSION=$(wget -nv -O - ${{ env.LATEST6_VERSION_URL }}  | cut -d ' ' -f1)
-          if
+          fi
         fi
         echo Latest Version:$LATEST_VERSION
         echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_ENV
