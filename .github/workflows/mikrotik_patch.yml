@@ -53,11 +53,12 @@ jobs:
     needs: Create_SquashFS
     strategy:
       matrix:
-        newest: ["7","6"]
+        branch: ["7","6"]
         channel: [stable, testing]
     env:
       TZ: 'Asia/Shanghai'
-      LATEST_VERSION_URL: 'https://upgrade.mikrotik.com/routeros/NEWESTa'
+      LATEST7_VERSION_URL: 'https://upgrade.mikrotik.com/routeros/NEWESTa7'
+      LATEST6_VERSION_URL: 'http://upgrade.mikrotik.com/routeros/LATEST.6'
       LATEST_VERSION: ""
       CUSTOM_LICENSE_PRIVATE_KEY: ${{ secrets.CUSTOM_LICENSE_PRIVATE_KEY }}
       CUSTOM_LICENSE_PUBLIC_KEY: ${{ secrets.CUSTOM_LICENSE_PUBLIC_KEY }}
@@ -82,7 +83,15 @@ jobs:
     - name: Get latest routeros version  
       run: |
         echo $(uname -a)
-        LATEST_VERSION=$(wget -nv -O - ${{ env.LATEST_VERSION_URL }}${{ matrix.newest }}.${{ matrix.channel }} | cut -d ' ' -f1)
+        if [ ${{ matrix.branch }} == 7 ]; then
+          LATEST_VERSION=$(wget -nv -O - ${{ env.LATEST7_VERSION_URL }}.${{ matrix.channel }} | cut -d ' ' -f1)
+        else
+          if [ ${{ matrix.channel }} == stable ]; then
+            LATEST_VERSION=$(wget -nv -O - ${{ env.LATEST6_VERSION_URL }}fix | cut -d ' ' -f1)
+          else 
+            LATEST_VERSION=$(wget -nv -O - ${{ env.LATEST6_VERSION_URL }}  | cut -d ' ' -f1)
+          if
+        fi
         echo Latest Version:$LATEST_VERSION
         echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_ENV
 
@@ -264,7 +273,7 @@ jobs:
         name: "MikroTik ${{ env.LATEST_VERSION }}"
         body: "MikroTik ${{ env.LATEST_VERSION }}"
         tag_name: ${{ env.LATEST_VERSION }}
-        make_latest:  ${{ matrix.channel == 'stable' }}
+        make_latest:  ${{ matrix.channel == 'stable' && matrix.branch == '7' }}
         prerelease:  ${{ matrix.channel == 'testing' }}
         files: |
           mikrotik-${{ env.LATEST_VERSION }}.iso
