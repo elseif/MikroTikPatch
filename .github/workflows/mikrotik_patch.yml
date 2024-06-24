@@ -20,7 +20,6 @@ jobs:
       LATEST7_VERSION_URL: 'https://upgrade.mikrotik.com/routeros/NEWESTa7'
       LATEST6_VERSION_URL: 'http://upgrade.mikrotik.com/routeros/LATEST.6'
       LATEST_VERSION: ""
-      LATEST_CHANGELOG: ""
       CUSTOM_LICENSE_PRIVATE_KEY: ${{ secrets.CUSTOM_LICENSE_PRIVATE_KEY }}
       CUSTOM_LICENSE_PUBLIC_KEY: ${{ secrets.CUSTOM_LICENSE_PUBLIC_KEY }}
       CUSTOM_NPK_SIGN_PRIVATE_KEY: ${{ secrets.CUSTOM_NPK_SIGN_PRIVATE_KEY }}
@@ -75,10 +74,9 @@ jobs:
         echo $(uname -a)
         LATEST_VERSION=$(wget -nv -O - ${{ env.LATEST7_VERSION_URL }}.${{ matrix.channel }} | cut -d ' ' -f1)
         echo Latest Version:$LATEST_VERSION
-        LATEST_CHANGELOG=$(wget -nv -O - https://upgrade.mikrotik.com/routeros/$LATEST_VERSION/CHANGELOG)
-        echo Latest Changelog:$LATEST_CHANGELOG
+        wget -nv -O CHANGELOG.txt https://upgrade.mikrotik.com/routeros/$LATEST_VERSION/CHANGELOG
+        cat CHANGELOG.txt
         echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_ENV
-        echo "LATEST_CHANGELOG=${LATEST_CHANGELOG}" >> $GITHUB_ENV
 
     - name: Cache Mikrotik ${{ env.LATEST_VERSION }}
       id: cache-mikrotik
@@ -283,7 +281,7 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         name: "RouterOS ${{ env.LATEST_VERSION }}"
-        body: "${{ env.LATEST_CHANGELOG }}"
+        body_path: "CHANGELOG.txt"
         tag_name: ${{ env.LATEST_VERSION }}
         make_latest:  ${{ matrix.channel == 'stable' && matrix.branch == '7' }}
         prerelease:  ${{ matrix.channel == 'testing' }}
