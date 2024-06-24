@@ -22,7 +22,7 @@ jobs:
             cpython-3.11.9.tar.gz
             bash
             busybox
-          key: ${{ runner.os }}-squashfs
+          key: busybox-python3
 
       - name: Get Busybox and Python3
         if: steps.cache-squashfs.outputs.cache-hit != 'true'
@@ -106,7 +106,7 @@ jobs:
         path: |
           netinstall-${{ env.LATEST_VERSION }}.zip
           mikrotik-${{ env.LATEST_VERSION }}.iso
-        key: ${{ runner.os }}-${{ env.LATEST_VERSION }}
+        key: mikrotik-${{ env.LATEST_VERSION }}
 
     - name: Get netinstall-${{ env.LATEST_VERSION }}.zip and mikrotik-${{ env.LATEST_VERSION }}.iso
       if: steps.cache-mikrotik.outputs.cache-hit != 'true'
@@ -240,7 +240,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: refind-bin-0.14.2.zip
-        key: ${{ runner.os }}-refind
+        key: refind
 
     - name: Get refind
       if: steps.cache-refind.outputs.cache-hit != 'true'
