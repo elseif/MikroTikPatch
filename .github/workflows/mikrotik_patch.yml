@@ -244,17 +244,6 @@ jobs:
         sudo rm -rf ./img
         sudo qemu-nbd -d /dev/nbd0
 
-        sudo qemu-img convert -f raw -O qcow2 chr-$LATEST_VERSION.img chr-$LATEST_VERSION.qcow2
-        sudo qemu-img convert -f raw -O vmdk chr-$LATEST_VERSION.img chr-$LATEST_VERSION.vmdk
-        sudo qemu-img convert -f raw -O vpc chr-$LATEST_VERSION.img chr-$LATEST_VERSION.vhd
-        sudo qemu-img convert -f raw -O vhdx chr-$LATEST_VERSION.img chr-$LATEST_VERSION.vhdx
-        sudo qemu-img convert -f raw -O vdi chr-$LATEST_VERSION.img chr-$LATEST_VERSION.vdi
-
-        sudo zip chr-$LATEST_VERSION.qcow2.zip chr-$LATEST_VERSION.qcow2
-        sudo zip chr-$LATEST_VERSION.vmdk.zip chr-$LATEST_VERSION.vmdk
-        sudo zip chr-$LATEST_VERSION.vhd.zip chr-$LATEST_VERSION.vhd
-        sudo zip chr-$LATEST_VERSION.vhdx.zip chr-$LATEST_VERSION.vhdx
-        sudo zip chr-$LATEST_VERSION.vdi.zip chr-$LATEST_VERSION.vdi
         sudo zip chr-$LATEST_VERSION.img.zip chr-$LATEST_VERSION.img
 
         sudo rm *.qcow2
@@ -291,9 +280,6 @@ jobs:
         prerelease:  ${{ matrix.channel == 'testing' }}
         files: |
           mikrotik-${{ env.LATEST_VERSION }}.iso
-          chr-${{ env.LATEST_VERSION }}*.zip
-          netinstall-${{ env.LATEST_VERSION }}.zip
-          install-image-${{ env.LATEST_VERSION }}.zip
           routeros-${{ env.LATEST_VERSION }}.npk
           option-${{ env.LATEST_VERSION }}.npk
           all_packages-x86-${{ env.LATEST_VERSION }}.zip
