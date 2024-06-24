@@ -45,7 +45,6 @@ def run_shell_command(command):
     process = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return process.stdout, process.stderr
 
-
 def patch_squashfs(path,key_dict):
     for root, dirs, files in os.walk(path):
         for file in files:

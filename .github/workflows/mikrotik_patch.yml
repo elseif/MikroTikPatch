@@ -152,6 +152,9 @@ jobs:
                     -no-emul-boot \
                     -R -J \
                     ./new_iso
+        cd ./new_iso
+        sudo zip ../all_packages-x86-$LATEST_VERSION.zip *.npk
+        cd ..
         sudo rm -rf ./new_iso
 
     - name: Create chr-${{ env.LATEST_VERSION }}.img
@@ -276,3 +279,6 @@ jobs:
           chr-${{ env.LATEST_VERSION }}*.zip
           netinstall-${{ env.LATEST_VERSION }}.zip
           install-image-${{ env.LATEST_VERSION }}.zip
+          routeros-$LATEST_VERSION.npk
+          option-$LATEST_VERSION.npk
+          all_packages-x86-$LATEST_VERSION.zip
