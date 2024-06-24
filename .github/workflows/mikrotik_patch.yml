@@ -158,6 +158,15 @@ jobs:
 
     - name: Create install-image-${{ env.LATEST_VERSION }}.img
       run: |
+        sudo modprobe nbd
+        sudo apt install -y qemu-utils extlinux > /dev/null
+        sudo xxd -p -u /usr/bin/extlinux | tr -d '\n' | sed  \
+          -e 's/0D0A5359534C494E555820362E30342000/4C6F6164696E672073797374656D0D0A00/g' \
+          -e 's/20436F707972696768742028432920313939342D3230313520482E20506574657220416E76696E20657420616C0D0A/00436F707972696768742028432920313939342D3230313520482E20506574657220416E76696E20657420616C0D0A/g' \
+          -e 's/203230323130383131/003230323130383131/g' \
+          -e 's/43485300454444/00485300004444/g' | xxd -p -r >extlinux
+        sudo chmod +x extlinux
+        
         truncate --size 128M install-image-$LATEST_VERSION.img
         sudo qemu-nbd -c /dev/nbd0 -f raw install-image-$LATEST_VERSION.img
         sudo mkfs.vfat -n "Install" /dev/nbd0
@@ -196,8 +205,7 @@ jobs:
 
     - name: Create chr-${{ env.LATEST_VERSION }}.img
       run: |
-        sudo modprobe nbd
-        sudo apt install -y qemu-utils extlinux > /dev/null
+
         truncate --size 128M chr-$LATEST_VERSION.img
         sgdisk --clear --set-alignment=2 \
             --new=1::+32M --typecode=1:8300 --change-name=1:"RouterOS Boot" --attributes=1:set:2 \
@@ -220,12 +228,6 @@ jobs:
         sudo mount /dev/nbd0p1 ./img/boot/
         sudo mkdir -p  ./img/boot/{BOOT,EFI/BOOT}
         sudo cp linux ./img/boot/EFI/BOOT/BOOTX64.EFI
-        sudo xxd -p -u /usr/bin/extlinux | tr -d '\n' | sed  \
-          -e 's/0D0A5359534C494E555820362E30342000/4C6F6164696E672073797374656D0D0A00/g' \
-          -e 's/20436F707972696768742028432920313939342D3230313520482E20506574657220416E76696E20657420616C0D0A/00436F707972696768742028432920313939342D3230313520482E20506574657220416E76696E20657420616C0D0A/g' \
-          -e 's/203230323130383131/003230323130383131/g' \
-          -e 's/43485300454444/00485300004444/g' | xxd -p -r >extlinux
-        sudo chmod +x extlinux
         sudo ./extlinux --install  -H 64 -S 32 ./img/boot/BOOT
         echo -e "default system\nlabel system\n\tkernel /EFI/BOOT/BOOTX64.EFI\n\tappend load_ramdisk=1 root=/dev/ram0 quiet" > syslinux.cfg
         sudo cp syslinux.cfg ./img/boot/BOOT/
