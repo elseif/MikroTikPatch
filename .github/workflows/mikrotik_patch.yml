@@ -76,7 +76,7 @@ jobs:
         echo Latest Version:$LATEST_VERSION
         echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_ENV
 
-    - name: Cache ${{ env.LATEST_VERSION }}
+    - name: Cache Mikrotik ${{ env.LATEST_VERSION }}
       id: cache-mikrotik
       uses: actions/cache@v4
       with:
@@ -240,9 +240,9 @@ jobs:
         sudo rm refind.conf
         sudo ./extlinux --install -H 64 -S 32 ./install/
         echo -e 'default system\nLABEL system\n\tKERNEL linux\n\tAPPEND load_ramdisk=1 -install -hdd' \
-          > syslinux.conf
-        sudo cp syslinux.conf ./install/
-        sudo rm syslinux.conf
+          > syslinux.cfg
+        sudo cp syslinux.cfg ./install/
+        sudo rm syslinux.cfg
         sudo cp linux ./install/
         NPK_FILES=($(find ./new_iso/*.npk))
         for ((i=1; i<=${#NPK_FILES[@]}; i++))
