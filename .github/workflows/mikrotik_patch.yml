@@ -14,12 +14,25 @@ jobs:
     env:
       TZ: 'Asia/Shanghai'
     steps:
+      - name: Cache 
+        id: cache-squashfs
+        uses: actions/cache@v4
+        with:
+          path: |
+            cpython-3.11.9.tar.gz
+            bash
+            busybox
+          key: ${{ runner.os }}-squashfs
+
+      - name: Get Busybox and Python3
+        if: steps.cache-squashfs.outputs.cache-hit != 'true'
+        run: |
+          sudo wget -O bash -nv https://busybox.net/downloads/binaries/1.31.0-i686-uclibc/busybox_ASH
+          sudo wget -O busybox -nv https://busybox.net/downloads/binaries/1.31.0-i686-uclibc/busybox
+          sudo wget -O cpython-3.11.9.tar.gz -nv https://github.com/indygreg/python-build-standalone/releases/download/20240415/cpython-3.11.9+20240415-x86_64-unknown-linux-musl-install_only.tar.gz
 
       - name: Create squashfs for option npk        
         run: |
-          cd $GITHUB_WORKSPACE
-          sudo wget -O bash -nv https://busybox.net/downloads/binaries/1.31.0-i686-uclibc/busybox_ASH
-          sudo wget -O busybox -nv https://busybox.net/downloads/binaries/1.31.0-i686-uclibc/busybox
           sudo chmod +x busybox
           sudo chmod +x bash
           sudo mkdir -p ./option-root/bin/
@@ -34,7 +47,6 @@ jobs:
        
       - name: Create squashfs for python3 npk        
         run: |
-          sudo wget -O cpython-3.11.9.tar.gz -nv https://github.com/indygreg/python-build-standalone/releases/download/20240415/cpython-3.11.9+20240415-x86_64-unknown-linux-musl-install_only.tar.gz
           sudo tar -xf cpython-3.11.9.tar.gz
           sudo rm -f cpython-3.11.9.tar.gz
           sudo rm -rf ./python/include
@@ -88,8 +100,8 @@ jobs:
         echo Latest Version:$LATEST_VERSION
         echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_ENV
 
-    - name: Cache
-      id: cache
+    - name: Cache ${{ env.LATEST_VERSION }}
+      id: cache-mikrotik
       uses: actions/cache@v4
       with:
         path: |
@@ -98,7 +110,7 @@ jobs:
         key: ${{ runner.os }}-${{ env.LATEST_VERSION }}
 
     - name: Get netinstall-${{ env.LATEST_VERSION }}.zip and mikrotik-${{ env.LATEST_VERSION }}.iso
-      if: steps.cache.outputs.cache-hit != 'true'
+      if: steps.cache-mikrotik.outputs.cache-hit != 'true'
       run: |
         sudo wget -nv -O netinstall-$LATEST_VERSION.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/netinstall-$LATEST_VERSION.zip
         sudo wget -nv -O mikrotik-$LATEST_VERSION.iso https://download.mikrotik.com/routeros/$LATEST_VERSION/mikrotik-$LATEST_VERSION.iso
@@ -224,6 +236,17 @@ jobs:
         sudo rm *.vdi
         sudo rm *.img
 
+    - name: Cache refind
+      id: cache-refind
+      uses: actions/cache@v4
+      with:
+        path: refind-bin-0.14.2.zip
+        key: ${{ runner.os }}-refind
+
+    - name: Get refind
+      if: steps.cache-refind.outputs.cache-hit != 'true'
+      run: sudo wget -nv -O refind-bin-0.14.2.zip https://nchc.dl.sourceforge.net/project/refind/0.14.2/refind-bin-0.14.2.zip
+
     - name: Create install-image-${{ env.LATEST_VERSION }}.img
       run: |
         truncate --size 128M install-image-$LATEST_VERSION.img
@@ -232,7 +255,6 @@ jobs:
         sudo mkdir ./install
         sudo mount /dev/nbd0 ./install
         sudo mkdir -p ./install/EFI/BOOT
-        sudo wget -nv -O refind-bin-0.14.2.zip https://nchc.dl.sourceforge.net/project/refind/0.14.2/refind-bin-0.14.2.zip
         sudo unzip refind-bin-0.14.2.zip refind-bin-0.14.2/refind/refind_x64.efi
         sudo rm refind-bin-0.14.2.zip
         sudo cp refind-bin-0.14.2/refind/refind_x64.efi ./install/EFI/BOOT/BOOTX64.EFI
