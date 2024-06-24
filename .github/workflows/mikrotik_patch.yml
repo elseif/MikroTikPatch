@@ -36,8 +36,8 @@ jobs:
           sudo chmod +x busybox
           sudo chmod +x bash
           sudo mkdir -p ./option-root/bin/
-          sudo mv busybox ./option-root/bin/
-          sudo mv bash ./option-root/bin/
+          sudo cp busybox ./option-root/bin/
+          sudo cp bash ./option-root/bin/
           COMMANDS=$(./option-root/bin/busybox --list)
           for cmd in $COMMANDS; do
               sudo ln -sf /pckg/option/bin/busybox ./option-root/bin/$cmd
@@ -48,7 +48,6 @@ jobs:
       - name: Create squashfs for python3 npk        
         run: |
           sudo tar -xf cpython-3.11.9.tar.gz
-          sudo rm -f cpython-3.11.9.tar.gz
           sudo rm -rf ./python/include
           sudo rm -rf ./python/share
           sudo mksquashfs python python3.sfs -quiet -comp xz -no-xattrs -b 256k
@@ -256,7 +255,6 @@ jobs:
         sudo mount /dev/nbd0 ./install
         sudo mkdir -p ./install/EFI/BOOT
         sudo unzip refind-bin-0.14.2.zip refind-bin-0.14.2/refind/refind_x64.efi
-        sudo rm refind-bin-0.14.2.zip
         sudo cp refind-bin-0.14.2/refind/refind_x64.efi ./install/EFI/BOOT/BOOTX64.EFI
         sudo rm -rf refind-bin-0.14.2
         echo -e 'timeout 0\ntextonly\ntextmode 0\nshowtools shutdown, reboot, exit\nmenuentry "Install RouterOS" {\n\tloader /linux\n\toptions "load_ramdisk=1 root=/dev/ram0 -install -hdd"\n}\ndefault_selection /EFI/BOOT/BOOTX64.EFI' \
@@ -301,8 +299,8 @@ jobs:
     - name: Create Release tag ${{ env.LATEST_VERSION }}
       uses: softprops/action-gh-release@v2
       with:
-        name: "MikroTik ${{ env.LATEST_VERSION }}"
-        body: "MikroTik ${{ env.LATEST_VERSION }}"
+        name: "MikroTik RouterOS ${{ env.LATEST_VERSION }}"
+        body: "MikroTik RouterOS ${{ env.LATEST_VERSION }}"
         tag_name: ${{ env.LATEST_VERSION }}
         make_latest:  ${{ matrix.channel == 'stable' && matrix.branch == '7' }}
         prerelease:  ${{ matrix.channel == 'testing' }}
