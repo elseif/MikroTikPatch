@@ -185,7 +185,8 @@ jobs:
         sudo chmod +x extlinux
         sudo ./extlinux --install  -H 64 -S 32 ./img/boot/BOOT
         echo -e "default system\nlabel system\n\tkernel /EFI/BOOT/BOOTX64.EFI\n\tappend load_ramdisk=1 root=/dev/ram0 quiet" > syslinux.cfg
-        sudo mv syslinux.cfg ./img/boot/BOOT/
+        sudo cp syslinux.cfg ./img/boot/BOOT/
+        sudo rm syslinux.cfg
         sudo umount /dev/nbd0p1
         sudo mount  /dev/nbd0p2 ./img/routeros/
         sudo mkdir -p ./img/routeros/{var/pdb/{system,option},rw/disk,dev,boot}
@@ -232,16 +233,18 @@ jobs:
         sudo cp refind-bin-0.14.2/refind/refind_x64.efi ./install/EFI/BOOT/BOOTX64.EFI
         echo -e 'timeout 0\ntextonly\ntextmode 0\nshowtools shutdown, reboot, exit\nmenuentry "Install RouterOS" {\n\tloader /linux\n\toptions "load_ramdisk=1 root=/dev/ram0 -install -hdd"\n}\ndefault_selection /EFI/BOOT/BOOTX64.EFI' \
           > refind.conf
-        sudo mv refind.conf ./install/EFI/BOOT/
+        sudo cp refind.conf ./install/EFI/BOOT/
+        sudo rm refind.conf
         sudo ./extlinux --install -H 64 -S 32 ./install/
         echo -e 'default system\nLABEL system\n\tKERNEL linux\n\tAPPEND load_ramdisk=1 -install -hdd' \
           > syslinux.conf
-        sudo mv syslinux.conf ./install/
+        sudo cp syslinux.conf ./install/
+        sudo rm syslinux.conf
         sudo cp linux ./install/
         NPK_FILES=$(find ./new_iso/*.npk)
         for ((i=1; i<=${#NPK_FILES[@]}; i++))
         do
-          sudo cp ${fruits[$i-1]} ./install/$i.npk
+          sudo cp ${NPK_FILES[$i-1]} ./install/$i.npk
         done
         sudo umount /dev/nbd0
         sudo qemu-nbd -d /dev/nbd0
