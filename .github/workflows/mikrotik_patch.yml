@@ -244,6 +244,8 @@ jobs:
         NPK_FILES=$(find ./new_iso/*.npk)
         for ((i=1; i<=${#NPK_FILES[@]}; i++))
         do
+          echo $i
+          echo ${NPK_FILES[$i-1]}
           sudo cp ${NPK_FILES[$i-1]} ./install/$i.npk
         done
         sudo umount /dev/nbd0
