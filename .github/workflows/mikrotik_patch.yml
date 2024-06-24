@@ -271,6 +271,6 @@ jobs:
           chr-${{ env.LATEST_VERSION }}*.zip
           netinstall-${{ env.LATEST_VERSION }}.zip
           install-image-${{ env.LATEST_VERSION }}.zip
-          routeros-$LATEST_VERSION.npk
-          option-$LATEST_VERSION.npk
-          all_packages-x86-$LATEST_VERSION.zip
+          routeros-${{ env.LATEST_VERSION }}.npk
+          option-${{ env.LATEST_VERSION }}.npk
+          all_packages-x86-${{ env.LATEST_VERSION }}.zip
