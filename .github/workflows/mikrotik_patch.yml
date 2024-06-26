@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        branch: ["7"]
+        branch: [7]
         channel: [stable, testing]
     env:
       TZ: 'Asia/Shanghai'
@@ -26,6 +26,7 @@ jobs:
       CUSTOM_NPK_SIGN_PUBLIC_KEY: ${{ secrets.CUSTOM_NPK_SIGN_PUBLIC_KEY }}
       MIKRO_LICENSE_PUBLIC_KEY: ${{ secrets.MIKRO_LICENSE_PUBLIC_KEY }}
       MIKRO_NPK_SIGN_PUBLIC_LKEY: ${{ secrets.MIKRO_NPK_SIGN_PUBLIC_LKEY }}
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -198,7 +199,6 @@ jobs:
         sudo umount /dev/nbd0
         sudo qemu-nbd -d /dev/nbd0
         sudo rm -rf ./install
-        sudo rm -rf ./new_iso
         sudo zip install-image-$LATEST_VERSION.zip ./install-image-$LATEST_VERSION.img
         sudo rm ./install-image-$LATEST_VERSION.img
 
@@ -264,7 +264,26 @@ jobs:
         sudo rm *.vdi
         sudo rm *.img
 
+    - name: Create Publish Directory
+      run: |
+        mkdir ./publish
+        cp CHANGELOG.txt ./publish/
+        cp mikrotik-$LATEST_VERSION.iso ./publish/
+        cp chr-$LATEST_VERSION*.zip ./publish/
+        cp netinstall-$LATEST_VERSION.zip ./publish/
+        cp install-image-$LATEST_VERSION.zip ./publish/
+        cp all_packages-x86-$LATEST_VERSION.zip ./publish/
+        cp ./new_iso/*.npk ./publish/
 
+    - name: Sync files
+      uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+      with:
+        server: ${{ secrets.FTP_SERVER }}
+        username:  ${{ secrets.FTP_USERNAME }}
+        password: ${{ secrets.FTP_PASSWORD }}
+        server-dir: "${{ secrets.FTP_DIRECTORY }}/${{ env.LATEST_VERSION }}/"
+        local-dir: ./publish/
+ 
 
     - name: Delete Release tag ${{ env.LATEST_VERSION }}
       run: |
@@ -287,7 +306,7 @@ jobs:
         name: "RouterOS ${{ env.LATEST_VERSION }}"
         body_path: "CHANGELOG.txt"
         tag_name: ${{ env.LATEST_VERSION }}
-        make_latest:  ${{ matrix.channel == 'stable' && matrix.branch == '7' }}
+        make_latest:  ${{ matrix.channel == 'stable' && matrix.branch == 7 }}
         prerelease:  ${{ matrix.channel == 'testing' }}
         files: |
           mikrotik-${{ env.LATEST_VERSION }}.iso
