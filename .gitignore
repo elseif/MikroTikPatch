@@ -1,8 +1,5 @@
 __pycache__/
 venv/
+keygen/
 test_*.py
-keygen.py
-keygen.bat
 mikrotik*
-*.crt
-*.key

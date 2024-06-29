@@ -111,7 +111,6 @@ jobs:
         sudo rm -rf ./iso
         sudo mv ./new_iso/routeros-$LATEST_VERSION.npk ./
         sudo -E python3 patch.py npk routeros-$LATEST_VERSION.npk
-        sudo cp keygen.zip ./new_iso/
         NPK_FILES=$(find ./new_iso/*.npk)
         for file in $NPK_FILES; do
             sudo -E python3 npk.py sign $file $file
@@ -193,7 +192,6 @@ jobs:
           echo "${NPK_FILES[$i-1]}=>$i.npk" 
           sudo cp ${NPK_FILES[$i-1]} ./install/$i.npk
         done
-        sudo cp keygen.zip ./install/
         sudo touch ./install/CHOOSE
         sudo touch ./install/autorun.scr 
         sudo umount /dev/nbd0
@@ -234,12 +232,9 @@ jobs:
         sudo rm syslinux.cfg
         sudo umount /dev/nbd0p1
         sudo mount  /dev/nbd0p2 ./img/routeros/
-        sudo mkdir -p ./img/routeros/{var/pdb/{system,option},rw/disk,dev,boot}
-        sudo cp keygen.zip ./img/routeros/rw/disk/
+        sudo mkdir -p ./img/routeros/{var/pdb/{system,option},boot}
         sudo cp option-$LATEST_VERSION.npk ./img/routeros/var/pdb/option/image
         sudo cp routeros-$LATEST_VERSION.npk ./img/routeros/var/pdb/system/image
-        sudo mknod ./img/routeros/dev/bootdev b 8 0
-        sudo mknod ./img/routeros/dev/bootpart b 8 1
         sudo umount /dev/nbd0p2
         sudo rm -rf ./img
         sudo qemu-nbd -d /dev/nbd0
@@ -274,16 +269,6 @@ jobs:
         cp install-image-$LATEST_VERSION.zip ./publish/
         cp all_packages-x86-$LATEST_VERSION.zip ./publish/
         cp ./new_iso/*.npk ./publish/
-
-    - name: Sync files
-      uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-      with:
-        server: ${{ secrets.FTP_SERVER }}
-        username:  ${{ secrets.FTP_USERNAME }}
-        password: ${{ secrets.FTP_PASSWORD }}
-        server-dir: "${{ secrets.FTP_DIRECTORY }}/${{ env.LATEST_VERSION }}/"
-        local-dir: ./publish/
- 
 
     - name: Delete Release tag ${{ env.LATEST_VERSION }}
       run: |
