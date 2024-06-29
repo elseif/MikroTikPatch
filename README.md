@@ -17,7 +17,6 @@
 ## How to license RouterOS
     telnet to routeros with username devel and password is same as admin
     run keygen
-    it's over,just run keygen everything is ok.
 ## How to use python3
     install python3-{version}.npk package
     run telnet to routeros with username devel and password is same as admin

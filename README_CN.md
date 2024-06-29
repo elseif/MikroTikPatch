@@ -17,7 +17,7 @@
     telnet到RouterOS,用户名devel,密码与admin的密码相同
 ## 如何授权许可
     进入shell
-    运行 keygen 即可。
+    运行 keygen
     参考上图。
 ## 如何使用Python
     安装 python3-{version}.npk 包
