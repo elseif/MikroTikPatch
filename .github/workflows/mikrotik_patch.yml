@@ -13,12 +13,10 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        branch: [7]
         channel: [stable, testing]
     env:
       TZ: 'Asia/Shanghai'
-      LATEST7_VERSION_URL: 'https://upgrade.mikrotik.com/routeros/NEWESTa7'
-      LATEST6_VERSION_URL: 'http://upgrade.mikrotik.com/routeros/LATEST.6'
+      LATEST_VERSION_URL: 'https://upgrade.mikrotik.com/routeros/NEWESTa7'
       LATEST_VERSION: ""
       CUSTOM_LICENSE_PRIVATE_KEY: ${{ secrets.CUSTOM_LICENSE_PRIVATE_KEY }}
       CUSTOM_LICENSE_PUBLIC_KEY: ${{ secrets.CUSTOM_LICENSE_PUBLIC_KEY }}
@@ -72,7 +70,7 @@ jobs:
     - name: Get latest routeros version  
       run: |
         echo $(uname -a)
-        LATEST_VERSION=$(wget -nv -O - ${{ env.LATEST7_VERSION_URL }}.${{ matrix.channel }} | cut -d ' ' -f1)
+        LATEST_VERSION=$(wget -nv -O - ${{ env.LATEST_VERSION_URL }}.${{ matrix.channel }} | cut -d ' ' -f1)
         echo Latest Version:$LATEST_VERSION
         wget -nv -O CHANGELOG.txt https://upgrade.mikrotik.com/routeros/$LATEST_VERSION/CHANGELOG
         cat CHANGELOG.txt
@@ -259,16 +257,16 @@ jobs:
         sudo rm *.vdi
         sudo rm *.img
 
-    - name: Create Publish Directory
-      run: |
-        mkdir ./publish
-        cp CHANGELOG.txt ./publish/
-        cp mikrotik-$LATEST_VERSION.iso ./publish/
-        cp chr-$LATEST_VERSION*.zip ./publish/
-        cp netinstall-$LATEST_VERSION.zip ./publish/
-        cp install-image-$LATEST_VERSION.zip ./publish/
-        cp all_packages-x86-$LATEST_VERSION.zip ./publish/
-        cp ./new_iso/*.npk ./publish/
+    # - name: Create Publish Directory
+    #   run: |
+    #     mkdir ./publish
+    #     cp CHANGELOG.txt ./publish/
+    #     cp mikrotik-$LATEST_VERSION.iso ./publish/
+    #     cp chr-$LATEST_VERSION*.zip ./publish/
+    #     cp netinstall-$LATEST_VERSION.zip ./publish/
+    #     cp install-image-$LATEST_VERSION.zip ./publish/
+    #     cp all_packages-x86-$LATEST_VERSION.zip ./publish/
+    #     cp ./new_iso/*.npk ./publish/
 
     - name: Delete Release tag ${{ env.LATEST_VERSION }}
       run: |
@@ -291,7 +289,7 @@ jobs:
         name: "RouterOS ${{ env.LATEST_VERSION }}"
         body_path: "CHANGELOG.txt"
         tag_name: ${{ env.LATEST_VERSION }}
-        make_latest:  ${{ matrix.channel == 'stable' && matrix.branch == 7 }}
+        make_latest:  ${{ matrix.channel == 'stable'}}
         prerelease:  ${{ matrix.channel == 'testing' }}
         files: |
           mikrotik-${{ env.LATEST_VERSION }}.iso
