@@ -28,7 +28,11 @@ def patch_bzimage(data:bytes,key_dict:dict):
     new_vmlinux = vmlinux.replace(initramfs,new_initramfs)
     new_vmlinux_xz = lzma.compress(new_vmlinux,check=lzma.CHECK_CRC32,filters=[
             {"id": lzma.FILTER_X86},
-            {"id": lzma.FILTER_LZMA2, "preset": 8,'dict_size': 32*1024*1024},
+            {"id": lzma.FILTER_LZMA2, 
+             "preset": 9 | lzma.PRESET_EXTREME,
+             'dict_size': 32*1024*1024,
+              "lc": 4,"lp": 0, "pb": 0,
+             },
         ])
     new_payload_length = len(new_vmlinux_xz)
     assert new_payload_length <= payload_length , 'new vmlinux.xz size is too big'
