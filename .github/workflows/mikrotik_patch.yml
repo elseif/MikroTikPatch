@@ -5,11 +5,18 @@ on:
   schedule:
     - cron: "0 0 * * *"
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'RouterOS version, blank for latest'     
+        required: false
+        default: ''
+        type: string
+
 permissions:
   contents: write
 
 jobs:
-  Patch_Latest_RouterOS:
+  Patch_RouterOS_7:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -70,7 +77,11 @@ jobs:
     - name: Get latest routeros version  
       run: |
         echo $(uname -a)
-        LATEST_VERSION=$(wget -nv -O - ${{ env.LATEST_VERSION_URL }}.${{ matrix.channel }} | cut -d ' ' -f1)
+        if [ "${{ inputs.version }}" == "" ]; then
+          LATEST_VERSION=$(wget -nv -O - ${{ env.LATEST_VERSION_URL }}.${{ matrix.channel }} | cut -d ' ' -f1)
+        else
+          LATEST_VERSION=${{ inputs.version }}
+        fi  
         echo Latest Version:$LATEST_VERSION
         wget -nv -O CHANGELOG.txt https://upgrade.mikrotik.com/routeros/$LATEST_VERSION/CHANGELOG
         cat CHANGELOG.txt
