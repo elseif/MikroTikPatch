@@ -275,7 +275,7 @@ jobs:
         cp ./new_iso/*.npk ./publish/
 
     - name: Publish files
-      uses: ChenjxJames/SFTP-Deploy-Action@v1.3.2
+      uses: buxianshan/fine-sftp-deployer@v0.1.5
       with:
         server: ${{ secrets.SSH_SERVER }}
         username:  ${{ secrets.SSH_USERNAME }}
