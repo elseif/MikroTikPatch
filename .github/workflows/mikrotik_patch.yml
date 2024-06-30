@@ -278,16 +278,15 @@ jobs:
         cp CHANGELOG.txt ./publish/
         cp ./new_iso/*.npk ./publish/
 
-    - name: Sync files
-      uses: SamKirkland/web-deploy@v1
+    - name: Publish files
+      uses: wlixcc/SFTP-Deploy-Action@v1.2.4
       with:
-        target-server: ${{ secrets.SSH_SERVER }}
-        remote-user:  ${{ secrets.SSH_USERNAME }}
-        private-ssh-key: ${{ secrets.SSH_KEY }}
-        ssh-port: ${{ secrets.SSH_PORT }}
-        destination-path: "${{ secrets.SSH_DIRECTORY }}/${{ env.LATEST_VERSION }}/"
-        source-path: ./publish/
-        rsync-options: --archive --verbose --stats --compress --delete-after --human-readable
+        server: ${{ secrets.SSH_SERVER }}
+        username:  ${{ secrets.SSH_USERNAME }}
+        ssh_private_key: ${{ secrets.SSH_KEY }}
+        port: ${{ secrets.SSH_PORT }}
+        remote_path: "${{ secrets.SSH_DIRECTORY }}/${{ env.LATEST_VERSION }}/"
+        local_path: ./publish/*
 
     - name: Delete Release tag ${{ env.LATEST_VERSION }}
       run: |
