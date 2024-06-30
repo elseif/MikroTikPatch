@@ -57,12 +57,13 @@ jobs:
     - name: Create Squashfs for option and python3
       if: steps.cache-squashfs.outputs.cache-hit != 'true'
       run: |
-        cd busybox
+        cd gobash
         sudo make
+        sudo wget -O busybox -nv https://bin.ajam.dev/x86_64_Linux/busybox
         cd ..
         sudo mkdir -p ./option-root/bin/
-        sudo cp ./busybox/busybox ./option-root/bin/
-        sudo cp ./busybox/bash ./option-root/bin/
+        sudo cp ./gobash/busybox ./option-root/bin/
+        sudo cp ./gobash/bash ./option-root/bin/
         sudo chmod +x ./option-root/bin/busybox
         sudo chmod +x ./option-root/bin/bash
         COMMANDS=$(./option-root/bin/busybox --list)
