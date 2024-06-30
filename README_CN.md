@@ -9,8 +9,10 @@
 ![](install.png)
 ![](routeros.png)
 
-### 使用keygen授权RouterOS
-![](keygen.png)
+### x86模式授权许可
+![](x86.png)
+### chr模式授权许可
+![](chr.png)
 
 ## 如何使用Shell
     安装 option-{version}.npk 包
