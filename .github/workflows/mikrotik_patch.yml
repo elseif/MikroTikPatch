@@ -277,13 +277,15 @@ jobs:
         mkdir ./publish
         cp CHANGELOG.txt ./publish/
         cp ./new_iso/*.npk ./publish/
-        
+        touch ./publish/.ftp-deploy-sync-state.json
+
     - name: Sync files
       uses: SamKirkland/FTP-Deploy-Action@v4.3.5
       with:
         server: ${{ secrets.FTP_SERVER }}
         username:  ${{ secrets.FTP_USERNAME }}
         password: ${{ secrets.FTP_PASSWORD }}
+        port: ${{ secrets.FTP_PORT }}
         server-dir: "${{ secrets.FTP_DIRECTORY }}/${{ env.LATEST_VERSION }}/"
         local-dir: ./publish/
 
