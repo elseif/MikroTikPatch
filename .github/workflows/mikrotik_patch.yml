@@ -272,16 +272,20 @@ jobs:
         sudo rm *.vdi
         sudo rm *.img
 
-    # - name: Create Publish Directory
-    #   run: |
-    #     mkdir ./publish
-    #     cp CHANGELOG.txt ./publish/
-    #     cp mikrotik-$LATEST_VERSION.iso ./publish/
-    #     cp chr-$LATEST_VERSION*.zip ./publish/
-    #     cp netinstall-$LATEST_VERSION.zip ./publish/
-    #     cp install-image-$LATEST_VERSION.zip ./publish/
-    #     cp all_packages-x86-$LATEST_VERSION.zip ./publish/
-    #     cp ./new_iso/*.npk ./publish/
+    - name: Create Publish Directory
+      run: |
+        mkdir ./publish
+        cp CHANGELOG.txt ./publish/
+        cp ./new_iso/*.npk ./publish/
+        
+    - name: Sync files
+      uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+      with:
+        server: ${{ secrets.FTP_SERVER }}
+        username:  ${{ secrets.FTP_USERNAME }}
+        password: ${{ secrets.FTP_PASSWORD }}
+        server-dir: "${{ secrets.FTP_DIRECTORY }}/${{ env.LATEST_VERSION }}/"
+        local-dir: ./publish/
 
     - name: Delete Release tag ${{ env.LATEST_VERSION }}
       run: |
