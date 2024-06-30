@@ -287,7 +287,7 @@ jobs:
         ssh-port: ${{ secrets.SSH_PORT }}
         destination-path: "${{ secrets.SSH_DIRECTORY }}/${{ env.LATEST_VERSION }}/"
         source-path: ./publish/
-
+        rsync-options: --archive --verbose --stats --compress --delete-after --human-readable
 
     - name: Delete Release tag ${{ env.LATEST_VERSION }}
       run: |
