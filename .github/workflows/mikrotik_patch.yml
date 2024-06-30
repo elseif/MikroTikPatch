@@ -274,15 +274,15 @@ jobs:
         cp CHANGELOG.txt ./publish/
         cp ./new_iso/*.npk ./publish/
 
-    - name: Publish files
-      uses: buxianshan/fine-sftp-deployer@v0.1.5
-      with:
-        server: ${{ secrets.SSH_SERVER }}
-        username:  ${{ secrets.SSH_USERNAME }}
-        ssh_private_key: ${{ secrets.SSH_KEY }}
-        port: ${{ secrets.SSH_PORT }}
-        remote_path: "${{ secrets.SSH_DIRECTORY }}/${{ env.LATEST_VERSION }}/"
-        local_path: ./publish/*
+    # - name: Publish files
+    #   uses: buxianshan/fine-sftp-deployer@v0.1.5
+    #   with:
+    #     server: ${{ secrets.SSH_SERVER }}
+    #     username:  ${{ secrets.SSH_USERNAME }}
+    #     ssh_private_key: ${{ secrets.SSH_KEY }}
+    #     port: ${{ secrets.SSH_PORT }}
+    #     remote_path: "${{ secrets.SSH_DIRECTORY }}/${{ env.LATEST_VERSION }}/"
+    #     local_path: ./publish/*
 
     - name: Delete Release tag ${{ env.LATEST_VERSION }}
       run: |
