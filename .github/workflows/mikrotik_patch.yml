@@ -277,7 +277,6 @@ jobs:
         mkdir ./publish
         cp CHANGELOG.txt ./publish/
         cp ./new_iso/*.npk ./publish/
-        touch ./publish/.ftp-deploy-sync-state.json
 
     - name: Sync files
       uses: SamKirkland/FTP-Deploy-Action@v4.3.5
