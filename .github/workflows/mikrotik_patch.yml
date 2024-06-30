@@ -279,14 +279,15 @@ jobs:
         cp ./new_iso/*.npk ./publish/
 
     - name: Sync files
-      uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+      uses: SamKirkland/web-deploy@v1
       with:
-        server: ${{ secrets.FTP_SERVER }}
-        username:  ${{ secrets.FTP_USERNAME }}
-        password: ${{ secrets.FTP_PASSWORD }}
-        port: ${{ secrets.FTP_PORT }}
-        server-dir: "${{ secrets.FTP_DIRECTORY }}/${{ env.LATEST_VERSION }}/"
-        local-dir: ./publish/
+        target-server: ${{ secrets.SSH_SERVER }}
+        remote-user:  ${{ secrets.SSH_USERNAME }}
+        private-ssh-key: ${{ secrets.SSH_KEY }}
+        ssh-port: ${{ secrets.SSH_PORT }}
+        destination-path: "${{ secrets.SSH_DIRECTORY }}/${{ env.LATEST_VERSION }}/"
+        source-path: ./publish/
+
 
     - name: Delete Release tag ${{ env.LATEST_VERSION }}
       run: |
