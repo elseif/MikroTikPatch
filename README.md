@@ -8,8 +8,10 @@
 ![](install.png)
 ![](routeros.png)
 
-### Uses keygen to license RouterOS.
-![](keygen.png)
+### license RouterOS for x86.
+![](x86.png)
+### license RouterOS for chr.
+![](chr.png)
 
 ## How to use shell
     install option-{version}.npk package
