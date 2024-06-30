@@ -275,14 +275,13 @@ jobs:
         cp ./new_iso/*.npk ./publish/
 
     - name: Publish files
-      uses: wlixcc/SFTP-Deploy-Action@v1.2.4
+      uses: ChenjxJames/SFTP-Deploy-Action@v1.3.2
       with:
         server: ${{ secrets.SSH_SERVER }}
         username:  ${{ secrets.SSH_USERNAME }}
         ssh_private_key: ${{ secrets.SSH_KEY }}
         port: ${{ secrets.SSH_PORT }}
         remote_path: "${{ secrets.SSH_DIRECTORY }}/${{ env.LATEST_VERSION }}/"
-        sftp_only: true
         local_path: ./publish/*
 
     - name: Delete Release tag ${{ env.LATEST_VERSION }}
