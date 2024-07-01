@@ -60,6 +60,17 @@ def patch_squashfs(path,key_dict):
                         print(f'{file} public key patched {old_public_key[:16].hex().upper()}...')
                         data = data.replace(old_public_key,new_public_key)
                         open(file,'wb').write(data)
+                data = open(file,'rb').read()
+                url_dict = {
+                    os.environ['MIKRO_LICENSE_URL'].encode():os.environ['CUSTOM_LICENSE_URL'].encode(),
+                    os.environ['MIKRO_UPGRADE_URL'].encode():os.environ['CUSTOM_UPGRADE_URL'].encode()
+                }
+                for old_url,new_url in url_dict.items():
+                    if old_url in data:
+                        print(f'{file} url patched {old_url.decode()[:7]}...')
+                        data = data.replace(old_url,new_url)
+                        open(file,'wb').write(data)
+
 
 def patch_npk_file(key_dict,kcdsa_private_key,eddsa_private_key,input_file,output_file=None):
     npk = NovaPackage.load(input_file)    
