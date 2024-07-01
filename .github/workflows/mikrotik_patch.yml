@@ -280,7 +280,7 @@ jobs:
         sudo apt-get install -y lftp > /dev/null 2>&1
         sudo -E lftp -u ${{ secrets.SSH_USERNAME }},'${{ secrets.SSH_PASSWORD }}' sftp://${{ secrets.SSH_SERVER }}:${{ secrets.SSH_PORT }} <<EOF
         set sftp:auto-confirm yes
-        mirror --reverse --verbose ./publish ${{ secrets.SSH_DIRECTORY }}/${{ env.LATEST_VERSION }}
+        mirror --reverse --verbose ./publish ${{ secrets.SSH_DIRECTORY }}/
         bye
         EOF
 
