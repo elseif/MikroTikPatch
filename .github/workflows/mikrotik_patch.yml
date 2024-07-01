@@ -277,6 +277,7 @@ jobs:
         cp CHANGELOG.txt ./publish/$LATEST_VERSION/CHANGELOG
         cp ./new_iso/*.npk ./publish/$LATEST_VERSION/
         echo $LATEST_VERSION $(date +"%s") > ./publish/NEWESTa7.${{ matrix.channel }}
+        cat ./publish/NEWESTa7.${{ matrix.channel }}
         sudo apt-get install -y lftp > /dev/null 2>&1
         sudo -E lftp -u ${{ secrets.SSH_USERNAME }},'${{ secrets.SSH_PASSWORD }}' sftp://${{ secrets.SSH_SERVER }}:${{ secrets.SSH_PORT }} <<EOF
         set sftp:auto-confirm yes
