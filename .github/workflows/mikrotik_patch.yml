@@ -25,7 +25,7 @@ jobs:
       TZ: 'Asia/Shanghai'
       LATEST_VERSION_URL: 'https://upgrade.mikrotik.com/routeros/NEWESTa7'
       LATEST_VERSION: ""
-      BUILD_TIME: $(date +"%s")
+      BUILD_TIME: "0"
       CUSTOM_LICENSE_PRIVATE_KEY: ${{ secrets.CUSTOM_LICENSE_PRIVATE_KEY }}
       CUSTOM_LICENSE_PUBLIC_KEY: ${{ secrets.CUSTOM_LICENSE_PUBLIC_KEY }}
       CUSTOM_NPK_SIGN_PRIVATE_KEY: ${{ secrets.CUSTOM_NPK_SIGN_PRIVATE_KEY }}
@@ -86,10 +86,13 @@ jobs:
         else
           LATEST_VERSION=${{ inputs.version }}
         fi  
+        BUILD_TIME=$(date +"%s")
         echo Latest Version:$LATEST_VERSION
-        wget -nv -O CHANGELOG.txt https://upgrade.mikrotik.com/routeros/$LATEST_VERSION/CHANGELOG
-        cat CHANGELOG.txt
+        echo Build Time:$BUILD_TIME
+        wget -nv -O CHANGELOG https://upgrade.mikrotik.com/routeros/$LATEST_VERSION/CHANGELOG
+        cat CHANGELOG
         echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_ENV
+        echo "BUILD_TIME=${BUILD_TIME}" >> $GITHUB_ENV
 
     - name: Cache Mikrotik ${{ env.LATEST_VERSION }}
       id: cache-mikrotik
@@ -275,7 +278,7 @@ jobs:
     - name: Upload Files
       run: |
         mkdir -p ./publish/$LATEST_VERSION
-        cp CHANGELOG.txt ./publish/$LATEST_VERSION/CHANGELOG
+        cp CHANGELOG ./publish/$LATEST_VERSION/
         cp ./new_iso/*.npk ./publish/$LATEST_VERSION/
         echo $LATEST_VERSION $BUILD_TIME > ./publish/NEWESTa7.${{ matrix.channel }}
         sudo apt-get install -y lftp > /dev/null 2>&1
@@ -304,7 +307,7 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         name: "RouterOS ${{ env.LATEST_VERSION }}"
-        body_path: "CHANGELOG.txt"
+        body_path: "CHANGELOG"
         tag_name: ${{ env.LATEST_VERSION }}
         make_latest:  ${{ matrix.channel == 'stable'}}
         prerelease:  ${{ matrix.channel == 'testing' }}

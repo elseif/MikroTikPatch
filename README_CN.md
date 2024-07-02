@@ -21,6 +21,7 @@
     进入shell
     运行 keygen
     参考上图。
+    Chr镜像支持在线授权许可
 ## 如何使用Python
     安装 python3-{version}.npk 包
     telnet到RouterOS,用户名devel,密码与admin的密码相同
