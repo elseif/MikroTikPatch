@@ -261,9 +261,12 @@ if __name__=='__main__':
     eddsa_private_key = bytes.fromhex(os.environ['CUSTOM_NPK_SIGN_PRIVATE_KEY'])
     kcdsa_public_key = bytes.fromhex(os.environ['CUSTOM_LICENSE_PUBLIC_KEY'])
     eddsa_public_key = bytes.fromhex(os.environ['CUSTOM_NPK_SIGN_PUBLIC_KEY'])
+    build_time = os.environ['BUILD_TIME']
     if args.command =='sign':
         print(f'Signing {args.input}')
         npk = NovaPackage.load(args.input)
+        if build_time:
+            npk[NpkPartID.NAME_INFO].data._build_time = int(build_time)
         npk.sign(kcdsa_private_key,eddsa_private_key)
         npk.save(args.output)
     elif args.command == 'verify':
@@ -279,6 +282,8 @@ if __name__=='__main__':
         print(f'Creating {args.output} from {args.input}')
         option_npk = NovaPackage.load(args.input)
         option_npk[NpkPartID.NAME_INFO].data.name = args.name
+        if build_time:
+            option_npk[NpkPartID.NAME_INFO].data._build_time = int(build_time)
         option_npk[NpkPartID.DESCRIPTION].data = args.description.encode() if args.description else args.name.encode()
         option_npk[NpkPartID.NULL_BLOCK].data = b''
         option_npk[NpkPartID.SQUASHFS].data = open(args.squashfs,'rb').read() 

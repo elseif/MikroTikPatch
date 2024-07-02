@@ -25,6 +25,7 @@ jobs:
       TZ: 'Asia/Shanghai'
       LATEST_VERSION_URL: 'https://upgrade.mikrotik.com/routeros/NEWESTa7'
       LATEST_VERSION: ""
+      BUILD_TIME: $(date +"%s")
       CUSTOM_LICENSE_PRIVATE_KEY: ${{ secrets.CUSTOM_LICENSE_PRIVATE_KEY }}
       CUSTOM_LICENSE_PUBLIC_KEY: ${{ secrets.CUSTOM_LICENSE_PUBLIC_KEY }}
       CUSTOM_NPK_SIGN_PRIVATE_KEY: ${{ secrets.CUSTOM_NPK_SIGN_PRIVATE_KEY }}
@@ -276,7 +277,7 @@ jobs:
         mkdir -p ./publish/$LATEST_VERSION
         cp CHANGELOG.txt ./publish/$LATEST_VERSION/CHANGELOG
         cp ./new_iso/*.npk ./publish/$LATEST_VERSION/
-        echo $LATEST_VERSION $(date +"%s") > ./publish/NEWESTa7.${{ matrix.channel }}
+        echo $LATEST_VERSION $BUILD_TIME > ./publish/NEWESTa7.${{ matrix.channel }}
         sudo apt-get install -y lftp > /dev/null 2>&1
         sudo -E lftp -u ${{ secrets.SSH_USERNAME }},'${{ secrets.SSH_PASSWORD }}' sftp://${{ secrets.SSH_SERVER }}:${{ secrets.SSH_PORT }} <<EOF
         set sftp:auto-confirm yes

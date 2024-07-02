@@ -109,6 +109,10 @@ def patch_npk_file(key_dict,kcdsa_private_key,eddsa_private_key,input_file,outpu
         run_shell_command(f"rm -rf {extract_dir}")
         npk[NpkPartID.SQUASHFS].data = open(squashfs_file,'rb').read()
         run_shell_command(f"rm -f {squashfs_file}")
+
+    build_time = os.environ['BUILD_TIME']
+    if build_time:
+        npk[NpkPartID.NAME_INFO].data._build_time = int(build_time)
     npk.sign(kcdsa_private_key,eddsa_private_key)
     npk.save(output_file or input_file)
 
