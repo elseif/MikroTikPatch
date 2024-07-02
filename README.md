@@ -4,13 +4,14 @@
 
 ### Download [Latest Patched](https://github.com/elseif/MikroTikPatch/releases/latest) iso file,install it and enjoy.
 ### CHR image is both support BIOS and UEFI boot mode.
+### Support online upgrade.
 
 ![](install.png)
 ![](routeros.png)
 
 ### license RouterOS for x86.
 ![](x86.png)
-### license RouterOS for chr.
+### license RouterOS for chr, Support online renew license.
 ![](chr.png)
 
 ## How to use shell
