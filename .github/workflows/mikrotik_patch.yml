@@ -183,7 +183,7 @@ jobs:
           -e 's/43485300454444/00485300004444/g' | xxd -p -r >extlinux #CHS EDD
         sudo chmod +x extlinux
         
-        truncate --size 256M install-image-$LATEST_VERSION.img
+        truncate --size 128M install-image-$LATEST_VERSION.img
         sudo qemu-nbd -c /dev/nbd0 -f raw install-image-$LATEST_VERSION.img
         sudo mkfs.vfat -n "Install" /dev/nbd0
         sudo mkdir ./install
@@ -220,16 +220,16 @@ jobs:
     - name: Create chr-${{ env.LATEST_VERSION }}.img
       run: |
 
-        truncate --size 256M chr-$LATEST_VERSION.img
+        truncate --size 128M chr-$LATEST_VERSION.img
         sgdisk --clear --set-alignment=2 \
-            --new=1::+32M --typecode=1:8300 --change-name=1:"RouterOS Boot" --attributes=1:set:2 \
+            --new=1::+16M --typecode=1:8300 --change-name=1:"RouterOS Boot" --attributes=1:set:2 \
             --new=2::-0 --typecode=2:8300 --change-name=2:"RouterOS" \
             --gpttombr=1:2 \
             chr-$LATEST_VERSION.img
         dd if=chr-$LATEST_VERSION.img of=pt.bin bs=1 count=66 skip=446
         echo -e "\x80" | dd of=pt.bin  bs=1 count=1  conv=notrunc
         sgdisk --mbrtogpt --clear --set-alignment=2 \
-            --new=1::+32M --typecode=1:8300 --change-name=1:"RouterOS Boot" --attributes=1:set:2 \
+            --new=1::+16M --typecode=1:8300 --change-name=1:"RouterOS Boot" --attributes=1:set:2 \
             --new=2::-0 --typecode=2:8300 --change-name=2:"RouterOS" \
             chr-$LATEST_VERSION.img
         dd if=mbr.bin of=chr-$LATEST_VERSION.img  bs=1 count=446 conv=notrunc
@@ -284,7 +284,7 @@ jobs:
         sudo apt-get install -y lftp > /dev/null 2>&1
         sudo -E lftp -u ${{ secrets.SSH_USERNAME }},'${{ secrets.SSH_PASSWORD }}' sftp://${{ secrets.SSH_SERVER }}:${{ secrets.SSH_PORT }} <<EOF
         set sftp:auto-confirm yes
-        mirror --reverse --verbose ./publish ${{ secrets.SSH_DIRECTORY }}
+        mirror --reverse --verbose --only-newer ./publish ${{ secrets.SSH_DIRECTORY }}
         bye
         EOF
 
