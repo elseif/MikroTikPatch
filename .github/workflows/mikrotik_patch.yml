@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   Patch_RouterOS_7:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         channel: [stable, testing]
@@ -175,12 +175,12 @@ jobs:
     - name: Create install-image-${{ env.LATEST_VERSION }}.img
       run: |
         sudo modprobe nbd
-        sudo apt install -y qemu-utils extlinux > /dev/null
+        sudo apt-get install -y qemu-utils extlinux > /dev/null
         # Loading system
         # Copyright (C) 1994-2015 H. Peter Anvin et al
         # 20210811
         # CHS EDD
-        sudo xxd -p -u /usr/bin/extlinux | tr -d '\n' | sed  \
+        sudo xxd -p -u /usr/bin/extlinux | tr -d '\n' | sed  \ 
           -e 's/0D0A5359534C494E555820362E30342000/4C6F6164696E672073797374656D0D0A00/g' \ 
           -e 's/20436F707972696768742028432920313939342D3230313520482E20506574657220416E76696E20657420616C0D0A/00436F707972696768742028432920313939342D3230313520482E20506574657220416E76696E20657420616C0D0A/g' \ 
           -e 's/203230323130383131/003230323130383131/g' \ 
