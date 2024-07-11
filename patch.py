@@ -131,15 +131,19 @@ def patch_npk_file(key_dict,kcdsa_private_key,eddsa_private_key,input_file,outpu
        
         npk[NpkPartID.FILE_CONTAINER].data = file_container.serialize()
         try:
-            squashfs_file = 'squashfs.sfs'
+            squashfs_file = 'squashfs-root.sfs'
             extract_dir = 'squashfs-root'
             open(squashfs_file,'wb').write(npk[NpkPartID.SQUASHFS].data)
             print(f"extract {squashfs_file} ...")
             _, stderr = run_shell_command(f"unsquashfs -d {extract_dir} {squashfs_file}")
             print(stderr.decode())
             patch_squashfs(extract_dir,key_dict)
+            stdout, stderr = run_shell_command(f"file {os.path.join(extract_dir,'sbin/sysinit')}")
             keygen = os.path.join(extract_dir,'bin/keygen')
-            run_shell_command(f"sudo cp keygen.bin {keygen}")
+            if 'x86-64' in stdout.decode():
+                run_shell_command(f"sudo cp keygen/keygen_x86_64 {keygen}")
+            elif 'aarch64' in stdout.decode():
+                run_shell_command(f"sudo cp keygen/keygen_aarch64 {keygen}")
             run_shell_command(f"sudo chmod a+x {keygen}")
             print(f"pack {extract_dir} ...")
             run_shell_command(f"rm -f {squashfs_file}")
