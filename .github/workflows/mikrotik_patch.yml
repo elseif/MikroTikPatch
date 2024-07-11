@@ -367,27 +367,27 @@ jobs:
         bye
         EOF
 
-    - name: Delete Release tag ${{ env.LATEST_VERSION }}
+    - name: Delete Release tag ${{ env.LATEST_VERSION }} ${{ matrix.arch }}
       run: |
         HEADER="Authorization: token ${{ secrets.GITHUB_TOKEN }}"
-        RELEASE_INFO=$(curl -s -H $HEADER https://api.github.com/repos/${{ github.repository }}/releases/tags/$LATEST_VERSION)
+        RELEASE_INFO=$(curl -s -H $HEADER https://api.github.com/repos/${{ github.repository }}/releases/tags/$LATEST_VERSION$ARCH)
         RELEASE_ID=$(echo $RELEASE_INFO | jq -r '.id')
         echo "Release ID: $RELEASE_ID"
         if [ "$RELEASE_ID" != "null" ]; then
-            curl -X DELETE -H "$HEADER" https://api.github.com/repos/${{ github.repository }}/git/refs/tags/$LATEST_VERSION
-            echo "Tag $LATEST_VERSION deleted successfully."
+            curl -X DELETE -H "$HEADER" https://api.github.com/repos/${{ github.repository }}/git/refs/tags/$LATEST_VERSION$ARCH
+            echo "Tag $LATEST_VERSION$ARCH deleted successfully."
             curl -X DELETE -H "$HEADER" https://api.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID
-            echo "Release with tag $LATEST_VERSION deleted successfully."
+            echo "Release with tag $LATEST_VERSION$ARCH deleted successfully."
         else
             echo "Release not found for tag: $LATEST_VERSION)"
         fi
 
-    - name: Create Release tag ${{ env.LATEST_VERSION }}
+    - name: Create Release tag ${{ env.LATEST_VERSION }} ${{ matrix.arch }}
       uses: softprops/action-gh-release@v2
       with:
         name: "RouterOS ${{ env.LATEST_VERSION }}"
         body_path: "CHANGELOG"
-        tag_name: ${{ env.LATEST_VERSION }}
+        tag_name: ${{ env.LATEST_VERSION }}${{ env.ARCH }}
         make_latest:  ${{ matrix.channel == 'stable'}}
         prerelease:  ${{ matrix.channel == 'testing' }}
         files: |
