@@ -103,7 +103,6 @@ def patch_elf(data: bytes,key_dict:dict):
     return new_data
 
 def patch_kernel(data:bytes,key_dict):
-    assert data[:2] == b'MZ', 'not a valid pe file'
     if data[:2] == b'MZ':
         print('patching EFI Kernel')
         if data[56:60] == b'ARM\x64':
