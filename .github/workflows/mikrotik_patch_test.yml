@@ -130,7 +130,7 @@ jobs:
         sudo -E python3 patch.py netinstall netinstall.exe
         sudo zip netinstall-$LATEST_VERSION.zip ./netinstall.exe
 
-    - name: Cache Mikrotik-${{ env.LATEST_VERSION }}${{ env.ARCH }}.ISO
+    - name: Cache mikrotik-${{ env.LATEST_VERSION }}${{ env.ARCH }}.iso
       id: cache-mikrotik
       uses: actions/cache@v4
       with:
@@ -168,8 +168,8 @@ jobs:
         sudo mkdir ./efiboot
         sudo mount -o loop ./new_iso/efiboot.img ./efiboot
         if [ "${{ matrix.arch }}" == "x86_64" ]; then
-          sudo -E python3 patch.py kernel ./efiboot/EFI/BOOT/BOOTX64.EFI
-          sudo cp ./efiboot/EFI/BOOT/BOOTX64.EFI ./BOOTX64.EFI
+          sudo -E python3 patch.py kernel ./efiboot/linux.x86_64
+          sudo cp ./efiboot/linux.x86_64 ./BOOTX64.EFI
           sudo cp ./BOOTX64.EFI ./new_iso/isolinux/linux
           sudo umount ./efiboot
           sudo rm -rf ./efiboot
