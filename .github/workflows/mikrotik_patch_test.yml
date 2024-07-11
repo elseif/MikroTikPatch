@@ -63,7 +63,7 @@ jobs:
         if [ "${{ matrix.arch }}" == "x86_64" ]; then
           sudo cp busybox/busybox_x86_64 ./option-root/bin/busybox
           sudo chmod +x ./option-root/bin/busybox
-        else if [ "${{ matrix.arch }}" == "arm64" ]; then
+        elif [ "${{ matrix.arch }}" == "arm64" ]; then
           sudo cp busybox/busybox_aarch64 ./option-root/bin/busybox
           sudo chmod +x ./option-root/bin/busybox
         fi
@@ -76,7 +76,7 @@ jobs:
         sudo rm -rf option-root
         if [ "${{ matrix.arch }}" == "x86_64" ]; then
           sudo wget -O cpython-3.11.9.tar.gz -nv https://github.com/indygreg/python-build-standalone/releases/download/20240415/cpython-3.11.9+20240415-x86_64-unknown-linux-gnu-install_only.tar.gz
-        else if [ "${{ matrix.arch }}" == "arm64" ]; then
+        elif [ "${{ matrix.arch }}" == "arm64" ]; then
           sudo wget -O cpython-3.11.9.tar.gz -nv https://github.com/indygreg/python-build-standalone/releases/download/20240415/cpython-3.11.9+20240415-aarch64-unknown-linux-gnu-install_only.tar.gz
         fi
         sudo tar -xf cpython-3.11.9.tar.gz
@@ -103,7 +103,7 @@ jobs:
         echo "BUILD_TIME=${BUILD_TIME}" >> $GITHUB_ENV
         if [ "${{ matrix.arch }}" == "x86_64" ]; then
           echo "ARCH=''" >> $GITHUB_ENV
-        else if [ "${{ matrix.arch }}" == "arm64" ]; then
+        elif [ "${{ matrix.arch }}" == "arm64" ]; then
           echo "ARCH='-arm64'" >> $GITHUB_ENV
         fi
 
@@ -185,7 +185,7 @@ jobs:
                       -no-emul-boot \
                       -R -J \
                       ./new_iso
-        else if [ "${{ matrix.arch }}" == "arm64" ]; then
+        elif [ "${{ matrix.arch }}" == "arm64" ]; then
           sudo -E python3 patch.py kernel ./efiboot/EFI/BOOT/BOOTAA64.EFI
           sudo cp ./efiboot/EFI/BOOT/BOOTAA64.EFI ./BOOTAA64.EFI
           sudo umount ./efiboot
@@ -208,7 +208,7 @@ jobs:
         cd ./all_packages
         if [ "${{ matrix.arch }}" == "x86_64" ]; then
           sudo zip ../all_packages-x86-$LATEST_VERSION.zip *.npk
-        else if [ "${{ matrix.arch }}" == "arm64" ]; then
+        elif [ "${{ matrix.arch }}" == "arm64" ]; then
           sudo zip ../all_packages-arm64-$LATEST_VERSION.zip *.npk
         fi
         cd ..
@@ -304,7 +304,7 @@ jobs:
           echo -e "default system\nlabel system\n\tkernel /EFI/BOOT/BOOTX64.EFI\n\tappend load_ramdisk=1 root=/dev/ram0 quiet" > syslinux.cfg
           sudo cp syslinux.cfg ./img/boot/BOOT/
           sudo rm syslinux.cfg
-        else if [ "${{ matrix.arch }}" == "amd64" ]; then
+        elif [ "${{ matrix.arch }}" == "amd64" ]; then
           sudo cp BOOTAA64.EFI ./img/boot/EFI/BOOT/BOOTAA64.EFI
         fi
         sudo umount /dev/nbd0p1
