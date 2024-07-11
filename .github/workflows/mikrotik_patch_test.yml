@@ -343,7 +343,7 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: "RouterOS ${{ env.LATEST_VERSION }}"
+        name: "RouterOS ${{ env.LATEST_VERSION }}${{ env.ARCH }}"
         path: |
           mikrotik-${{ env.LATEST_VERSION }}${{ env.ARCH }}.iso
           chr-${{ env.LATEST_VERSION }}*.zip
