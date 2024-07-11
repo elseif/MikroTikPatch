@@ -174,7 +174,7 @@ jobs:
           sudo umount ./efiboot
           sudo rm -rf ./efiboot
           sudo mkisofs -o mikrotik-$LATEST_VERSION$ARCH.iso \
-                      -V "MikroTik $LATEST_VERSION ${{ matrix.arch }} Patched" \
+                      -V "MikroTik $LATEST_VERSION ${{ matrix.arch }}" \
                       -sysid "" -preparer "MiKroTiK" \
                       -publisher "" -A "MiKroTiK RouterOS" \
                       -b isolinux/isolinux.bin \
@@ -194,7 +194,7 @@ jobs:
           sudo rm -rf ./efiboot
 
           sudo mkisofs -o mikrotik-$LATEST_VERSION$ARCH.iso \
-                      -V "MikroTik $LATEST_VERSION ${{ matrix.arch }} Patched" \
+                      -V "MikroTik $LATEST_VERSION ${{ matrix.arch }}" \
                       -sysid "" -preparer "MiKroTiK" \
                       -publisher "" -A "MiKroTiK RouterOS" \
                       -eltorito-alt-boot \
