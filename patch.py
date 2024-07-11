@@ -72,6 +72,52 @@ def patch_squashfs(path,key_dict):
                         open(file,'wb').write(data)
 
 
+def patch_elf(data: bytes,key_dict:dict):
+    def find_7zXZ_data(data:bytes):
+        offset1 = 0
+        _data = data
+        while b'\xFD7zXZ\x00\x00\x01' in _data:
+            offset1 = offset1 + _data.index(b'\xFD7zXZ\x00\x00\x01') + 8
+            _data = _data[offset1:]
+        offset1 -= 8
+        offset2 = 0
+        _data = data
+        while b'\x00\x01\x59\x5A' in _data:
+            offset2 = offset2 + _data.index(b'\x00\x01\x59\x5A') + 4
+            _data = _data[offset2:]
+        offset2
+        return data[offset1:offset2] 
+
+    initrd_xz = find_7zXZ_data(data)
+    initrd = lzma.decompress(initrd_xz)
+    new_initrd = initrd  
+    for old_public_key,new_public_key in key_dict.items():
+        if old_public_key in new_initrd:
+            print(f'initramfs public key patched {old_public_key[:16].hex().upper()}...')
+            new_initrd = new_initrd.replace(old_public_key,new_public_key)
+    filters=[{"id": lzma.FILTER_LZMA2, "preset": 9,}] 
+    new_initrd_xz = lzma.compress(new_initrd,check=lzma.CHECK_CRC32,filters=filters)
+    assert len(new_initrd_xz) <= len(initrd_xz),'new initrd xz size is too big'
+    new_initrd_xz = new_initrd_xz.ljust(len(initrd_xz),b'\0')
+    new_data = data.replace(initrd_xz,new_initrd_xz)
+    return new_data
+
+def patch_kernel(data:bytes,key_dict):
+    assert data[:2] == b'MZ', 'not a valid pe file'
+    if data[:2] == b'MZ':
+        print('patching EFI Kernel')
+        if data[56:60] == b'ARM\x64':
+            print('patching arm64')
+            return patch_elf(data,key_dict)
+        else:
+            print('patching x86_64')
+            return patch_bzimage(data,key_dict)
+    elif data[:4] == b'\x7FELF':
+        print('patching ELF')
+        return patch_elf(data,key_dict)
+    else:
+        raise Exception('unknown kernel format')
+
 def patch_npk_file(key_dict,kcdsa_private_key,eddsa_private_key,input_file,output_file=None):
     npk = NovaPackage.load(input_file)    
     if npk[NpkPartID.NAME_INFO].data.name == 'system':
@@ -79,13 +125,10 @@ def patch_npk_file(key_dict,kcdsa_private_key,eddsa_private_key,input_file,outpu
         for item in file_container:
             if item.name == b'boot/EFI/BOOT/BOOTX64.EFI':
                 print(f'patch {item.name} ...')
-                item.data = patch_bzimage(item.data,key_dict)
-                open('linux','wb').write(item.data)
+                item.data = patch_kernel(item.data,key_dict)
             elif item.name == b'boot/kernel':
-                from netinstall import patch_elf
                 print(f'patch {item.name} ...')
-                item.data = patch_elf(item.data,key_dict)
-                open('linux','wb').write(item.data)
+                item.data = patch_kernel(item.data,key_dict)
        
         npk[NpkPartID.FILE_CONTAINER].data = file_container.serialize()
         try:
@@ -123,6 +166,9 @@ if __name__ == '__main__':
     npk_parser = subparsers.add_parser('npk',help='patch and sign npk file')
     npk_parser.add_argument('input',type=str, help='Input file')
     npk_parser.add_argument('-o','--output',type=str,help='Output file')
+    kernel_parser = subparsers.add_parser('kernel',help='patch kernel file')
+    kernel_parser.add_argument('input',type=str, help='Input file')
+    kernel_parser.add_argument('-o','--output',type=str,help='Output file')
     netinstall_parser = subparsers.add_parser('netinstall',help='patch netinstall file')
     netinstall_parser.add_argument('input',type=str, help='Input file')
     netinstall_parser.add_argument('-o','--output',type=str,help='Output file')
@@ -136,6 +182,10 @@ if __name__ == '__main__':
     if args.command =='npk':
         print(f'patching {args.input} ...')
         patch_npk_file(key_dict,kcdsa_private_key,eddsa_private_key,args.input,args.output)
+    elif args.command == 'kernel':
+        print(f'patching {args.input} ...')
+        data = patch_kernel(open(args.input,'rb').read(),key_dict)
+        open(args.output or args.input,'wb').write(data)
     elif args.command == 'netinstall':
         from netinstall import patch_netinstall
         print(f'patching {args.input} ...')
