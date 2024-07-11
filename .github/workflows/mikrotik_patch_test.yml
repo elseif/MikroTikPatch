@@ -102,9 +102,11 @@ jobs:
         echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_ENV
         echo "BUILD_TIME=${BUILD_TIME}" >> $GITHUB_ENV
         if [ "${{ matrix.arch }}" == "x86_64" ]; then
-          echo "ARCH=''" >> $GITHUB_ENV
+          ARCH=''
+          echo "ARCH=$ARCH" >> $GITHUB_ENV
         elif [ "${{ matrix.arch }}" == "arm64" ]; then
-          echo "ARCH='-arm64'" >> $GITHUB_ENV
+          ARCH='-arm64'
+          echo "ARCH=$ARCH" >> $GITHUB_ENV
         fi
 
     - name: Cache NetInstall ${{ env.LATEST_VERSION }}
