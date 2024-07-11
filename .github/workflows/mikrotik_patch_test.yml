@@ -1,4 +1,4 @@
-name: Patch Mikrotik RouterOS
+name: Patch Mikrotik RouterOS Test
 on:
   # push:
   #   branches: [ "main" ]
@@ -84,7 +84,7 @@ jobs:
         sudo rm -rf ./python/include
         sudo rm -rf ./python/share
         sudo mksquashfs python python3.sfs -quiet -comp xz -no-xattrs -b 256k
-        sudo rm -rf python
+        sudo rm -rf ./python
 
     - name: Get latest routeros version  
       run: |
