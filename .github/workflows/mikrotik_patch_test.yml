@@ -279,6 +279,8 @@ jobs:
 
     - name: Create chr-${{ env.LATEST_VERSION }}${{ env.ARCH }}.img
       run: |
+        sudo modprobe nbd
+        sudo apt-get install -y qemu-utils extlinux > /dev/null
         truncate --size 128M chr-$LATEST_VERSION$ARCH.img
         sgdisk --clear --set-alignment=2 \
             --new=1::+32M --typecode=1:8300 --change-name=1:"RouterOS Boot" --attributes=1:set:2 \
