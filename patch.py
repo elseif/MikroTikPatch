@@ -139,6 +139,7 @@ def patch_npk_file(key_dict,kcdsa_private_key,eddsa_private_key,input_file,outpu
             print(stderr.decode())
             patch_squashfs(extract_dir,key_dict)
             stdout, stderr = run_shell_command(f"file {os.path.join(extract_dir,'sbin/sysinit')}")
+            print(stdout.decode())
             keygen = os.path.join(extract_dir,'bin/keygen')
             if 'x86-64' in stdout.decode():
                 run_shell_command(f"sudo cp keygen/keygen_x86_64 {keygen}")
