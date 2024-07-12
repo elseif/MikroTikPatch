@@ -308,7 +308,7 @@ jobs:
           echo -e "default system\nlabel system\n\tkernel /EFI/BOOT/BOOTX64.EFI\n\tappend load_ramdisk=1 root=/dev/ram0 quiet" > syslinux.cfg
           sudo cp syslinux.cfg ./img/boot/BOOT/
           sudo rm syslinux.cfg
-        elif [ "${{ matrix.arch }}" == "amd64" ]; then
+        elif [ "${{ matrix.arch }}" == "arm64" ]; then
           sudo cp BOOTAA64.EFI ./img/boot/EFI/BOOT/BOOTAA64.EFI
         fi
         sudo umount /dev/nbd0p1
