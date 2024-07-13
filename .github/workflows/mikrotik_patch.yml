@@ -47,7 +47,7 @@ jobs:
         LATEST_VERSION=$(wget -nv -O - ${{ env.LATEST_VERSION_URL }}.${{ matrix.channel }} | cut -d ' ' -f1)
         echo Latest Version:$LATEST_VERSION
         if [ "${{ github.event_name }}" == "schedule" ]; then
-          _LATEST_VERSION=$(wget -nv -O - https://upgrade.mikrotik.ltd/routeros/NEWESTa7.${{ matrix.channel }} | cut -d ' ' -f1)
+          _LATEST_VERSION=$(wget -nv -O - https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/NEWESTa7.${{ matrix.channel }} | cut -d ' ' -f1)
           if [ "$_LATEST_VERSION" == "$LATEST_VERSION" ]; then
             echo "No new version found"
             exit 0
