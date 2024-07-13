@@ -47,6 +47,32 @@ jobs:
       with:
         python-version: '3.11' 
 
+    - name: Get latest routeros version  
+      run: |
+        echo $(uname -a)
+        LATEST_VERSION=$(wget -nv -O - ${{ env.LATEST_VERSION_URL }}.${{ matrix.channel }} | cut -d ' ' -f1)
+        echo Latest Version:$LATEST_VERSION
+        if [ "${{ github.event_name }}" == "schedule" ]; then
+          _LATEST_VERSION=$(wget -nv -O - https://upgrade.mikrotik.ltd/routeros/NEWESTa7.${{ matrix.channel }} | cut -d ' ' -f1)
+          if [ "$_LATEST_VERSION" == "$LATEST_VERSION" ]; then
+            echo "No new version found"
+            exit 0
+          fi
+        fi
+        BUILD_TIME=$(date +"%s")
+        echo Build Time:$BUILD_TIME
+        wget -nv -O CHANGELOG https://upgrade.mikrotik.com/routeros/$LATEST_VERSION/CHANGELOG
+        cat CHANGELOG
+        echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_ENV
+        echo "BUILD_TIME=${BUILD_TIME}" >> $GITHUB_ENV
+        if [ "${{ matrix.arch }}" == "x86_64" ]; then
+          ARCH=''
+          echo "ARCH=$ARCH" >> $GITHUB_ENV
+        elif [ "${{ matrix.arch }}" == "arm64" ]; then
+          ARCH='-arm64'
+          echo "ARCH=$ARCH" >> $GITHUB_ENV
+        fi
+
     - name: Cache Squashfs
       id: cache-squashfs
       uses: actions/cache@v4
@@ -86,28 +112,7 @@ jobs:
         sudo mksquashfs python python3.sfs -quiet -comp xz -no-xattrs -b 256k
         sudo rm -rf ./python
 
-    - name: Get latest routeros version  
-      run: |
-        echo $(uname -a)
-        if [ "${{ inputs.version }}" == "" ]; then
-          LATEST_VERSION=$(wget -nv -O - ${{ env.LATEST_VERSION_URL }}.${{ matrix.channel }} | cut -d ' ' -f1)
-        else
-          LATEST_VERSION=${{ inputs.version }}
-        fi  
-        BUILD_TIME=$(date +"%s")
-        echo Latest Version:$LATEST_VERSION
-        echo Build Time:$BUILD_TIME
-        wget -nv -O CHANGELOG https://upgrade.mikrotik.com/routeros/$LATEST_VERSION/CHANGELOG
-        cat CHANGELOG
-        echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_ENV
-        echo "BUILD_TIME=${BUILD_TIME}" >> $GITHUB_ENV
-        if [ "${{ matrix.arch }}" == "x86_64" ]; then
-          ARCH=''
-          echo "ARCH=$ARCH" >> $GITHUB_ENV
-        elif [ "${{ matrix.arch }}" == "arm64" ]; then
-          ARCH='-arm64'
-          echo "ARCH=$ARCH" >> $GITHUB_ENV
-        fi
+
 
     - name: Cache NetInstall ${{ env.LATEST_VERSION }}
       if: matrix.arch == 'x86_64'
