@@ -288,7 +288,10 @@ jobs:
     - name: Get chr-${{ env.LATEST_VERSION }}${{ env.ARCH }}.img
       if: steps.cache-chr-img.outputs.cache-hit != 'true' && matrix.arch == 'arm64'
       run: |
-          sudo wget -nv -O chr.img https://download.mikrotik.com/routeros/$LATEST_VERSION/chr-$LATEST_VERSION$ARCH.img.zip
+          sudo wget -nv -O chr.img.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/chr-$LATEST_VERSION$ARCH.img.zip
+          sudo unzip chr.img.zip
+          sudo rm chr.img.zip
+          sudo mv chr-$LATEST_VERSION$ARCH.img chr.img
 
     - name: Create chr-${{ env.LATEST_VERSION }}${{ env.ARCH }}.img
       run: |
@@ -321,11 +324,11 @@ jobs:
           sudo cp syslinux.cfg ./img/boot/BOOT/
           sudo rm syslinux.cfg
         elif [ "${{ matrix.arch }}" == "arm64" ]; then
-          sudo mkdir -p  ./img/boot/EFI/BOOT
           sudo qemu-nbd -c /dev/nbd1 -f raw chr.img
           sudo mkdir -p ./chr/boot
           sudo mount /dev/nbd1p1 ./chr/boot/
           sudo -E python3 patch.py kernel ./chr/boot/EFI/BOOT/BOOTAA64.EFI
+          sudo mkdir -p  ./img/boot/EFI/BOOT
           sudo cp ./chr/boot/EFI/BOOT/BOOTAA64.EFI ./img/boot/EFI/BOOT/BOOTAA64.EFI
           sudo umount /dev/nbd1p1
           sudo rm -rf ./chr
