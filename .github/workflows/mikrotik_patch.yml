@@ -18,7 +18,6 @@ jobs:
         channel: [stable, testing]
     env:
       TZ: 'Asia/Shanghai'
-      LATEST_VERSION_URL: 'https://upgrade.mikrotik.com/routeros/NEWESTa7'
       LATEST_VERSION: ""
       BUILD_TIME: "0"
       ARCH: ""
@@ -44,7 +43,7 @@ jobs:
     - name: Get latest routeros version  
       run: |
         echo $(uname -a)
-        LATEST_VERSION=$(wget -nv -O - ${{ env.LATEST_VERSION_URL }}.${{ matrix.channel }} | cut -d ' ' -f1)
+        LATEST_VERSION=$(wget -nv -O - https://${{ env.MIKRO_UPGRADE_URL }}/routeros/NEWESTa7.${{ matrix.channel }} | cut -d ' ' -f1)
         echo Latest Version:$LATEST_VERSION
         if [ "${{ github.event_name }}" == "schedule" ]; then
           _LATEST_VERSION=$(wget -nv -O - https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/NEWESTa7.${{ matrix.channel }} | cut -d ' ' -f1)
@@ -55,7 +54,7 @@ jobs:
         fi
         BUILD_TIME=$(date +"%s")
         echo Build Time:$BUILD_TIME
-        wget -nv -O CHANGELOG https://upgrade.mikrotik.com/routeros/$LATEST_VERSION/CHANGELOG
+        wget -nv -O CHANGELOG https://${{ env.MIKRO_UPGRADE_URL }}/routeros/$LATEST_VERSION/CHANGELOG
         cat CHANGELOG
         echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_ENV
         echo "BUILD_TIME=${BUILD_TIME}" >> $GITHUB_ENV
