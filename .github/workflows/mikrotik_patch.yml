@@ -353,12 +353,12 @@ jobs:
         sudo zip chr-$LATEST_VERSION$ARCH.vdi.zip chr-$LATEST_VERSION$ARCH.vdi
         sudo zip chr-$LATEST_VERSION$ARCH.img.zip chr-$LATEST_VERSION$ARCH.img
 
-        sudo rm *.qcow2
-        sudo rm *.vmdk
-        sudo rm *.vhd
-        sudo rm *.vhdx
-        sudo rm *.vdi
-        sudo rm *.img
+        sudo rm chr-$LATEST_VERSION$ARCH.qcow2
+        sudo rm chr-$LATEST_VERSION$ARCH.vmdk
+        sudo rm chr-$LATEST_VERSION$ARCH.vhd
+        sudo rm chr-$LATEST_VERSION$ARCH.vhdx
+        sudo rm chr-$LATEST_VERSION$ARCH.vdi
+        sudo rm chr-$LATEST_VERSION$ARCH.img
 
     # - name: Upload artifact
     #   uses: actions/upload-artifact@v4
