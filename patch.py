@@ -138,12 +138,10 @@ def patch_npk_file(key_dict,kcdsa_private_key,eddsa_private_key,input_file,outpu
             _, stderr = run_shell_command(f"unsquashfs -d {extract_dir} {squashfs_file}")
             print(stderr.decode())
             patch_squashfs(extract_dir,key_dict)
-            stdout, stderr = run_shell_command(f"file {os.path.join(extract_dir,'sbin/sysinit')}")
-            print(stdout.decode())
             keygen = os.path.join(extract_dir,'bin/keygen')
-            if '80386' in stdout.decode():
+            if os.environ['ARCH'] =='':
                 run_shell_command(f"sudo cp keygen/keygen_x86_64 {keygen}")
-            elif 'ARM' in stdout.decode():
+            elif os.environ['ARCH'] == '-arm64':
                 run_shell_command(f"sudo cp keygen/keygen_aarch64 {keygen}")
             run_shell_command(f"sudo chmod a+x {keygen}")
             print(f"pack {extract_dir} ...")
