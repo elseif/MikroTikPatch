@@ -285,11 +285,10 @@ jobs:
           chr.img
         key: chr-${{ env.LATEST_VERSION }}-${{ matrix.arch }}.img
 
-    - name: Get mikrotik-${{ env.LATEST_VERSION }}${{ env.ARCH }}.iso
-      if: steps.cache-mikrotik.outputs.cache-hit != 'true' && matrix.arch == 'arm64'
+    - name: Get chr-${{ env.LATEST_VERSION }}${{ env.ARCH }}.img
+      if: steps.cache-chr-img.outputs.cache-hit != 'true' && matrix.arch == 'arm64'
       run: |
           sudo wget -nv -O chr.img https://download.mikrotik.com/routeros/$LATEST_VERSION/chr-$LATEST_VERSION$ARCH.img.zip
-
 
     - name: Create chr-${{ env.LATEST_VERSION }}${{ env.ARCH }}.img
       run: |
