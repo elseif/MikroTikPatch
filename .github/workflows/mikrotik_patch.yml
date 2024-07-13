@@ -105,8 +105,6 @@ jobs:
         sudo mksquashfs python python3.sfs -quiet -comp xz -no-xattrs -b 256k
         sudo rm -rf ./python
 
-
-
     - name: Cache NetInstall ${{ env.LATEST_VERSION }}
       if: matrix.arch == 'x86_64'
       id: cache-netinstall
@@ -114,19 +112,24 @@ jobs:
       with:
         path: |
           netinstall.zip
+          netinstall.tar.gz
         key: netinstall-${{ env.LATEST_VERSION }}
 
-    - name: Get netinstall-${{ env.LATEST_VERSION }}.zip
+    - name: Get netinstall ${{ env.LATEST_VERSION }}
       if: matrix.arch == 'x86_64' && steps.cache-netinstall.outputs.cache-hit != 'true'
       run: |
         sudo wget -nv -O netinstall.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/netinstall-$LATEST_VERSION.zip
+        sudo wget -nv -O netinstall.tar.gz https://download.mikrotik.com/routeros/$LATEST_VERSION/netinstall-$LATEST_VERSION.tar.gz
 
-    - name: Patch netinstall.exe
+    - name: Patch netinstall ${{ env.LATEST_VERSION }}
       if: matrix.arch == 'x86_64'
       run: |
         sudo unzip netinstall.zip
         sudo -E python3 patch.py netinstall netinstall.exe
         sudo zip netinstall-$LATEST_VERSION.zip ./netinstall.exe
+        sudo tar -xvf netinstall.tar.gz
+        sudo -E python3 patch.py netinstall netinstall-cli
+        sudo tar -czvf netinstall-$LATEST_VERSION.tar.gz ./netinstall-cli
 
     - name: Cache mikrotik-${{ env.LATEST_VERSION }}${{ env.ARCH }}.iso
       id: cache-mikrotik
@@ -410,7 +413,7 @@ jobs:
         files: |
           mikrotik-${{ env.LATEST_VERSION }}${{ env.ARCH }}.iso
           chr-${{ env.LATEST_VERSION }}*.zip
-          netinstall-${{ env.LATEST_VERSION }}.zip
+          netinstall-${{ env.LATEST_VERSION }}.*
           install-image-${{ env.LATEST_VERSION }}.zip
           routeros-${{ env.LATEST_VERSION }}${{ env.ARCH }}.npk
           option-${{ env.LATEST_VERSION }}${{ env.ARCH }}.npk
