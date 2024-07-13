@@ -408,7 +408,7 @@ jobs:
         name: "RouterOS ${{ env.LATEST_VERSION }} ${{ matrix.arch }}"
         body_path: "CHANGELOG"
         tag_name: ${{ env.LATEST_VERSION }}${{ env.ARCH }}
-        make_latest:  ${{ matrix.channel == 'stable'}}
+        make_latest:  ${{ matrix.channel == 'stable'}} && ${{ matrix.arch == 'x86_64'}}
         prerelease:  ${{ matrix.channel == 'testing' }}
         files: |
           mikrotik-${{ env.LATEST_VERSION }}${{ env.ARCH }}.iso
