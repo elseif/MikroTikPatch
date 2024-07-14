@@ -132,7 +132,6 @@ def patch_netinstall(key_dict: dict,input_file,output_file=None):
         STRING_TABLE_INDEX = struct.unpack_from(b'<H',netinstall[0x32:])[0]
         section_name_offset = SECTION_HEADER_OFFSET_IN_FILE + STRING_TABLE_INDEX * SECTION_HEADER_ENTRY_SIZE + 16
         SECTION_NAME_BLOCK = struct.unpack_from(b'<I',netinstall[section_name_offset:])[0]
-
         for i in range(NUMBER_OF_SECTION_HEADER_ENTRIES):
             section_offset = SECTION_HEADER_OFFSET_IN_FILE + i * SECTION_HEADER_ENTRY_SIZE
             name_offset,_,_,addr,offset = struct.unpack_from('<IIIII',netinstall[section_offset:])
@@ -145,9 +144,9 @@ def patch_netinstall(key_dict: dict,input_file,output_file=None):
         offset = re.search(rb'\x83\x00\x00\x00.{12}\x8A\x00\x00\x00.{12}\x81\x00\x00\x00.{12}',netinstall).start()
         print(f'found bootloaders offset {hex(offset)}')
         for i in range(10):
-            id,name_ptr,boot_ptr,boot_size = struct.unpack_from('<IIII',netinstall[offset+i*16:offset+i*16+16])
+            id,name_ptr,data_ptr,data_size = struct.unpack_from('<IIII',netinstall[offset+i*16:offset+i*16+16])
             name = netinstall[text_section_offset+name_ptr-text_section_addr:].split(b'\0')[0]
-            data = netinstall[text_section_offset+boot_ptr-text_section_addr:text_section_offset+boot_ptr-text_section_addr+boot_size]
+            data = netinstall[text_section_offset+data_ptr-text_section_addr:text_section_offset+data_ptr-text_section_addr+data_size]
             print(f'found {name.decode()}({id}) bootloader')
             try:
                 if data[:2] == b'MZ':
