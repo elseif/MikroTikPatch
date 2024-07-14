@@ -50,11 +50,11 @@ jobs:
           _LATEST_VERSION=$(wget -nv -O - https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/NEWESTa7.${{ matrix.channel }} | cut -d ' ' -f1)
           if [ "$_LATEST_VERSION" == "$LATEST_VERSION" ]; then
             echo "No new version found"
-            echo "::set-output name=has_new_version::false"
+            echo "has_new_version=false" >> $GITHUB_OUTPUT
             exit 0
           fi
         fi
-        echo "::set-output name=has_new_version::true"
+        echo "has_new_version=true" >> $GITHUB_OUTPUT
         BUILD_TIME=$(date +"%s")
         echo Build Time:$BUILD_TIME
         wget -nv -O CHANGELOG https://${{ env.MIKRO_UPGRADE_URL }}/routeros/$LATEST_VERSION/CHANGELOG
