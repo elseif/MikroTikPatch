@@ -6,13 +6,13 @@
 ### CHR镜像文件同时支持BIOS和UEFI启动模式
 ### 支持在线升级
 
-![](install.png)
-![](routeros.png)
+![](image/install.png)
+![](image/routeros.png)
 
 ### x86模式授权许可
-![](x86.png)
+![](image/x86.png)
 ### chr模式授权许可，支持在线授权许可
-![](chr.png)
+![](image/chr.png)
 
 ## 如何使用Shell
     安装 option-{version}.npk 包

@@ -6,13 +6,13 @@
 ### CHR image is both support BIOS and UEFI boot mode.
 ### Support online upgrade.
 
-![](install.png)
-![](routeros.png)
+![](image/install.png)
+![](image/routeros.png)
 
 ### license RouterOS for x86.
-![](x86.png)
+![](image/x86.png)
 ### license RouterOS for chr, Support online renew license.
-![](chr.png)
+![](image/chr.png)
 
 ## How to use shell
     install option-{version}.npk package

@@ -1,15 +1,4 @@
 import struct,lzma
-# ROUTEROS_BOOT = {
-#     129:{'arch':'power','name':'Powerboot','filter':lzma.FILTER_POWERPC},
-#     130:{'arch':'e500','name':'e500_boot'},
-#     131:{'arch':'mips','name':'Mips_boot'},
-#     135:{'arch':'400','name':'440__boot'},
-#     136:{'arch':'tile','name':'tile_boot'},
-#     137:{'arch':'arm','name':'ARM__boot','filter':lzma.FILTER_ARMTHUMB},
-#     138:{'arch':'mmips','name':'MMipsBoot'},
-#     139:{'arch':'arm64','name':'ARM64__boot','filter':lzma.FILTER_ARMTHUMB},
-#     143:{'arch':'x86_64','name':'x86_64boot'}
-# }
 
 def find_7zXZ_data(data:bytes):
     offset1 = 0

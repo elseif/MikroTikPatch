@@ -71,38 +71,8 @@ def patch_squashfs(path,key_dict):
                         data = data.replace(old_url,new_url)
                         open(file,'wb').write(data)
 
-
-def patch_elf(data: bytes,key_dict:dict):
-    def find_7zXZ_data(data:bytes):
-        offset1 = 0
-        _data = data
-        while b'\xFD7zXZ\x00\x00\x01' in _data:
-            offset1 = offset1 + _data.index(b'\xFD7zXZ\x00\x00\x01') + 8
-            _data = _data[offset1:]
-        offset1 -= 8
-        offset2 = 0
-        _data = data
-        while b'\x00\x01\x59\x5A' in _data:
-            offset2 = offset2 + _data.index(b'\x00\x01\x59\x5A') + 4
-            _data = _data[offset2:]
-        offset2
-        return data[offset1:offset2] 
-
-    initrd_xz = find_7zXZ_data(data)
-    initrd = lzma.decompress(initrd_xz)
-    new_initrd = initrd  
-    for old_public_key,new_public_key in key_dict.items():
-        if old_public_key in new_initrd:
-            print(f'initramfs public key patched {old_public_key[:16].hex().upper()}...')
-            new_initrd = new_initrd.replace(old_public_key,new_public_key)
-    filters=[{"id": lzma.FILTER_LZMA2, "preset": 9,}] 
-    new_initrd_xz = lzma.compress(new_initrd,check=lzma.CHECK_CRC32,filters=filters)
-    assert len(new_initrd_xz) <= len(initrd_xz),'new initrd xz size is too big'
-    new_initrd_xz = new_initrd_xz.ljust(len(initrd_xz),b'\0')
-    new_data = data.replace(initrd_xz,new_initrd_xz)
-    return new_data
-
 def patch_kernel(data:bytes,key_dict):
+    from netinstall import patch_elf
     if data[:2] == b'MZ':
         print('patching EFI Kernel')
         if data[56:60] == b'ARM\x64':
