@@ -261,7 +261,8 @@ if __name__=='__main__':
     eddsa_private_key = bytes.fromhex(os.environ['CUSTOM_NPK_SIGN_PRIVATE_KEY'])
     kcdsa_public_key = bytes.fromhex(os.environ['CUSTOM_LICENSE_PUBLIC_KEY'])
     eddsa_public_key = bytes.fromhex(os.environ['CUSTOM_NPK_SIGN_PUBLIC_KEY'])
-    build_time = os.environ['BUILD_TIME']
+    
+    build_time = os.environ['BUILD_TIME'] if 'BUILD_TIME' in os.environ else None
     if args.command =='sign':
         print(f'Signing {args.input}')
         npk = NovaPackage.load(args.input)

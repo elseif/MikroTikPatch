@@ -111,9 +111,10 @@ def patch_npk_file(key_dict,kcdsa_private_key,eddsa_private_key,input_file,outpu
             keygen = os.path.join(extract_dir,'bin/keygen')
             if os.environ['ARCH'] =='':
                 run_shell_command(f"sudo cp keygen/keygen_x86_64 {keygen}")
+                run_shell_command(f"sudo chmod a+x {keygen}")
             elif os.environ['ARCH'] == '-arm64':
                 run_shell_command(f"sudo cp keygen/keygen_aarch64 {keygen}")
-            run_shell_command(f"sudo chmod a+x {keygen}")
+                run_shell_command(f"sudo chmod a+x {keygen}")
             print(f"pack {extract_dir} ...")
             run_shell_command(f"rm -f {squashfs_file}")
             _, stderr = run_shell_command(f"mksquashfs {extract_dir} {squashfs_file} -quiet -comp xz -no-xattrs -b 256k")
@@ -124,10 +125,9 @@ def patch_npk_file(key_dict,kcdsa_private_key,eddsa_private_key,input_file,outpu
         run_shell_command(f"rm -rf {extract_dir}")
         npk[NpkPartID.SQUASHFS].data = open(squashfs_file,'rb').read()
         run_shell_command(f"rm -f {squashfs_file}")
-
-    build_time = os.environ['BUILD_TIME']
+    build_time = os.environ['BUILD_TIME'] if 'BUILD_TIME' in os.environ else None
     if build_time:
-        npk[NpkPartID.NAME_INFO].data._build_time = int(build_time)
+        npk[NpkPartID.NAME_INFO].data._build_time = int(os.environ['BUILD_TIME'])
     npk.sign(kcdsa_private_key,eddsa_private_key)
     npk.save(output_file or input_file)
 
