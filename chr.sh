@@ -10,7 +10,6 @@ wget -O mbr.bin https://raw.gitmirror.com/elseif/MikroTikPatch/main/mbr.bin
 dd if=mbr.bin of=/dev/sda  bs=1 count=446 conv=notrunc
 dd if=pt.bin of=/dev/sda  bs=1 count=66 seek=446 conv=notrunc
 sync
-partprobe /dev/sda
 mkfs.vfat -n "Boot" /dev/sda1
 mkfs.ext4 -F -L "RouterOS"  -m 0 /dev/sda2
 mkdir -p /tmp/{boot,routeros}
