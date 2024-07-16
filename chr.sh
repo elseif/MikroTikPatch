@@ -1,5 +1,5 @@
 #!/bin/bash
-apt-get install -y sgdisk extlinux > /dev/null 2>&1
+apt-get install -y gdisk extlinux > /dev/null 2>&1
 dd if=/dev/zero of=/dev/sda bs=1 count=512 conv=notrunc
 sgdisk --clear --set-alignment=2 --new=1::+32M --typecode=1:8300 --change-name=1:"RouterOS Boot" --attributes=1:set:2 --new=2::-0 --typecode=2:8300 --change-name=2:"RouterOS" --gpttombr=1:2 /dev/sda
 dd if=/dev/sda of=/tmp/pt.bin bs=1 count=66 skip=446
