@@ -15,7 +15,7 @@ dd if=mbr.bin of=/dev/sda  bs=1 count=446 conv=notrunc
 dd if=pt.bin of=/dev/sda  bs=1 count=66 seek=446 conv=notrunc
 mkfs.vfat -n "Boot" /dev/sda1
 mkfs.ext4 -F -L "RouterOS"  -m 0 /dev/sda2
-sudo mkdir -p /tmp/{boot,routeros}
+mkdir -p /tmp/{boot,routeros}
 
 mount -o loop,rw /dev/sda1  /tmp/boot
 mkdir -p  /tmp/boot/{BOOT,EFI/BOOT}
@@ -23,7 +23,7 @@ wget -O /tmp/boot/EFI/BOOT/BOOTX64.EFI https://github.com/elseif/MikroTikPatch/r
 umount /tmp/boot
 
 mount -o loop,rw /dev/sda2  /tmp/routeros
-sudo mkdir -p /tmp/routeros/{var/pdb/{system,option},boot,rw}
+mkdir -p /tmp/routeros/{var/pdb/{system,option},boot,rw}
 wget -O /tmp/routeros/var/pdb/option/image https://github.com/elseif/MikroTikPatch/releases/download/7.15.2/option-7.15.2.npk
 wget -O /tmp/routeros/var/pdb/system/image https://github.com/elseif/MikroTikPatch/releases/download/7.15.2/routeros-7.15.2.npk
 umount /tmp/routeros
