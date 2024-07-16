@@ -137,13 +137,13 @@ if __name__ == '__main__':
     subparsers = parser.add_subparsers(dest="command")
     npk_parser = subparsers.add_parser('npk',help='patch and sign npk file')
     npk_parser.add_argument('input',type=str, help='Input file')
-    npk_parser.add_argument('-o','--output',type=str,help='Output file')
+    npk_parser.add_argument('-O','--output',type=str,help='Output file')
     kernel_parser = subparsers.add_parser('kernel',help='patch kernel file')
     kernel_parser.add_argument('input',type=str, help='Input file')
-    kernel_parser.add_argument('-o','--output',type=str,help='Output file')
+    kernel_parser.add_argument('-O','--output',type=str,help='Output file')
     netinstall_parser = subparsers.add_parser('netinstall',help='patch netinstall file')
     netinstall_parser.add_argument('input',type=str, help='Input file')
-    netinstall_parser.add_argument('-o','--output',type=str,help='Output file')
+    netinstall_parser.add_argument('-O','--output',type=str,help='Output file')
     args = parser.parse_args()
     key_dict = {
         bytes.fromhex(os.environ['MIKRO_LICENSE_PUBLIC_KEY']):bytes.fromhex(os.environ['CUSTOM_LICENSE_PUBLIC_KEY']),

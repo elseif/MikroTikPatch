@@ -332,7 +332,7 @@ jobs:
           sudo qemu-nbd -c /dev/nbd1 -f raw chr.img
           sudo mkdir -p ./chr/boot
           sudo mount /dev/nbd1p1 ./chr/boot/
-          sudo -E python3 patch.py kernel ./chr/boot/EFI/BOOT/BOOTAA64.EFI ./BOOTAA64.EFI 
+          sudo -E python3 patch.py kernel ./chr/boot/EFI/BOOT/BOOTAA64.EFI -O ./BOOTAA64.EFI 
           sudo mkdir -p  ./img/boot/EFI/BOOT
           sudo cp ./BOOTAA64.EFI ./img/boot/EFI/BOOT/BOOTAA64.EFI
           sudo umount /dev/nbd1p1
