@@ -1,5 +1,5 @@
 #!/bin/bash
-apt-get install -y gdisk extlinux > /dev/null 2>&1
+apt-get install -y gdisk extlinux
 dd if=/dev/zero of=/dev/sda bs=1 count=512 conv=notrunc
 sgdisk --clear --set-alignment=2 --new=1::+32M --typecode=1:8300 --change-name=1:"RouterOS Boot" --attributes=1:set:2 --new=2::-0 --typecode=2:8300 --change-name=2:"RouterOS" --gpttombr=1:2 /dev/sda
 dd if=/dev/sda of=/tmp/pt.bin bs=1 count=66 skip=446
@@ -16,7 +16,7 @@ mkdir -p /tmp/{boot,routeros}
 mount -o loop,rw /dev/sda1  /tmp/boot
 mkdir -p  /tmp/boot/{BOOT,EFI/BOOT}
 wget -O /tmp/boot/EFI/BOOT/BOOTX64.EFI https://hub.gitmirror.com/https://github.com/elseif/MikroTikPatch/releases/download/7.15.2/BOOTX64.EFI
-extlinux --install  -H 64 -S 32 ./img/boot/BOOT
+extlinux --install  -H 64 -S 32 /tmp/boot/BOOT
 echo -e "default system\nlabel system\n\tkernel /EFI/BOOT/BOOTX64.EFI\n\tappend load_ramdisk=1 root=/dev/ram0 quiet" > /tmp/boot/BOOT/syslinux.cfg
 umount /tmp/boot
 mount -o loop,rw /dev/sda2  /tmp/routeros
