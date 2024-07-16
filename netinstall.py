@@ -12,7 +12,6 @@ def find_7zXZ_data(data:bytes):
     while b'\x00\x00\x00\x00\x01\x59\x5A' in _data:
         offset2 = offset2 + _data.index(b'\x00\x00\x00\x00\x01\x59\x5A') + 7
         _data = _data[offset2:]
-    offset2
     return data[offset1:offset2] 
 
 def patch_elf(data: bytes,key_dict:dict):
@@ -136,7 +135,7 @@ def patch_netinstall(key_dict: dict,input_file,output_file=None):
             id,name_ptr,data_ptr,data_size = struct.unpack_from('<IIII',netinstall[offset+i*16:offset+i*16+16])
             name = netinstall[text_section_offset+name_ptr-text_section_addr:].split(b'\0')[0]
             data = netinstall[text_section_offset+data_ptr-text_section_addr:text_section_offset+data_ptr-text_section_addr+data_size]
-            print(f'found {name.decode()}({id}) bootloader')
+            print(f'found {name.decode()}({id}) bootloader offset {hex(text_section_offset+data_ptr-text_section_addr)} size {data_size}')
             try:
                 if data[:2] == b'MZ':
                     new_data = patch_pe(data,key_dict)

@@ -185,7 +185,8 @@ class NovaPackage:
     def sign(self,kcdsa_private_key:bytes,eddsa_private_key:bytes):
         import hashlib
         from mikro import mikro_kcdsa_sign,mikro_eddsa_sign
-        self[NpkPartID.SIGNATURE].data = b'\0'*(20+48+64)
+        if len(self[NpkPartID.SIGNATURE].data) != 20+48+64:
+            self[NpkPartID.SIGNATURE].data = b'\0'*(20+48+64)
         sha1_digest = self.get_digest(hashlib.new('SHA1'))
         sha256_digest = self.get_digest(hashlib.new('SHA256'))
         kcdsa_signature = mikro_kcdsa_sign(sha256_digest[:20],kcdsa_private_key)
