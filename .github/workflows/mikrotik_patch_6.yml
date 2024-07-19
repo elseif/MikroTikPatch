@@ -175,12 +175,14 @@ jobs:
       run: |
         sudo mkdir ./chr
         sudo cp chr.img chr-$LATEST_VERSION.img
-        sudo mount -o loop,rw chr-$LATEST_VERSION.img ./chr
+        sudo qemu-nbd -c /dev/nbd0 -f raw chr-$LATEST_VERSION.img
+        sudo mount /dev/nbd0p1 ./chr
         sudo -E python3 patch.py kernel ./chr/boot/initrd.rgz
         sudo cp ./all_packages/ipv6-$LATEST_VERSION.npk ./chr/var/pdb/ipv6/image
         sudo cp ./all_packages/dude-$LATEST_VERSION.npk ./chr/var/pdb/dude/image
         sudo cp ./all_packages/system-$LATEST_VERSION.npk ./chr/var/pdb/routeros-x86/image
         sudo umount ./chr
+        sudo qemu-nbd -d /dev/nbd0
         sudo rm -rf ./chr
 
         sudo qemu-img convert -f raw -O qcow2 chr-$LATEST_VERSION.img chr-$LATEST_VERSION.qcow2
