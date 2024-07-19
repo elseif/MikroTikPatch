@@ -27,20 +27,21 @@ class NpkPartID(IntEnum):
 class NpkPartItem:
     id: NpkPartID
     data: bytes|object
-class NpkNameInfo:
-    _format = '<16s4sI12s'
-    def __init__(self,name:str,version:str,build_time=datetime.now(),_unknow=b'\x00'*12):
+
+class NpkInfo:
+    _format = '<16s4sI8s'
+    def __init__(self,name:str,version:str,build_time=datetime.now(),unknow=b'\x00'*8):
         self._name = name[:16].encode().ljust(16,b'\x00')
         self._version = self.encode_version(version)
         self._build_time = int(build_time.timestamp())
-        self._unknow = _unknow
+        self._unknow = unknow
     def serialize(self)->bytes:
         return struct.pack(self._format, self._name,self._version,self._build_time,self._unknow)
     @staticmethod
-    def unserialize_from(data:bytes)->'NpkNameInfo':
-        assert len(data) == struct.calcsize(NpkNameInfo._format),'Invalid data length'
-        _name, _version,_build_time,_unknow = struct.unpack_from(NpkNameInfo._format,data)
-        return NpkNameInfo(_name.decode(),NpkNameInfo.decode_version(_version),datetime.fromtimestamp(_build_time),_unknow)
+    def unserialize_from(data:bytes)->'NpkInfo':
+        assert len(data) == struct.calcsize(NpkInfo._format),'Invalid data length'
+        _name, _version,_build_time,unknow= struct.unpack_from(NpkInfo._format,data)
+        return NpkInfo(_name.decode(),NpkInfo.decode_version(_version),datetime.fromtimestamp(_build_time),unknow)
     def __len__ (self)->int:
         return struct.calcsize(self._format)
     @property
@@ -100,6 +101,22 @@ class NpkNameInfo:
     @build_time.setter
     def build_time(self,value:datetime):
         self._build_time = int(value.timestamp())
+
+
+class NpkNameInfo(NpkInfo):
+    _format = '<16s4sI12s'
+    def __init__(self,name:str,version:str,build_time=datetime.now(),_unknow=b'\x00'*12):
+        self._name = name[:16].encode().ljust(16,b'\x00')
+        self._version = self.encode_version(version)
+        self._build_time = int(build_time.timestamp())
+        self._unknow = _unknow
+    def serialize(self)->bytes:
+        return struct.pack(self._format, self._name,self._version,self._build_time,self._unknow)
+    @staticmethod
+    def unserialize_from(data:bytes)->'NpkNameInfo':
+        assert len(data) == struct.calcsize(NpkNameInfo._format),'Invalid data length'
+        _name, _version,_build_time,_unknow = struct.unpack_from(NpkNameInfo._format,data)
+        return NpkNameInfo(_name.decode(),NpkNameInfo.decode_version(_version),datetime.fromtimestamp(_build_time),_unknow)
 
 class NpkFileContainer:
     _format = '<BB6sIBBBBIIIH'
@@ -188,6 +205,8 @@ class NovaPackage(Package):
             else:
                 if part_id == NpkPartID.NAME_INFO:
                     self._parts.append(NpkPartItem(NpkPartID(part_id),NpkNameInfo.unserialize_from(part_data)))
+                elif part_id == NpkPartID.PKG_INFO:
+                    self._parts.append(NpkPartItem(NpkPartID(part_id),NpkInfo.unserialize_from(part_data)))
                 else:
                     self._parts.append(NpkPartItem(NpkPartID(part_id),part_data))
 
@@ -213,6 +232,8 @@ class NovaPackage(Package):
         from mikro import mikro_kcdsa_sign,mikro_eddsa_sign
         build_time = os.environ['BUILD_TIME'] if 'BUILD_TIME' in os.environ else None
         if len(self._packages) > 0:
+            if build_time:
+                self[NpkPartID.PKG_INFO].data._build_time = int(build_time)
             for package in self._packages:
                 if len(package[NpkPartID.SIGNATURE].data) != 20+48+64:
                     package[NpkPartID.SIGNATURE].data = b'\0'*(20+48+64)
