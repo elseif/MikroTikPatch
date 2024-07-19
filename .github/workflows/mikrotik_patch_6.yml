@@ -178,7 +178,7 @@ jobs:
         sudo qemu-nbd -c /dev/nbd0 -f raw chr-$LATEST_VERSION.img
         sudo -E python3 patch.py block /dev/nbd0p1 boot/initrd.rgz
         sudo mount /dev/nbd0p1 ./chr
-        sudo -E python3 patch.py npk ./chr/var/pdb/dude/image
+        sudo cp ./all_packages/dude-$LATEST_VERSION.npk ./chr/var/pdb/dude/image
         sudo -E python3 patch.py npk ./chr/var/pdb/routeros-x86/image
         sudo cp ./chr/var/pdb/routeros-x86/image ./all_packages/routeros-x86-$LATEST_VERSION.npk 
         sudo umount ./chr
