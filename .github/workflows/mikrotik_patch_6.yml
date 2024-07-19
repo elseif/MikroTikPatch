@@ -97,12 +97,12 @@ jobs:
         sudo rm -rf ./iso
         sudo mv ./new_iso/system-$LATEST_VERSION.npk ./
         sudo -E python3 patch.py npk system-$LATEST_VERSION.npk
+        sudo -E python3 patch.py kernel ./new_iso/isolinux/initrd.rgz
         NPK_FILES=$(find ./new_iso/*.npk)
         for file in $NPK_FILES; do
             sudo -E python3 npk.py sign $file $file
         done
         sudo cp system-$LATEST_VERSION.npk ./new_iso/
-        sudo -E python3 patch.py kernel ./isolinux/initrd.rgz
         sudo mkisofs -o mikrotik-$LATEST_VERSION.iso \
                     -V "MikroTik $LATEST_VERSION" \
                     -sysid "" -preparer "MiKroTiK" \
