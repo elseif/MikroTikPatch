@@ -266,10 +266,10 @@ def run_shell_command(command):
     process = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return process.stdout, process.stderr
 
-def patch_npk_file(key_dict,kcdsa_private_key,eddsa_private_key,input_file,output_file=None):
-    npk = NovaPackage.load(input_file)    
-    if npk[NpkPartID.NAME_INFO].data.name == 'system':
-        file_container = NpkFileContainer.unserialize_from(npk[NpkPartID.FILE_CONTAINER].data)
+
+def patch_npk_package(package,key_dict,kcdsa_private_key,eddsa_private_key):
+    if package[NpkPartID.NAME_INFO].data.name == 'system':
+        file_container = NpkFileContainer.unserialize_from(package[NpkPartID.FILE_CONTAINER].data)
         for item in file_container:
             if item.name == b'boot/EFI/BOOT/BOOTX64.EFI':
                 print(f'patch {item.name} ...')
@@ -282,11 +282,11 @@ def patch_npk_file(key_dict,kcdsa_private_key,eddsa_private_key,input_file,outpu
                 item.data = patch_kernel(item.data,key_dict)
                 open('initrd.rgz','wb').write(item.data)
        
-        npk[NpkPartID.FILE_CONTAINER].data = file_container.serialize()
+        package[NpkPartID.FILE_CONTAINER].data = file_container.serialize()
         try:
             squashfs_file = 'squashfs-root.sfs'
             extract_dir = 'squashfs-root'
-            open(squashfs_file,'wb').write(npk[NpkPartID.SQUASHFS].data)
+            open(squashfs_file,'wb').write(package[NpkPartID.SQUASHFS].data)
             print(f"extract {squashfs_file} ...")
             _, stderr = run_shell_command(f"unsquashfs -d {extract_dir} {squashfs_file}")
             print(stderr.decode())
@@ -306,11 +306,16 @@ def patch_npk_file(key_dict,kcdsa_private_key,eddsa_private_key,input_file,outpu
             print(e)
         print(f"clean ...")
         run_shell_command(f"rm -rf {extract_dir}")
-        npk[NpkPartID.SQUASHFS].data = open(squashfs_file,'rb').read()
+        package[NpkPartID.SQUASHFS].data = open(squashfs_file,'rb').read()
         run_shell_command(f"rm -f {squashfs_file}")
-    build_time = os.environ['BUILD_TIME'] if 'BUILD_TIME' in os.environ else None
-    if build_time:
-        npk[NpkPartID.NAME_INFO].data._build_time = int(os.environ['BUILD_TIME'])
+
+def patch_npk_file(key_dict,kcdsa_private_key,eddsa_private_key,input_file,output_file=None):
+    npk = NovaPackage.load(input_file)    
+    if NpkPartID.NAME_INFO in npk._parts:
+        patch_npk_package(npk,key_dict,kcdsa_private_key,eddsa_private_key)
+    else:
+        for package in npk._packages:
+            patch_npk_package(package,key_dict,kcdsa_private_key,eddsa_private_key)
     npk.sign(kcdsa_private_key,eddsa_private_key)
     npk.save(output_file or input_file)
 
