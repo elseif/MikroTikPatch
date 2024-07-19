@@ -261,10 +261,10 @@ def patch_npk_file(key_dict,kcdsa_private_key,eddsa_private_key,input_file,outpu
             print(stderr.decode())
             patch_squashfs(extract_dir,key_dict)
             keygen = os.path.join(extract_dir,'bin/keygen')
-            if os.environ['ARCH'] =='':
+            if 'ARCH' in os.environ and os.environ['ARCH'] =='':
                 run_shell_command(f"sudo cp keygen/keygen_x86 {keygen}")
                 run_shell_command(f"sudo chmod a+x {keygen}")
-            elif os.environ['ARCH'] == '-arm64':
+            elif 'ARCH' in os.environ and os.environ['ARCH'] == '-arm64':
                 run_shell_command(f"sudo cp keygen/keygen_aarch64 {keygen}")
                 run_shell_command(f"sudo chmod a+x {keygen}")
             print(f"pack {extract_dir} ...")
