@@ -29,8 +29,6 @@
     Sign，Verify，Create, Extract npk file.
 ### patch.py
     Patch public key and sign NPK files
-### netinstall.py
-    Patch netinstall to enable network installation of NPK files that have been resigned in ISO
 
 ## all patches are applied automatically with [Github Action](https://github.com/elseif/MikroTikPatch/blob/main/.github/workflows/mikrotik_patch.yml).
 

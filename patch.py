@@ -220,6 +220,16 @@ def patch_squashfs(path,key_dict):
                         print(f'{file} url patched {old_url.decode()[:7]}...')
                         data = data.replace(old_url,new_url)
                         open(file,'wb').write(data)
+                if os.path.split(file)[1] == 'licupgr':
+                    url_dict = {
+                        os.environ['MIKRO_RENEW_URL'].encode():os.environ['CUSTOM_RENEW_URL'].encode(),
+                    }
+                    for old_url,new_url in url_dict.items():
+                        if old_url in data:
+                            print(f'{file} url patched {old_url.decode()[:7]}...')
+                            data = data.replace(old_url,new_url)
+                            open(file,'wb').write(data)
+                    
 
 def run_shell_command(command):
     process = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -252,7 +262,7 @@ def patch_npk_file(key_dict,kcdsa_private_key,eddsa_private_key,input_file,outpu
             patch_squashfs(extract_dir,key_dict)
             keygen = os.path.join(extract_dir,'bin/keygen')
             if os.environ['ARCH'] =='':
-                run_shell_command(f"sudo cp keygen/keygen_x86_64 {keygen}")
+                run_shell_command(f"sudo cp keygen/keygen_x86 {keygen}")
                 run_shell_command(f"sudo chmod a+x {keygen}")
             elif os.environ['ARCH'] == '-arm64':
                 run_shell_command(f"sudo cp keygen/keygen_aarch64 {keygen}")

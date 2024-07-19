@@ -30,8 +30,7 @@
     对npk文件进行解包，修改，创建，签名和验证
 ### patch.py
     替换公钥并签名
-### netinstall.py
-    替换 netinstall 中的 bootloader 的公钥，使通过网络安装时可以安装ISO文件内的npk文件
+
 
 ## 所有的修补操作都自动运行在[Github Action](https://github.com/elseif/MikroTikPatch/blob/main/.github/workflows/mikrotik_patch.yml)。
 
