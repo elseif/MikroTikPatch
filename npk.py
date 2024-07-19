@@ -1,5 +1,6 @@
 
 import struct,zlib
+import argparse,os
 from datetime import datetime
 from dataclasses import dataclass
 from enum import IntEnum
@@ -294,7 +295,6 @@ class NovaPackage(Package):
 
     
 if __name__=='__main__':
-    import argparse,os
     parser = argparse.ArgumentParser(description='nova package creator and editor')
     subparsers = parser.add_subparsers(dest="command")
     sign_parser = subparsers.add_parser('sign',help='sign npk file')
