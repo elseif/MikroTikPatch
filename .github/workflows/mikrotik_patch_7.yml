@@ -234,17 +234,6 @@ jobs:
       run: |
         sudo modprobe nbd
         sudo apt-get install -y qemu-utils extlinux > /dev/null
-        # Loading system
-        # Copyright (C) 1994-2015 H. Peter Anvin et al
-        # 20210811
-        # CHS EDD
-        sudo xxd -p -u /usr/bin/extlinux | tr -d '\n' | sed \
-          -e 's/0D0A5359534C494E555820362E30342000/4C6F6164696E672073797374656D0D0A00/g' \
-          -e 's/20436F707972696768742028432920313939342D3230313520482E20506574657220416E76696E20657420616C0D0A/00436F707972696768742028432920313939342D3230313520482E20506574657220416E76696E20657420616C0D0A/g' \
-          -e 's/203230323130383131/003230323130383131/g' \
-          -e 's/43485300454444/00485300004444/g' | xxd -p -r >extlinux 
-        sudo chmod +x extlinux
-        
         truncate --size 128M install-image-$LATEST_VERSION.img
         sudo qemu-nbd -c /dev/nbd0 -f raw install-image-$LATEST_VERSION.img
         sudo mkfs.vfat -n "Install" /dev/nbd0
@@ -254,15 +243,11 @@ jobs:
         sudo unzip refind-bin-0.14.2.zip refind-bin-0.14.2/refind/refind_x64.efi
         sudo cp refind-bin-0.14.2/refind/refind_x64.efi ./install/EFI/BOOT/BOOTX64.EFI
         sudo rm -rf refind-bin-0.14.2
-        echo -e 'timeout 0\ntextonly\ntextmode 0\nshowtools shutdown, reboot, exit\nmenuentry "Install RouterOS" {\n\tloader /linux\n\toptions "load_ramdisk=1 root=/dev/ram0 -install -hdd"\n}\ndefault_selection /EFI/BOOT/BOOTX64.EFI' \
-          > refind.conf
-        sudo cp refind.conf ./install/EFI/BOOT/
-        sudo rm refind.conf
-        sudo ./extlinux --install -H 64 -S 32 ./install/
-        echo -e 'default system\nLABEL system\n\tKERNEL linux\n\tAPPEND load_ramdisk=1 -install -hdd' \
-          > syslinux.cfg
-        sudo cp syslinux.cfg ./install/
-        sudo rm syslinux.cfg
+        sudo echo -e 'timeout 0\ntextonly\ntextmode 0\nshowtools shutdown, reboot, exit\nmenuentry "Install RouterOS" {\n\tloader /linux\n\toptions "load_ramdisk=1 root=/dev/ram0 -install -hdd"\n}\ndefault_selection /EFI/BOOT/BOOTX64.EFI' \
+          > ./install/EFI/BOOT/refind.conf
+        sudo extlinux --install -H 64 -S 32 ./install/
+        sudo echo -e 'default system\nLABEL system\n\tKERNEL linux\n\tAPPEND load_ramdisk=1 -install -hdd' \
+          > ./install/syslinux.cfg
         sudo cp ./BOOTX64.EFI ./install/linux
         NPK_FILES=($(find ./all_packages/*.npk))
         for ((i=1; i<=${#NPK_FILES[@]}; i++))
