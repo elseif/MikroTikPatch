@@ -212,17 +212,7 @@ class NovaPackage(Package):
         import hashlib
         from mikro import mikro_kcdsa_sign,mikro_eddsa_sign
         build_time = os.environ['BUILD_TIME'] if 'BUILD_TIME' in os.environ else None
-        if NpkPartID.SIGNATURE in self._parts:
-            if len(self[NpkPartID.SIGNATURE].data) != 20+48+64:
-                self[NpkPartID.SIGNATURE].data = b'\0'*(20+48+64)
-            if build_time:
-                self[NpkPartID.NAME_INFO].data._build_time = int(build_time)
-            sha1_digest = self.get_digest(hashlib.new('SHA1'))
-            sha256_digest = self.get_digest(hashlib.new('SHA256'))
-            kcdsa_signature = mikro_kcdsa_sign(sha256_digest[:20],kcdsa_private_key)
-            eddsa_signature = mikro_eddsa_sign(sha256_digest,eddsa_private_key)
-            self[NpkPartID.SIGNATURE].data = sha1_digest + kcdsa_signature + eddsa_signature
-        else:
+        if len(self._packages) > 0:
             for package in self._packages:
                 if len(package[NpkPartID.SIGNATURE].data) != 20+48+64:
                     package[NpkPartID.SIGNATURE].data = b'\0'*(20+48+64)
@@ -233,22 +223,21 @@ class NovaPackage(Package):
                 kcdsa_signature = mikro_kcdsa_sign(sha256_digest[:20],kcdsa_private_key)
                 eddsa_signature = mikro_eddsa_sign(sha256_digest,eddsa_private_key)
                 package[NpkPartID.SIGNATURE].data = sha1_digest + kcdsa_signature + eddsa_signature
-
+        else:
+            if len(self[NpkPartID.SIGNATURE].data) != 20+48+64:
+                self[NpkPartID.SIGNATURE].data = b'\0'*(20+48+64)
+            if build_time:
+                self[NpkPartID.NAME_INFO].data._build_time = int(build_time)
+            sha1_digest = self.get_digest(hashlib.new('SHA1'))
+            sha256_digest = self.get_digest(hashlib.new('SHA256'))
+            kcdsa_signature = mikro_kcdsa_sign(sha256_digest[:20],kcdsa_private_key)
+            eddsa_signature = mikro_eddsa_sign(sha256_digest,eddsa_private_key)
+            self[NpkPartID.SIGNATURE].data = sha1_digest + kcdsa_signature + eddsa_signature
 
     def verify(self,kcdsa_public_key:bytes,eddsa_public_key:bytes):
         import hashlib
         from mikro import mikro_kcdsa_verify,mikro_eddsa_verify
-        if NpkPartID.SIGNATURE in self._parts:
-            sha1_digest = self.get_digest(hashlib.new('SHA1'))
-            sha256_digest = self.get_digest(hashlib.new('SHA256'))
-            signature = self[NpkPartID.SIGNATURE].data
-            if sha1_digest != signature[:20]: 
-                return False
-            if not mikro_kcdsa_verify(sha256_digest[:20],signature[20:68],kcdsa_public_key):
-                return False
-            if not mikro_eddsa_verify(sha256_digest,signature[68:132],eddsa_public_key):
-                return False
-        else:
+        if len(self._packages) > 0:
             for package in self._packages:
                 sha1_digest = self.get_digest(hashlib.new('SHA1'),package)
                 sha256_digest = self.get_digest(hashlib.new('SHA256'),package)
@@ -259,6 +248,17 @@ class NovaPackage(Package):
                     return False
                 if not mikro_eddsa_verify(sha256_digest,signature[68:132],eddsa_public_key):
                     return False
+        else:
+            sha1_digest = self.get_digest(hashlib.new('SHA1'))
+            sha256_digest = self.get_digest(hashlib.new('SHA256'))
+            signature = self[NpkPartID.SIGNATURE].data
+            if sha1_digest != signature[:20]: 
+                return False
+            if not mikro_kcdsa_verify(sha256_digest[:20],signature[20:68],kcdsa_public_key):
+                return False
+            if not mikro_eddsa_verify(sha256_digest,signature[68:132],eddsa_public_key):
+                return False
+
         return True
             
     def save(self,file):
