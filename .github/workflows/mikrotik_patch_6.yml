@@ -170,40 +170,40 @@ jobs:
           sudo rm chr.img.zip
           sudo mv chr-$LATEST_VERSION.img chr.img
 
-    - name: Create chr-${{ env.LATEST_VERSION }}.img
-      if: steps.get_latest.outputs.has_new_version == 'true'
-      run: |
-        sudo mkdir ./chr
-        sudo cp chr.img chr-$LATEST_VERSION.img
-        sudo qemu-nbd -c /dev/nbd0 -f raw chr-$LATEST_VERSION.img
-        sudo mount /dev/nbd0p1 ./chr
-        sudo -E python3 patch.py kernel ./chr/boot/initrd.rgz
-        sudo cp ./all_packages/ipv6-$LATEST_VERSION.npk ./chr/var/pdb/ipv6/image
-        sudo cp ./all_packages/dude-$LATEST_VERSION.npk ./chr/var/pdb/dude/image
-        sudo cp ./all_packages/system-$LATEST_VERSION.npk ./chr/var/pdb/routeros-x86/image
-        sudo umount ./chr
-        sudo qemu-nbd -d /dev/nbd0
-        sudo rm -rf ./chr
+    # - name: Create chr-${{ env.LATEST_VERSION }}.img
+    #   if: steps.get_latest.outputs.has_new_version == 'true'
+    #   run: |
+    #     sudo mkdir ./chr
+    #     sudo cp chr.img chr-$LATEST_VERSION.img
+    #     sudo qemu-nbd -c /dev/nbd0 -f raw chr-$LATEST_VERSION.img
+    #     sudo mount /dev/nbd0p1 ./chr
+    #     sudo -E python3 patch.py kernel ./chr/boot/initrd.rgz
+    #     sudo cp ./all_packages/ipv6-$LATEST_VERSION.npk ./chr/var/pdb/ipv6/image
+    #     sudo cp ./all_packages/dude-$LATEST_VERSION.npk ./chr/var/pdb/dude/image
+    #     sudo cp ./all_packages/system-$LATEST_VERSION.npk ./chr/var/pdb/routeros-x86/image
+    #     sudo umount ./chr
+    #     sudo qemu-nbd -d /dev/nbd0
+    #     sudo rm -rf ./chr
 
-        sudo qemu-img convert -f raw -O qcow2 chr-$LATEST_VERSION.img chr-$LATEST_VERSION.qcow2
-        sudo qemu-img convert -f raw -O vmdk chr-$LATEST_VERSION.img chr-$LATEST_VERSION.vmdk
-        sudo qemu-img convert -f raw -O vpc chr-$LATEST_VERSION.img chr-$LATEST_VERSION.vhd
-        sudo qemu-img convert -f raw -O vhdx chr-$LATEST_VERSION.img chr-$LATEST_VERSION.vhdx
-        sudo qemu-img convert -f raw -O vdi chr-$LATEST_VERSION.img chr-$LATEST_VERSION.vdi
+    #     sudo qemu-img convert -f raw -O qcow2 chr-$LATEST_VERSION.img chr-$LATEST_VERSION.qcow2
+    #     sudo qemu-img convert -f raw -O vmdk chr-$LATEST_VERSION.img chr-$LATEST_VERSION.vmdk
+    #     sudo qemu-img convert -f raw -O vpc chr-$LATEST_VERSION.img chr-$LATEST_VERSION.vhd
+    #     sudo qemu-img convert -f raw -O vhdx chr-$LATEST_VERSION.img chr-$LATEST_VERSION.vhdx
+    #     sudo qemu-img convert -f raw -O vdi chr-$LATEST_VERSION.img chr-$LATEST_VERSION.vdi
 
-        sudo zip chr-$LATEST_VERSION.qcow2.zip chr-$LATEST_VERSION.qcow2
-        sudo zip chr-$LATEST_VERSION.vmdk.zip chr-$LATEST_VERSION.vmdk
-        sudo zip chr-$LATEST_VERSION.vhd.zip chr-$LATEST_VERSION.vhd
-        sudo zip chr-$LATEST_VERSION.vhdx.zip chr-$LATEST_VERSION.vhdx
-        sudo zip chr-$LATEST_VERSION.vdi.zip chr-$LATEST_VERSION.vdi
-        sudo zip chr-$LATEST_VERSION.img.zip chr-$LATEST_VERSION.img
+    #     sudo zip chr-$LATEST_VERSION.qcow2.zip chr-$LATEST_VERSION.qcow2
+    #     sudo zip chr-$LATEST_VERSION.vmdk.zip chr-$LATEST_VERSION.vmdk
+    #     sudo zip chr-$LATEST_VERSION.vhd.zip chr-$LATEST_VERSION.vhd
+    #     sudo zip chr-$LATEST_VERSION.vhdx.zip chr-$LATEST_VERSION.vhdx
+    #     sudo zip chr-$LATEST_VERSION.vdi.zip chr-$LATEST_VERSION.vdi
+    #     sudo zip chr-$LATEST_VERSION.img.zip chr-$LATEST_VERSION.img
 
-        sudo rm chr-$LATEST_VERSION$ARCH.qcow2
-        sudo rm chr-$LATEST_VERSION$ARCH.vmdk
-        sudo rm chr-$LATEST_VERSION$ARCH.vhd
-        sudo rm chr-$LATEST_VERSION$ARCH.vhdx
-        sudo rm chr-$LATEST_VERSION$ARCH.vdi
-        sudo rm chr-$LATEST_VERSION$ARCH.img
+    #     sudo rm chr-$LATEST_VERSION$ARCH.qcow2
+    #     sudo rm chr-$LATEST_VERSION$ARCH.vmdk
+    #     sudo rm chr-$LATEST_VERSION$ARCH.vhd
+    #     sudo rm chr-$LATEST_VERSION$ARCH.vhdx
+    #     sudo rm chr-$LATEST_VERSION$ARCH.vdi
+    #     sudo rm chr-$LATEST_VERSION$ARCH.img
 
 
     - name: Upload Files
