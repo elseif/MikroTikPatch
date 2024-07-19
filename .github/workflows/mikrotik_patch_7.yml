@@ -243,11 +243,15 @@ jobs:
         sudo unzip refind-bin-0.14.2.zip refind-bin-0.14.2/refind/refind_x64.efi
         sudo cp refind-bin-0.14.2/refind/refind_x64.efi ./install/EFI/BOOT/BOOTX64.EFI
         sudo rm -rf refind-bin-0.14.2
-        sudo echo -e 'timeout 0\ntextonly\ntextmode 0\nshowtools shutdown, reboot, exit\nmenuentry "Install RouterOS" {\n\tloader /linux\n\toptions "load_ramdisk=1 root=/dev/ram0 -install -hdd"\n}\ndefault_selection /EFI/BOOT/BOOTX64.EFI' \
-          > ./install/EFI/BOOT/refind.conf
+        echo -e 'timeout 0\ntextonly\ntextmode 0\nshowtools shutdown, reboot, exit\nmenuentry "Install RouterOS" {\n\tloader /linux\n\toptions "load_ramdisk=1 root=/dev/ram0 -install -hdd"\n}\ndefault_selection /EFI/BOOT/BOOTX64.EFI' \
+          > refind.conf
+        sudo cp refind.conf ./install/EFI/BOOT/
+        sudo rm refind.conf
         sudo extlinux --install -H 64 -S 32 ./install/
-        sudo echo -e 'default system\nLABEL system\n\tKERNEL linux\n\tAPPEND load_ramdisk=1 -install -hdd' \
-          > ./install/syslinux.cfg
+        echo -e 'default system\nLABEL system\n\tKERNEL linux\n\tAPPEND load_ramdisk=1 -install -hdd' \
+          > syslinux.cfg
+        sudo cp syslinux.cfg ./install/
+        sudo rm syslinux.cfg
         sudo cp ./BOOTX64.EFI ./install/linux
         NPK_FILES=($(find ./all_packages/*.npk))
         for ((i=1; i<=${#NPK_FILES[@]}; i++))

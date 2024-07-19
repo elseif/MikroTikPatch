@@ -135,8 +135,10 @@ jobs:
         sudo mkdir ./install
         sudo mount /dev/nbd0 ./install
         sudo extlinux --install -H 64 -S 32 ./install/
-        sudo echo -e 'default system\nLABEL system\n\tKERNEL linux\n\tAPPEND load_ramdisk=1 initrd=initrd.rgz -hdd-install' \
-          > ./install/syslinux.cfg
+        echo -e 'default system\nLABEL system\n\tKERNEL linux\n\tAPPEND load_ramdisk=1 initrd=initrd.rgz -hdd-install' \
+          > syslinux.cfg
+        sudo cp syslinux.cfg ./install/
+        sudo rm syslinux.cfg
         NPK_FILES=($(find ./all_packages/*.npk))
         for ((i=1; i<=${#NPK_FILES[@]}; i++))
         do
