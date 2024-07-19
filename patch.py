@@ -45,6 +45,38 @@ def patch_bzimage(data:bytes,key_dict:dict):
     new_data = new_data.replace(vmlinux_xz,new_vmlinux_xz)
     return new_data
 
+def patch_block(dev:str,file:str,key_dict):
+    BLOCK_SIZE = 4096
+    #sudo debugfs /dev/nbd0p1 -R 'stats' | grep "Block size" | sed -n '1p' | cut -d ':' -f 2 
+
+    #sudo debugfs /dev/nbd0p1 -R 'stat boot/initrd.rgz' 2> /dev/null | sed -n '11p'
+    stdout,_ = run_shell_command(f"debugfs {dev} -R 'stat {file}' 2> /dev/null | sed -n '11p' ")
+    #(0-11):1592-1603, (IND):1173, (12-15):1604-1607, (16-26):1424-1434
+    blocks_info = stdout.decode().strip().split(',')
+    blocks = []
+    ind_block_id = None
+    for block_info in blocks_info:
+        _tmp = block_info.strip().split(':')
+        if _tmp[0].strip() == '(IND)':
+            ind_block_id =  int(_tmp[1])
+        else:
+            id_range = _tmp[0].strip().replace('(','').replace(')','').split('-')
+            block_range = _tmp[1].strip().replace('(','').replace(')','').split('-')
+            blocks += [id for id in range(int(block_range[0]),int(block_range[1])+1)]
+    print(f' blocks : {len(blocks)} ind_block_id : {ind_block_id}')
+    
+    #sudo debugfs /dev/nbd0p1  -R 'cat boot/initrd.rgz' > data
+    data,stderr = run_shell_command(f"debugfs {dev} -R 'cat {file}' 2> /dev/null")
+    new_data = patch_kernel(data,key_dict)
+    print(f'write block {len(blocks)} : [',end="")
+    with open(dev,'wb') as f:
+        for index,block_id in enumerate(blocks):
+            print('#',end="")
+            f.seek(block_id*BLOCK_SIZE)
+            f.write(new_data[index*BLOCK_SIZE:(index+1)*BLOCK_SIZE])
+        f.flush()
+        print(']')
+
 def patch_initrd_xz(initrd_xz:bytes,key_dict:dict,ljust=True):
     initrd = lzma.decompress(initrd_xz)
     new_initrd = initrd  
@@ -195,7 +227,7 @@ def patch_kernel(data:bytes,key_dict):
         return patch_elf(data,key_dict)
     elif data[:5] == b'\xFD7zXZ':
         print('patching initrd')
-        return patch_initrd_xz(data,key_dict,False)
+        return patch_initrd_xz(data,key_dict)
     else:
         raise Exception('unknown kernel format')
 
@@ -230,7 +262,6 @@ def patch_squashfs(path,key_dict):
                             data = data.replace(old_url,new_url)
                             open(file,'wb').write(data)
                     
-
 def run_shell_command(command):
     process = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return process.stdout, process.stderr
@@ -293,6 +324,9 @@ if __name__ == '__main__':
     kernel_parser = subparsers.add_parser('kernel',help='patch kernel file')
     kernel_parser.add_argument('input',type=str, help='Input file')
     kernel_parser.add_argument('-O','--output',type=str,help='Output file')
+    block_parser = subparsers.add_parser('block',help='patch block file')
+    block_parser.add_argument('dev',type=str, help='block device')
+    block_parser.add_argument('file',type=str, help='file path')
     netinstall_parser = subparsers.add_parser('netinstall',help='patch netinstall file')
     netinstall_parser.add_argument('input',type=str, help='Input file')
     netinstall_parser.add_argument('-O','--output',type=str,help='Output file')
@@ -310,6 +344,9 @@ if __name__ == '__main__':
         print(f'patching {args.input} ...')
         data = patch_kernel(open(args.input,'rb').read(),key_dict)
         open(args.output or args.input,'wb').write(data)
+    elif args.command == 'block':
+        print(f'patching {args.file} in {args.dev} ...')
+        patch_block(args.dev,args.file,key_dict)
     elif args.command == 'netinstall':
         print(f'patching {args.input} ...')
         patch_netinstall(key_dict,args.input,args.output)
