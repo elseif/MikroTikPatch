@@ -180,6 +180,7 @@ jobs:
         sudo mount /dev/nbd0p1 ./chr
         sudo -E python3 patch.py npk ./chr/var/pdb/dude/image
         sudo -E python3 patch.py npk ./chr/var/pdb/routeros-x86/image
+        sudo cp ./chr/var/pdb/routeros-x86/image ./all_packages/routeros-x86-$LATEST_VERSION.npk 
         sudo umount ./chr
         sudo qemu-nbd -d /dev/nbd0
         sudo rm -rf ./chr
