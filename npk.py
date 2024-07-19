@@ -216,7 +216,7 @@ class NovaPackage(Package):
             if len(self[NpkPartID.SIGNATURE].data) != 20+48+64:
                 self[NpkPartID.SIGNATURE].data = b'\0'*(20+48+64)
             if build_time:
-                npk[NpkPartID.NAME_INFO].data._build_time = int(build_time)
+                self[NpkPartID.NAME_INFO].data._build_time = int(build_time)
             sha1_digest = self.get_digest(hashlib.new('SHA1'))
             sha256_digest = self.get_digest(hashlib.new('SHA256'))
             kcdsa_signature = mikro_kcdsa_sign(sha256_digest[:20],kcdsa_private_key)
@@ -227,7 +227,7 @@ class NovaPackage(Package):
                 if len(package[NpkPartID.SIGNATURE].data) != 20+48+64:
                     package[NpkPartID.SIGNATURE].data = b'\0'*(20+48+64)
                 if build_time:
-                    npk[NpkPartID.NAME_INFO].data._build_time = int(build_time)
+                    package[NpkPartID.NAME_INFO].data._build_time = int(build_time)
                 sha1_digest = self.get_digest(hashlib.new('SHA1'),package)
                 sha256_digest = self.get_digest(hashlib.new('SHA256'),package)
                 kcdsa_signature = mikro_kcdsa_sign(sha256_digest[:20],kcdsa_private_key)
