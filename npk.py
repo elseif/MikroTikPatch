@@ -105,11 +105,11 @@ class NpkInfo:
 
 class NpkNameInfo(NpkInfo):
     _format = '<16s4sI12s'
-    def __init__(self,name:str,version:str,build_time=datetime.now(),_unknow=b'\x00'*12):
+    def __init__(self,name:str,version:str,build_time=datetime.now(),unknow=b'\x00'*12):
         self._name = name[:16].encode().ljust(16,b'\x00')
         self._version = self.encode_version(version)
         self._build_time = int(build_time.timestamp())
-        self._unknow = _unknow
+        self._unknow = unknow
     def serialize(self)->bytes:
         return struct.pack(self._format, self._name,self._version,self._build_time,self._unknow)
     @staticmethod
