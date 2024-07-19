@@ -311,7 +311,7 @@ jobs:
         if [ "${{ matrix.arch }}" == "x86" ]; then
           sudo mkdir -p  ./img/boot/{BOOT,EFI/BOOT}
           sudo cp BOOTX64.EFI ./img/boot/EFI/BOOT/BOOTX64.EFI
-          sudo ./extlinux --install  -H 64 -S 32 ./img/boot/BOOT
+          sudo extlinux --install  -H 64 -S 32 ./img/boot/BOOT
           echo -e "default system\nlabel system\n\tkernel /EFI/BOOT/BOOTX64.EFI\n\tappend load_ramdisk=1 root=/dev/ram0 quiet" > syslinux.cfg
           sudo cp syslinux.cfg ./img/boot/BOOT/
           sudo rm syslinux.cfg
@@ -354,19 +354,6 @@ jobs:
         sudo rm chr-$LATEST_VERSION$ARCH.vhdx
         sudo rm chr-$LATEST_VERSION$ARCH.vdi
         sudo rm chr-$LATEST_VERSION$ARCH.img
-
-    # - name: Upload artifact
-    #   uses: actions/upload-artifact@v4
-    #   with:
-    #     name: "RouterOS ${{ env.LATEST_VERSION }} ${{ matrix.arch }}"
-    #     path: |
-    #       mikrotik-${{ env.LATEST_VERSION }}${{ env.ARCH }}.iso
-    #       chr-${{ env.LATEST_VERSION }}*.zip
-    #       netinstall-${{ env.LATEST_VERSION }}.zip
-    #       install-image-${{ env.LATEST_VERSION }}.zip
-    #       routeros-${{ env.LATEST_VERSION }}${{ env.ARCH }}.npk
-    #       option-${{ env.LATEST_VERSION }}${{ env.ARCH }}.npk
-    #       all_packages-*-${{ env.LATEST_VERSION }}.zip
 
     - name: Upload Files
       if: steps.get_latest.outputs.has_new_version == 'true'
