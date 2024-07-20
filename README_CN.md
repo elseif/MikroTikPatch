@@ -11,7 +11,9 @@
 
 ### x86模式授权许可
 ![](image/x86.png)
-### chr模式授权许可，支持在线授权许可
+### Chr模式在线授权
+![](image/renew.png)
+### Chr模式授权许可
 ![](image/chr.png)
 
 ## 如何使用Shell

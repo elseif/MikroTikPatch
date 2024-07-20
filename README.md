@@ -11,7 +11,9 @@
 
 ### license RouterOS for x86.
 ![](image/x86.png)
-### license RouterOS for chr, Support online renew license.
+### Renew license for chr
+![](image/renew.png)
+### license RouterOS for chr
 ![](image/chr.png)
 
 ## How to use shell
