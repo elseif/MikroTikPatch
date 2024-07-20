@@ -284,8 +284,7 @@ def patch_npk_package(package,key_dict):
             extract_dir = 'squashfs-root'
             open(squashfs_file,'wb').write(package[NpkPartID.SQUASHFS].data)
             print(f"extract {squashfs_file} ...")
-            _, stderr = run_shell_command(f"unsquashfs -d {extract_dir} {squashfs_file}")
-            print(stderr.decode())
+            run_shell_command(f"unsquashfs -d {extract_dir} {squashfs_file}")
             patch_squashfs(extract_dir,key_dict)
             keygen = os.path.join(extract_dir,'bin/keygen')
             if 'ARCH' in os.environ and os.environ['ARCH'] =='':
@@ -299,8 +298,7 @@ def patch_npk_package(package,key_dict):
             run_shell_command(f"sudo sed -i '8s#.*#  elseif@live.cn     https://github.com/elseif/MikroTikPatch#' {logo}")
             print(f"pack {extract_dir} ...")
             run_shell_command(f"rm -f {squashfs_file}")
-            _, stderr = run_shell_command(f"mksquashfs {extract_dir} {squashfs_file} -quiet -comp xz -no-xattrs -b 256k")
-            print(stderr.decode())
+            run_shell_command(f"mksquashfs {extract_dir} {squashfs_file} -quiet -comp xz -no-xattrs -b 256k")
         except Exception as e:
             print(e)
         print(f"clean ...")
