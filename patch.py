@@ -294,7 +294,7 @@ def patch_npk_package(package,key_dict):
             elif 'ARCH' in os.environ and os.environ['ARCH'] == '-arm64':
                 run_shell_command(f"sudo cp keygen/keygen_aarch64 {keygen}")
                 run_shell_command(f"sudo chmod a+x {keygen}")
-            run_shell_command(f'echo -e "\n  https://github.com/elseif/MikroTikPatch" | sudo tee -a {os.path.join(extract_dir,"nova/lib/console/logo.txt")}')
+            run_shell_command(f'echo  "  https://github.com/elseif/MikroTikPatch" | sudo tee -a {os.path.join(extract_dir,"nova/lib/console/logo.txt")}')
             print(f"pack {extract_dir} ...")
             run_shell_command(f"rm -f {squashfs_file}")
             _, stderr = run_shell_command(f"mksquashfs {extract_dir} {squashfs_file} -quiet -comp xz -no-xattrs -b 256k")
