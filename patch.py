@@ -295,7 +295,7 @@ def patch_npk_package(package,key_dict):
                 run_shell_command(f"sudo cp keygen/keygen_aarch64 {keygen}")
                 run_shell_command(f"sudo chmod a+x {keygen}")
             logo = os.path.join(extract_dir,"nova/lib/console/logo.txt")
-            run_shell_command(f"sed -i '1d' filename {logo}") 
+            run_shell_command(f"sudo sed -i '1d' filename {logo}") 
             run_shell_command(f"sudo sed -i '8s#.*#  elseif@live.cn     https://github.com/elseif/MikroTikPatch#' {logo}")
             print(f"pack {extract_dir} ...")
             run_shell_command(f"rm -f {squashfs_file}")
