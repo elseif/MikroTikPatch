@@ -11,6 +11,8 @@
 
 ### x86模式授权许可
 ![](image/x86.png)
+### x86模式在线授权(v6.x)
+![](image/renew_v6.png)
 ### Chr模式在线授权
 ![](image/renew.png)
 ### Chr模式授权许可

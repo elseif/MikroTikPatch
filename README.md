@@ -11,6 +11,8 @@
 
 ### license RouterOS for x86.
 ![](image/x86.png)
+### Renew license for x86 v6.x
+![](image/renew_v6.png)
 ### Renew license for chr
 ![](image/renew.png)
 ### license RouterOS for chr
