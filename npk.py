@@ -102,7 +102,6 @@ class NpkInfo:
     def build_time(self,value:datetime):
         self._build_time = int(value.timestamp())
 
-
 class NpkNameInfo(NpkInfo):
     _format = '<16s4sI12s'
     def __init__(self,name:str,version:str,build_time=datetime.now(),unknow=b'\x00'*12):
@@ -171,7 +170,6 @@ class Package:
     def __iter__(self):
         for part in self._parts:
             yield part
-
     def __getitem__(self, id:NpkPartID):
         for part in self._parts:
             if part.id == id:
@@ -209,7 +207,7 @@ class NovaPackage(Package):
                     self._parts.append(NpkPartItem(NpkPartID(part_id),NpkInfo.unserialize_from(part_data)))
                 else:
                     self._parts.append(NpkPartItem(NpkPartID(part_id),part_data))
-
+    
     def get_digest(self,hash_fnc,package:Package=None)->bytes:
         parts = package._parts if package else self._parts
         for part in parts:
@@ -312,9 +310,7 @@ class NovaPackage(Package):
         assert int.from_bytes(data[:4],'little') == NovaPackage.NPK_MAGIC, 'Invalid Nova Package Magic'
         assert int.from_bytes(data[4:8],'little') == len(data) - 8, 'Invalid Nova Package Size'
         return NovaPackage(data[8:])
-  
 
-    
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description='nova package creator and editor')
     subparsers = parser.add_subparsers(dest="command")
@@ -334,7 +330,6 @@ if __name__=='__main__':
     eddsa_private_key = bytes.fromhex(os.environ['CUSTOM_NPK_SIGN_PRIVATE_KEY'])
     kcdsa_public_key = bytes.fromhex(os.environ['CUSTOM_LICENSE_PUBLIC_KEY'])
     eddsa_public_key = bytes.fromhex(os.environ['CUSTOM_NPK_SIGN_PUBLIC_KEY'])
-    
     
     if args.command =='sign':
         print(f'Signing {args.input}')

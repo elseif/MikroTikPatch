@@ -108,7 +108,6 @@ def patch_elf(data: bytes,key_dict:dict):
     initrd_xz = find_7zXZ_data(data)
     return patch_initrd_xz(initrd_xz,key_dict)
 
-
 def patch_pe(data: bytes,key_dict:dict):
     vmlinux_xz = find_7zXZ_data(data)
     vmlinux = lzma.decompress(vmlinux_xz)
@@ -266,8 +265,7 @@ def run_shell_command(command):
     process = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return process.stdout, process.stderr
 
-
-def patch_npk_package(package,key_dict,kcdsa_private_key,eddsa_private_key):
+def patch_npk_package(package,key_dict):
     if package[NpkPartID.NAME_INFO].data.name == 'system':
         file_container = NpkFileContainer.unserialize_from(package[NpkPartID.FILE_CONTAINER].data)
         for item in file_container:
@@ -280,8 +278,6 @@ def patch_npk_package(package,key_dict,kcdsa_private_key,eddsa_private_key):
             elif item.name == b'boot/initrd.rgz':
                 print(f'patch {item.name} ...')
                 item.data = patch_kernel(item.data,key_dict)
-                open('initrd.rgz','wb').write(item.data)
-       
         package[NpkPartID.FILE_CONTAINER].data = file_container.serialize()
         try:
             squashfs_file = 'squashfs-root.sfs'
@@ -298,6 +294,7 @@ def patch_npk_package(package,key_dict,kcdsa_private_key,eddsa_private_key):
             elif 'ARCH' in os.environ and os.environ['ARCH'] == '-arm64':
                 run_shell_command(f"sudo cp keygen/keygen_aarch64 {keygen}")
                 run_shell_command(f"sudo chmod a+x {keygen}")
+            run_shell_command(f'echo -e "\n  https://github.com/elseif/MikroTikPatch" | sudo tee -a {os.path.join(extract_dir,"nova/lib/console/logo.txt")}')
             print(f"pack {extract_dir} ...")
             run_shell_command(f"rm -f {squashfs_file}")
             _, stderr = run_shell_command(f"mksquashfs {extract_dir} {squashfs_file} -quiet -comp xz -no-xattrs -b 256k")
@@ -313,10 +310,9 @@ def patch_npk_file(key_dict,kcdsa_private_key,eddsa_private_key,input_file,outpu
     npk = NovaPackage.load(input_file)   
     if len(npk._packages) > 0:
         for package in npk._packages:
-            patch_npk_package(package,key_dict,kcdsa_private_key,eddsa_private_key)
+            patch_npk_package(package,key_dict)
     else:
-        patch_npk_package(npk,key_dict,kcdsa_private_key,eddsa_private_key)
-
+        patch_npk_package(npk,key_dict)
     npk.sign(kcdsa_private_key,eddsa_private_key)
     npk.save(output_file or input_file)
 
