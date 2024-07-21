@@ -45,15 +45,10 @@ jobs:
       id: get_latest
       run: |
         echo $(uname -a)
-        if [ "${{ matrix.channel }}" == "long-term" ]; then
-            LATEST="LATEST.6fix"
-        elif [ "${{ matrix.channel }}" == "stable" ]; then
-            LATEST="LATEST.6"
-        fi
-        LATEST_VERSION=$(wget -nv -O - https://upgrade.mikrotik.com/routeros/$LATEST | cut -d ' ' -f1)
+        LATEST_VERSION=$(wget -nv -O - https://upgrade.mikrotik.com/routeros/NEWEST6.${{ matrix.channel }} | cut -d ' ' -f1)
         echo Latest Version:$LATEST_VERSION
         if [ "${{ github.event_name }}" == "schedule" ]; then
-          _LATEST_VERSION=$(wget -nv -O - https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/$LATEST | cut -d ' ' -f1)
+          _LATEST_VERSION=$(wget -nv -O - https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/NEWEST6.${{ matrix.channel }}  | cut -d ' ' -f1)
           if [ "$_LATEST_VERSION" == "$LATEST_VERSION" ]; then
             echo "No new version found"
             echo "has_new_version=false" >> $GITHUB_OUTPUT
@@ -210,12 +205,7 @@ jobs:
       if: steps.get_latest.outputs.has_new_version == 'true'
       run: |
         mkdir -p ./publish/$LATEST_VERSION
-        if [ "${{ matrix.channel }}" == "long-term" ]; then
-            LATEST="NEWEST6.long-term"
-        elif [ "${{ matrix.channel }}" == "stable" ]; then
-            LATEST="NEWEST6.stable"
-        fi
-        echo $LATEST_VERSION $BUILD_TIME > ./publish/$LATEST
+        echo $LATEST_VERSION $BUILD_TIME > ./publish/NEWEST6.${{ matrix.channel }}
         cp CHANGELOG ./publish/$LATEST_VERSION/
         cp ./all_packages/*.npk ./publish/$LATEST_VERSION/
         sudo apt-get install -y lftp > /dev/null 2>&1
