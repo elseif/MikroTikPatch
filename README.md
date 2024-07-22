@@ -34,7 +34,7 @@
 ### patch.py
     Patch public key and sign NPK files
 
-## all patches are applied automatically with [Github Action](https://github.com/elseif/MikroTikPatch/blob/main/.github/workflows/mikrotik_patch.yml).
+## all patches are applied automatically with [Github Action](https://github.com/elseif/MikroTikPatch/blob/main/.github/workflows/).
 
 
 
