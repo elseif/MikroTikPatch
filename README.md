@@ -1,14 +1,13 @@
 # MikroTik RouterOS Patch  [[English](README_EN.md)]
 
 ### 蓝奏云镜像下载 密码: <font color="red"> elseif</font>
-<p>
-[<a href="https://elseif.lanzouj.com/b00crdq4hg" target="_blank">7.15.2</a>] | 
-[<a href="https://elseif.lanzouj.com/b00crdq4fe" target="_blank">7.16beta4</a>] | 
-[<a href="https://elseif.lanzouj.com/b00crdq4ih" target="_blank">7.15.2-arm64</a>] | 
-[<a href="https://elseif.lanzouj.com/b00crdq4gf" target="_blank">7.16beta4-arm64</a>] | 
-[<a href="https://elseif.lanzouj.com/b00crdq4ji" target="_blank">6.49.15</a>] | 
-[<a href="https://elseif.lanzouj.com/b00crdq4kj" target="_blank">6.49.13</a>] 
-</p>
+[ [7.15.2](https://elseif.lanzouj.com/b00crdq4hg)]
+[ [7.16beta4](https://elseif.lanzouj.com/b00crdq4fe) ] 
+[ [7.15.2-arm64](https://elseif.lanzouj.com/b00crdq4ih) ] 
+[ [7.16beta4-arm64](https://elseif.lanzouj.com/b00crdq4gf) ] 
+[ [6.49.15](https://elseif.lanzouj.com/b00crdq4ji) ] 
+[ [6.49.13](https://elseif.lanzouj.com/b00crdq4kj) ]       
+
 
 
 ![](image/install.png)
