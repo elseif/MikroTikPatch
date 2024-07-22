@@ -1,18 +1,15 @@
-# Patch MikroTik RouterOS [[English](README.md)]
+# MikroTik RouterOS Patch  [[English](README.md)]
 
-###  [MikroTik RouterOS 授权签名验证分析](https://blog.csdn.net/chivalrys/article/details/139770711) 
+### 蓝奏云镜像下载 密码: <font color="red"> elseif</font>
+<p>
+[<a href="https://elseif.lanzouj.com/b00crdq4hg" target="_blank">7.15.2</a>] | 
+[<a href="https://elseif.lanzouj.com/b00crdq4fe" target="_blank">7.16beta4</a>] | 
+[<a href="https://elseif.lanzouj.com/b00crdq4ih" target="_blank">7.15.2-arm64</a>] | 
+[<a href="https://elseif.lanzouj.com/b00crdq4gf" target="_blank">7.16beta4-arm64</a>] | 
+[<a href="https://elseif.lanzouj.com/b00crdq4ji" target="_blank">6.49.15</a>] | 
+[<a href="https://elseif.lanzouj.com/b00crdq4kj" target="_blank">6.49.13</a>] 
+</p>
 
-### 下载 [最新](https://github.com/elseif/MikroTikPatch/releases/latest) 的iso文件安装RouterOS.
-### 蓝奏云镜像下载 密码:elseif
-#### [7.15.2](https://elseif.lanzouj.com/b00crdq4hg) 
-#### [7.16beta4](https://elseif.lanzouj.com/b00crdq4fe) 
-#### [7.15.2-arm64](https://elseif.lanzouj.com/b00crdq4ih) 
-#### [7.16beta4-arm64](https://elseif.lanzouj.com/b00crdq4gf) 
-#### [6.49.15](https://elseif.lanzouj.com/b00crdq4ji) 
-#### [6.49.13](https://elseif.lanzouj.com/b00crdq4kj) 
-
-### CHR镜像文件同时支持BIOS和UEFI启动模式
-### 支持在线升级
 
 ![](image/install.png)
 ![](image/routeros.png)

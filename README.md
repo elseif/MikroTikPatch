@@ -1,4 +1,4 @@
-# Patch MikroTik RouterOS [[中文](README_CN.md)]
+# MikroTik RouterOS Patch [[中文](README_CN.md)]
 
 ### [[Discord](https://discord.gg/keV6MWQFtX)] [[Telegram](https://t.me/+99Mw06p3K7NlMmNl)]
 
