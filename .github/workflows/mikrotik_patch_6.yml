@@ -10,8 +10,32 @@ on:
 permissions:
   contents: write
 
+env:
+  CUSTOM_LICENSE_PRIVATE_KEY: ${{ secrets.CUSTOM_LICENSE_PRIVATE_KEY }}
+  CUSTOM_LICENSE_PUBLIC_KEY: ${{ secrets.CUSTOM_LICENSE_PUBLIC_KEY }}
+  CUSTOM_NPK_SIGN_PRIVATE_KEY: ${{ secrets.CUSTOM_NPK_SIGN_PRIVATE_KEY }}
+  CUSTOM_NPK_SIGN_PUBLIC_KEY: ${{ secrets.CUSTOM_NPK_SIGN_PUBLIC_KEY }}
+  MIKRO_LICENSE_PUBLIC_KEY: ${{ secrets.MIKRO_LICENSE_PUBLIC_KEY }}
+  MIKRO_NPK_SIGN_PUBLIC_LKEY: ${{ secrets.MIKRO_NPK_SIGN_PUBLIC_LKEY }}
+  MIKRO_LICENCE_URL: ${{ secrets.MIKRO_LICENCE_URL }}
+  CUSTOM_LICENCE_URL: ${{ secrets.CUSTOM_LICENCE_URL }}
+  MIKRO_UPGRADE_URL: ${{ secrets.MIKRO_UPGRADE_URL }}
+  CUSTOM_UPGRADE_URL: ${{ secrets.CUSTOM_UPGRADE_URL }}
+  MIKRO_RENEW_URL: ${{ secrets.MIKRO_RENEW_URL }}
+  CUSTOM_RENEW_URL: ${{ secrets.CUSTOM_RENEW_URL }}
+
 jobs:
+  Set_BuildTime:
+    runs-on: ubuntu-22.04
+    outputs:
+      BUILD_TIME: ${{ steps.set_buildtime.outputs.BUILD_TIME }}
+    steps:
+      - name: Set build time
+        id: set_buildtime
+        run: echo "BUILD_TIME=$(date +'%s')" >> $GITHUB_OUTPUT
+
   Patch_RouterOS:
+    needs: Set_BuildTime
     runs-on: ubuntu-22.04
     strategy:
       matrix:
@@ -19,19 +43,6 @@ jobs:
     env:
       TZ: 'Asia/Shanghai'
       LATEST_VERSION: ""
-      BUILD_TIME: "0"
-      CUSTOM_LICENSE_PRIVATE_KEY: ${{ secrets.CUSTOM_LICENSE_PRIVATE_KEY }}
-      CUSTOM_LICENSE_PUBLIC_KEY: ${{ secrets.CUSTOM_LICENSE_PUBLIC_KEY }}
-      CUSTOM_NPK_SIGN_PRIVATE_KEY: ${{ secrets.CUSTOM_NPK_SIGN_PRIVATE_KEY }}
-      CUSTOM_NPK_SIGN_PUBLIC_KEY: ${{ secrets.CUSTOM_NPK_SIGN_PUBLIC_KEY }}
-      MIKRO_LICENSE_PUBLIC_KEY: ${{ secrets.MIKRO_LICENSE_PUBLIC_KEY }}
-      MIKRO_NPK_SIGN_PUBLIC_LKEY: ${{ secrets.MIKRO_NPK_SIGN_PUBLIC_LKEY }}
-      MIKRO_LICENCE_URL: ${{ secrets.MIKRO_LICENCE_URL }}
-      CUSTOM_LICENCE_URL: ${{ secrets.CUSTOM_LICENCE_URL }}
-      MIKRO_UPGRADE_URL: ${{ secrets.MIKRO_UPGRADE_URL }}
-      CUSTOM_UPGRADE_URL: ${{ secrets.CUSTOM_UPGRADE_URL }}
-      MIKRO_RENEW_URL: ${{ secrets.MIKRO_RENEW_URL }}
-      CUSTOM_RENEW_URL: ${{ secrets.CUSTOM_RENEW_URL }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -56,7 +67,7 @@ jobs:
           fi
         fi
         echo "has_new_version=true" >> $GITHUB_OUTPUT
-        BUILD_TIME=$(date +"%s")
+        BUILD_TIME=BUILD_TIME=${{ needs.Set_BuildTime.outputs.BUILD_TIME }}
         echo Build Time:$BUILD_TIME
         wget -nv -O CHANGELOG https://${{ env.MIKRO_UPGRADE_URL }}/routeros/$LATEST_VERSION/CHANGELOG
         cat CHANGELOG
