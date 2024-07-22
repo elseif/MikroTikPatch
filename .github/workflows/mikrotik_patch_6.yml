@@ -67,7 +67,7 @@ jobs:
           fi
         fi
         echo "has_new_version=true" >> $GITHUB_OUTPUT
-        BUILD_TIME=BUILD_TIME=${{ needs.Set_BuildTime.outputs.BUILD_TIME }}
+        BUILD_TIME=${{ needs.Set_BuildTime.outputs.BUILD_TIME }}
         echo Build Time:$BUILD_TIME
         wget -nv -O CHANGELOG https://${{ env.MIKRO_UPGRADE_URL }}/routeros/$LATEST_VERSION/CHANGELOG
         cat CHANGELOG
