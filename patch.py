@@ -269,38 +269,22 @@ def patch_npk_package(package,key_dict):
     if package[NpkPartID.NAME_INFO].data.name == 'system':
         file_container = NpkFileContainer.unserialize_from(package[NpkPartID.FILE_CONTAINER].data)
         for item in file_container:
-            if item.name == b'boot/EFI/BOOT/BOOTX64.EFI':
-                print(f'patch {item.name} ...')
-                item.data = patch_kernel(item.data,key_dict)
-            elif item.name == b'boot/kernel':
-                print(f'patch {item.name} ...')
-                item.data = patch_kernel(item.data,key_dict)
-            elif item.name == b'boot/initrd.rgz':
+            if item.name in [b'boot/EFI/BOOT/BOOTX64.EFI',b'boot/kernel',b'boot/initrd.rgz']:
                 print(f'patch {item.name} ...')
                 item.data = patch_kernel(item.data,key_dict)
         package[NpkPartID.FILE_CONTAINER].data = file_container.serialize()
-        try:
-            squashfs_file = 'squashfs-root.sfs'
-            extract_dir = 'squashfs-root'
-            open(squashfs_file,'wb').write(package[NpkPartID.SQUASHFS].data)
-            print(f"extract {squashfs_file} ...")
-            run_shell_command(f"unsquashfs -d {extract_dir} {squashfs_file}")
-            patch_squashfs(extract_dir,key_dict)
-            keygen = os.path.join(extract_dir,'bin/keygen')
-            if 'ARCH' in os.environ and os.environ['ARCH'] =='':
-                run_shell_command(f"sudo cp keygen/keygen_x86 {keygen}")
-                run_shell_command(f"sudo chmod a+x {keygen}")
-            elif 'ARCH' in os.environ and os.environ['ARCH'] == '-arm64':
-                run_shell_command(f"sudo cp keygen/keygen_aarch64 {keygen}")
-                run_shell_command(f"sudo chmod a+x {keygen}")
-            logo = os.path.join(extract_dir,"nova/lib/console/logo.txt")
-            run_shell_command(f"sudo sed -i '1d' {logo}") 
-            run_shell_command(f"sudo sed -i '8s#.*#  elseif@live.cn     https://github.com/elseif/MikroTikPatch#' {logo}")
-            print(f"pack {extract_dir} ...")
-            run_shell_command(f"rm -f {squashfs_file}")
-            run_shell_command(f"mksquashfs {extract_dir} {squashfs_file} -quiet -comp xz -no-xattrs -b 256k")
-        except Exception as e:
-            print(e)
+        squashfs_file = 'squashfs-root.sfs'
+        extract_dir = 'squashfs-root'
+        open(squashfs_file,'wb').write(package[NpkPartID.SQUASHFS].data)
+        print(f"extract {squashfs_file} ...")
+        run_shell_command(f"unsquashfs -d {extract_dir} {squashfs_file}")
+        patch_squashfs(extract_dir,key_dict)
+        logo = os.path.join(extract_dir,"nova/lib/console/logo.txt")
+        run_shell_command(f"sudo sed -i '1d' {logo}") 
+        run_shell_command(f"sudo sed -i '8s#.*#  elseif@live.cn     https://github.com/elseif/MikroTikPatch#' {logo}")
+        print(f"pack {extract_dir} ...")
+        run_shell_command(f"rm -f {squashfs_file}")
+        run_shell_command(f"mksquashfs {extract_dir} {squashfs_file} -quiet -comp xz -no-xattrs -b 256k")
         print(f"clean ...")
         run_shell_command(f"rm -rf {extract_dir}")
         package[NpkPartID.SQUASHFS].data = open(squashfs_file,'rb').read()
