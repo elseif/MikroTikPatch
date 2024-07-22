@@ -1,41 +1,47 @@
-# MikroTik RouterOS Patch [[中文](README_CN.md)]
+# MikroTik RouterOS Patch  [[English](README_EN.md)]
 
-### [[Discord](https://discord.gg/keV6MWQFtX)] [[Telegram](https://t.me/+99Mw06p3K7NlMmNl)]
+### 蓝奏云镜像下载 密码: <font color="red"> elseif</font>
+<p>
+[<a href="https://elseif.lanzouj.com/b00crdq4hg" target="_blank">7.15.2</a>] | 
+[<a href="https://elseif.lanzouj.com/b00crdq4fe" target="_blank">7.16beta4</a>] | 
+[<a href="https://elseif.lanzouj.com/b00crdq4ih" target="_blank">7.15.2-arm64</a>] | 
+[<a href="https://elseif.lanzouj.com/b00crdq4gf" target="_blank">7.16beta4-arm64</a>] | 
+[<a href="https://elseif.lanzouj.com/b00crdq4ji" target="_blank">6.49.15</a>] | 
+[<a href="https://elseif.lanzouj.com/b00crdq4kj" target="_blank">6.49.13</a>] 
+</p>
 
-### Download [Latest Patched](https://github.com/elseif/MikroTikPatch/releases/latest) iso file,install it and enjoy.
-### CHR image is both support BIOS and UEFI boot mode.
-### Support online upgrade.
 
 ![](image/install.png)
 ![](image/routeros.png)
 
-### license RouterOS for x86.
+### x86模式授权许可
 ![](image/x86.png)
-### Renew license for x86 v6.x
+### x86模式在线授权(v6.x)
 ![](image/renew_v6.png)
-### Renew license for chr
+### Chr模式在线授权
 ![](image/renew.png)
-### license RouterOS for chr
+### Chr模式授权许可
 ![](image/chr.png)
 
-## How to use shell
-    install option-{version}.npk package
-    run telnet to routeros with username devel and password is same as admin
-## How to license RouterOS
-    telnet to routeros with username devel and password is same as admin
-    run keygen
-    chr mode could use renew lincense online
-## How to use python3
-    install python3-{version}.npk package
-    run telnet to routeros with username devel and password is same as admin
-    run python -V
+## 如何使用Shell
+    安装 option-{version}.npk 包
+    telnet到RouterOS,用户名devel,密码与admin的密码相同
+## 如何授权许可
+    进入shell
+    运行 keygen
+    参考上图。
+    Chr镜像支持在线授权许可
+## 如何使用Python
+    安装 python3-{version}.npk 包
+    telnet到RouterOS,用户名devel,密码与admin的密码相同
+    运行 python -V
 ### npk.py
-    Sign，Verify，Create, Extract npk file.
+    对npk文件进行解包，修改，创建，签名和验证
 ### patch.py
-    Patch public key and sign NPK files
+    替换公钥并签名
 
-## all patches are applied automatically with [Github Action](https://github.com/elseif/MikroTikPatch/blob/main/.github/workflows/).
 
+## 所有的修补操作都自动运行在[Github Action](https://github.com/elseif/MikroTikPatch/blob/main/.github/workflows/)。
 
 
 
