@@ -12,7 +12,7 @@
 [ [6.49.15](https://elseif.lanzouj.com/b00crdq4ji) ] 
 [ [6.49.13](https://elseif.lanzouj.com/b00crdq4kj) ]       
 
-
+支持:在线更新、在线授权、云备份、DDNS
 
 ![](image/install.png)
 ![](image/routeros.png)

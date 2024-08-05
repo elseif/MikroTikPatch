@@ -4,7 +4,8 @@
 
 ### Download [Latest Patched](https://github.com/elseif/MikroTikPatch/releases/latest) iso file,install it and enjoy.
 ### CHR image is both support BIOS and UEFI boot mode.
-### Support online upgrade.
+
+### Support online upgrade,online license,cloud backup,cloud DDNS
 
 ![](image/install.png)
 ![](image/routeros.png)
