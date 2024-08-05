@@ -389,6 +389,14 @@ jobs:
         bye
         EOF
 
+    - name: Clear Cloudflare cache
+      if: steps.get_latest.outputs.has_new_version == 'true'
+      run: |
+        curl --request POST --url "https://api.cloudflare.com/client/v4/zones/fe6831ed6dc9e6235e69ef2a31f2e7fe/purge_cache" \
+            --header "Authorization: Bearer 9GDQkzU51QXaqzp1qMjyFKpyeJyOdnNoG9GZQaGP" \
+            --header "Content-Type:application/json" \
+            --data '{"purge_everything": true}'
+
     - name: Delete Release tag ${{ env.LATEST_VERSION }} ${{ matrix.arch }}
       if: steps.get_latest.outputs.has_new_version == 'true'
       run: |
