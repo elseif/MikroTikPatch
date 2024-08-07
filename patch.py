@@ -106,7 +106,8 @@ def find_7zXZ_data(data:bytes):
 
 def patch_elf(data: bytes,key_dict:dict):
     initrd_xz = find_7zXZ_data(data)
-    return patch_initrd_xz(initrd_xz,key_dict)
+    new_initrd_xz =  patch_initrd_xz(initrd_xz,key_dict)
+    return data.replace(initrd_xz,new_initrd_xz)
 
 def patch_pe(data: bytes,key_dict:dict):
     vmlinux_xz = find_7zXZ_data(data)
