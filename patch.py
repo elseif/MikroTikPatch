@@ -87,6 +87,9 @@ def patch_initrd_xz(initrd_xz:bytes,key_dict:dict,ljust=True):
     new_initrd_xz = lzma.compress(new_initrd,check=lzma.CHECK_CRC32,filters=[{"id": lzma.FILTER_LZMA2, "preset": 9,}] )
     if ljust:
         assert len(new_initrd_xz) <= len(initrd_xz),'new initrd xz size is too big'
+        print(f'new initrd xz size:{len(new_initrd_xz)}')
+        print(f'old initrd xz size:{len(initrd_xz)}')
+        print(f'ljust size:{len(initrd_xz)-len(new_initrd_xz)}')
         new_initrd_xz = new_initrd_xz.ljust(len(initrd_xz),b'\0')
     return new_initrd_xz
 
@@ -102,6 +105,7 @@ def find_7zXZ_data(data:bytes):
     while b'\x00\x00\x00\x00\x01\x59\x5A' in _data:
         offset2 = offset2 + _data.index(b'\x00\x00\x00\x00\x01\x59\x5A') + 7
         _data = _data[offset2:]
+    print(f'found 7zXZ data offset:{offset1} size:{offset2-offset1}')
     return data[offset1:offset2] 
 
 def patch_elf(data: bytes,key_dict:dict):
@@ -119,6 +123,9 @@ def patch_pe(data: bytes,key_dict:dict):
     new_vmlinux = vmlinux.replace(initrd_xz,new_initrd_xz)
     new_vmlinux_xz = lzma.compress(new_vmlinux,check=lzma.CHECK_CRC32,filters=[{"id": lzma.FILTER_LZMA2, "preset": 9,}] )
     assert len(new_vmlinux_xz) <= len(vmlinux_xz),'new vmlinux xz size is too big'
+    print(f'new vmlinux xz size:{len(new_vmlinux_xz)}')
+    print(f'old vmlinux xz size:{len(vmlinux_xz)}')
+    print(f'ljust size:{len(vmlinux_xz)-len(new_vmlinux_xz)}')
     new_vmlinux_xz = new_vmlinux_xz.ljust(len(vmlinux_xz),b'\0')
     new_data = data.replace(vmlinux_xz,new_vmlinux_xz)
     return new_data
@@ -150,19 +157,20 @@ def patch_netinstall(key_dict: dict,input_file,output_file=None):
                             rva = sub_resource.directory.entries[0].data.struct.OffsetToData
                             size = sub_resource.directory.entries[0].data.struct.Size
                             data = pe.get_data(rva,size)
-                            assert len(data) -4 >= struct.unpack_from('<I',data)[0] ,f'bootloader data size mismathch'
-                            data = data[4:]
+                            _size = struct.unpack('<I',data[:4])[0]
+                            _data = data[4:4+_size]
                             try:
-                                if data[:2] == b'MZ':
-                                    new_data = patch_pe(data,key_dict)
-                                elif data[:4] == b'\x7FELF':
-                                    new_data = patch_elf(data,key_dict)
+                                if _data[:2] == b'MZ':
+                                    new_data = patch_pe(_data,key_dict)
+                                elif _data[:4] == b'\x7FELF':
+                                    new_data = patch_elf(_data,key_dict)
                                 else:
-                                    raise Exception(f'unknown bootloader format {data[:4].hex().upper()}')
+                                    raise Exception(f'unknown bootloader format {_data[:4].hex().upper()}')
                             except Exception as e:
                                 print(f'patch {bootloader["arch"]}({sub_resource.id}) bootloader failed {e}')
-                                new_data = data
-                            new_data = struct.pack("<I",len(new_data)) + new_data.ljust(len(data),b'\0')
+                                new_data = _data
+                            new_data = struct.pack("<I",_size) + new_data.ljust(len(_data),b'\0')
+                            new_data = new_data.ljust(size,b'\0')
                             pe.set_bytes_at_rva(rva,new_data)
             pe.write(output_file or input_file)
     elif netinstall[:4] == b'\x7FELF':
