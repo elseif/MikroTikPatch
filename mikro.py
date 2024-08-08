@@ -4,8 +4,7 @@ from sha256 import SHA256
 from toyecc import AffineCurvePoint, getcurvebyname, FieldElement,ECPrivateKey,ECPublicKey,Tools
 from toyecc.Random import secure_rand_int_between
 
-MIKRO_LICENSE_HEADER = '-----BEGIN MIKROTIK SOFTWARE KEY------------'
-MIKRO_LICENSE_FOOTER = '-----END MIKROTIK SOFTWARE KEY--------------' 
+
 MIKRO_BASE64_CHARACTER_TABLE = b'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
 SOFTWARE_ID_CHARACTER_TABLE = b'TN0BYX18S5HZ4IA67DGF3LPCJQRUK9MW2VE'
 
