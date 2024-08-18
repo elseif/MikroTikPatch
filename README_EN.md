@@ -19,6 +19,9 @@
 ### license RouterOS for chr
 ![](image/chr.png)
 
+![](image/arm.png)
+![](image/mips.png)
+
 ## How to use shell
     install option-{version}.npk package
     run telnet to routeros with username devel and password is same as admin
