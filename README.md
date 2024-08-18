@@ -22,6 +22,9 @@
 ### Chr模式授权许可
 ![](image/chr.png)
 
+![](image/arm.png)
+![](image/mips.png)
+
 ## 如何使用Shell
     安装 option-{version}.npk 包
     telnet到RouterOS,用户名devel,密码与admin的密码相同
