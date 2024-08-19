@@ -138,6 +138,7 @@ jobs:
       if: steps.get_latest.outputs.has_new_version == 'true'
       run: |
         sudo modprobe nbd
+        sudo apt-get update
         sudo apt-get install -y qemu-utils extlinux > /dev/null
         truncate --size 64M install-image-$LATEST_VERSION.img
         sudo qemu-nbd -c /dev/nbd0 -f raw install-image-$LATEST_VERSION.img
