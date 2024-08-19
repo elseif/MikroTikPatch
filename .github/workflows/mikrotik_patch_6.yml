@@ -191,6 +191,7 @@ jobs:
         sudo cp ./all_packages/dude-$LATEST_VERSION.npk ./chr/var/pdb/dude/image
         sudo -E python3 patch.py npk ./chr/var/pdb/routeros-x86/image
         sudo cp ./chr/var/pdb/routeros-x86/image ./all_packages/routeros-x86-$LATEST_VERSION.npk 
+        sudo cp ./all_packages/routeros-x86-$LATEST_VERSION.npk routeros-x86-$LATEST_VERSION.npk
         sudo umount ./chr
         sudo qemu-nbd -d /dev/nbd0
         sudo rm -rf ./chr
@@ -267,5 +268,5 @@ jobs:
           mikrotik-${{ env.LATEST_VERSION }}.iso
           chr-${{ env.LATEST_VERSION }}*.zip
           install-image-${{ env.LATEST_VERSION }}.zip
-          system-${{ env.LATEST_VERSION }}.npk
+          routeros-x86-${{ env.LATEST_VERSION }}.npk
           all_packages-x86-${{ env.LATEST_VERSION }}.zip
