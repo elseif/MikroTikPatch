@@ -30,7 +30,7 @@ env:
 
 jobs:
   Set_BuildTime:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     outputs:
       BUILD_TIME: ${{ steps.set_buildtime.outputs.BUILD_TIME }}
     steps:
