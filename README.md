@@ -1,5 +1,6 @@
 # MikroTik RouterOS Patch  [[English](README_EN.md)]
 
+### [[Discord](https://discord.gg/keV6MWQFtX)] [[Telegram](https://t.me/+99Mw06p3K7NlMmNl)]
 
 ### 国内镜像下载 密码: elseif
 [ [123pan](https://www.123pan.com/s/IpxgTd-BYjQh.html) ]
