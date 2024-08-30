@@ -1,6 +1,6 @@
 # MikroTik RouterOS Patch [[中文](README.md)]
 
-### [[Discord](https://discord.gg/keV6MWQFtX)] [[Telegram](https://t.me/+99Mw06p3K7NlMmNl)] [[Keygen(tg)](https://t.me/ROS_Keygen_Bot)]
+### [[Discord](https://discord.gg/keV6MWQFtX)] [[Telegram](https://t.me/mikrotikpatch)] [[Keygen(Telegram Bot)](https://t.me/ROS_Keygen_Bot)]
 
 ### Download [Latest Patched](https://github.com/elseif/MikroTikPatch/releases/latest) iso file,install it and enjoy.
 ### CHR image is both support BIOS and UEFI boot mode.
