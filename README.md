@@ -1,6 +1,6 @@
 # MikroTik RouterOS Patch  [[English](README_EN.md)]
 
-### [[Discord](https://discord.gg/keV6MWQFtX)] [[Telegram](https://t.me/+99Mw06p3K7NlMmNl)] [[Keygen(tg)](https://t.me/ROS_Keygen_Bot)]
+### [[Discord](https://discord.gg/keV6MWQFtX)] [[Telegram](https://t.me/mikrotikpatch)] [[Keygen(Telegram Bot)](https://t.me/ROS_Keygen_Bot)]
 
 ### 国内镜像下载 密码: elseif
 [ [123pan](https://www.123pan.com/s/IpxgTd-BYjQh.html) ]
