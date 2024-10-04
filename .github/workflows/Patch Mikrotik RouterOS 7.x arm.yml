@@ -1,0 +1,191 @@
+name: Patch Mikrotik RouterOS 7.x arm
+on:
+  # push:
+  #   branches: [ "main" ]
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  CUSTOM_LICENSE_PRIVATE_KEY: ${{ secrets.CUSTOM_LICENSE_PRIVATE_KEY }}
+  CUSTOM_LICENSE_PUBLIC_KEY: ${{ secrets.CUSTOM_LICENSE_PUBLIC_KEY }}
+  CUSTOM_NPK_SIGN_PRIVATE_KEY: ${{ secrets.CUSTOM_NPK_SIGN_PRIVATE_KEY }}
+  CUSTOM_NPK_SIGN_PUBLIC_KEY: ${{ secrets.CUSTOM_NPK_SIGN_PUBLIC_KEY }}
+  CUSTOM_CLOUD_PUBLIC_KEY: ${{ secrets.CUSTOM_CLOUD_PUBLIC_KEY }}
+  MIKRO_LICENSE_PUBLIC_KEY: ${{ secrets.MIKRO_LICENSE_PUBLIC_KEY }}
+  MIKRO_NPK_SIGN_PUBLIC_LKEY: ${{ secrets.MIKRO_NPK_SIGN_PUBLIC_LKEY }}
+  MIKRO_CLOUD_PUBLIC_KEY: ${{ secrets.MIKRO_CLOUD_PUBLIC_KEY }}
+  MIKRO_LICENCE_URL: ${{ secrets.MIKRO_LICENCE_URL }}
+  CUSTOM_LICENCE_URL: ${{ secrets.CUSTOM_LICENCE_URL }}
+  MIKRO_UPGRADE_URL: ${{ secrets.MIKRO_UPGRADE_URL }}
+  CUSTOM_UPGRADE_URL: ${{ secrets.CUSTOM_UPGRADE_URL }}
+  MIKRO_RENEW_URL: ${{ secrets.MIKRO_RENEW_URL }}
+  CUSTOM_RENEW_URL: ${{ secrets.CUSTOM_RENEW_URL }}
+  MIKRO_CLOUD_URL: ${{ secrets.MIKRO_CLOUD_URL }}
+  CUSTOM_CLOUD_URL: ${{ secrets.CUSTOM_CLOUD_URL }}
+
+jobs:
+  Create_SquashFS:
+    runs-on: ubuntu-latest
+    env:
+      TZ: 'Asia/Shanghai'
+    steps:
+      - name: Create squashfs for option npk        
+        run: |
+          cd $GITHUB_WORKSPACE
+          sudo wget -O busybox -nv https://busybox.net/downloads/binaries/1.21.1/busybox-armv7l
+          sudo chmod +x busybox
+          sudo mkdir -p ./option-root/bin/
+          sudo mv busybox ./option-root/bin/
+          sudo cp ./option-root/bin/busybox ./option-root/bin/bash
+          sudo mksquashfs option-root option.sfs -quiet -comp xz -no-xattrs -b 256k
+          sudo rm -rf option-root
+       
+      - name: Create squashfs for python3 npk        
+        run: |
+          sudo wget -O cpython-3.11.9.tar.gz -nv https://github.com/indygreg/python-build-standalone/releases/download/20240415/cpython-3.11.9+20240415-x86_64-unknown-linux-musl-install_only.tar.gz
+          sudo tar -xf cpython-3.11.9.tar.gz
+          sudo rm -f cpython-3.11.9.tar.gz
+          sudo rm -rf ./python/include
+          sudo rm -rf ./python/share
+          sudo mksquashfs python python3.sfs -quiet -comp xz -no-xattrs -b 256k
+          sudo rm -rf python
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          retention-days: 1
+          name: squashfs
+          path: ./*.sfs
+
+  Patch_Latest_RouterOS:
+    runs-on: ubuntu-latest
+    needs: Create_SquashFS
+    strategy:
+      matrix:
+        channel: [stable]
+    env:
+      TZ: 'Asia/Shanghai'
+      LATEST_VERSION_URL: 'https://upgrade.mikrotik.com/routeros/NEWESTa7.'
+      LATEST_VERSION: ""
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+        
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11' 
+
+    - name: Download Artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: squashfs
+
+    - name: Get latest routeros version  
+      run: |
+        echo $(uname -a)
+        if [ "${{ inputs.version }}" == "" ]; then
+          # LATEST_VERSION=$(wget -nv -O - ${{ env.LATEST_VERSION_URL }}${{ matrix.channel }} | cut -d ' ' -f1)
+          LATEST_VERSION=7.16
+        else
+          LATEST_VERSION=${{ inputs.version }}
+        fi
+        echo Latest Version:$LATEST_VERSION
+        echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_ENV
+
+    - name: Get netinstall-${{ env.LATEST_VERSION }}.zip
+      run: |
+        sudo wget -nv -O netinstall-$LATEST_VERSION.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/netinstall-$LATEST_VERSION.zip
+        sudo unzip netinstall-$LATEST_VERSION.zip
+        sudo rm netinstall-$LATEST_VERSION.zip
+
+    - name: Patch netinstall.exe
+      run: |
+        sudo -E python3 patch.py netinstall netinstall.exe
+        sudo zip netinstall-$LATEST_VERSION.zip ./netinstall.exe
+
+    - name: Get and Patch routeros-${{ env.LATEST_VERSION }}-arm.npk
+      run: |
+        sudo wget -nv -O routeros-$LATEST_VERSION-arm.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/routeros-$LATEST_VERSION-arm.npk
+        sudo wget -nv -O routeros-$LATEST_VERSION-mmips.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/routeros-$LATEST_VERSION-mmips.npk
+        sudo wget -nv -O calea-$LATEST_VERSION-arm.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/calea-$LATEST_VERSION-arm.npk
+        sudo wget -nv -O container-$LATEST_VERSION-arm.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/container-$LATEST_VERSION-arm.npk
+        sudo wget -nv -O gps-$LATEST_VERSION-arm.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/gps-$LATEST_VERSION-arm.npk
+        sudo wget -nv -O dude-$LATEST_VERSION-arm.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/dude-$LATEST_VERSION-arm.npk
+        sudo wget -nv -O iot-$LATEST_VERSION-arm.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/iot-$LATEST_VERSION-arm.npk
+        sudo wget -nv -O lora-$LATEST_VERSION-arm.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/lora-$LATEST_VERSION-arm.npk
+        sudo wget -nv -O rose-storage-$LATEST_VERSION-arm.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/rose-storage-$LATEST_VERSION-arm.npk
+        sudo wget -nv -O tr069-client-$LATEST_VERSION-arm.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/tr069-client-$LATEST_VERSION-arm.npk
+        sudo wget -nv -O ups-$LATEST_VERSION-arm.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/ups-$LATEST_VERSION-arm.npk
+        sudo wget -nv -O user-manager-$LATEST_VERSION-arm.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/user-manager-$LATEST_VERSION-arm.npk
+        sudo wget -nv -O wifi-qcom-$LATEST_VERSION-arm.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/wifi-qcom-$LATEST_VERSION-arm.npk
+        sudo wget -nv -O wifi-qcom-ac-$LATEST_VERSION-arm.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/wifi-qcom-ac-$LATEST_VERSION-arm.npk
+        sudo wget -nv -O wireless-$LATEST_VERSION-arm.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/wireless-$LATEST_VERSION-arm.npk
+        sudo wget -nv -O zerotier-$LATEST_VERSION-arm.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/zerotier-$LATEST_VERSION-arm.npk
+        sudo -E python3 patch.py npk routeros-$LATEST_VERSION-arm.npk
+        sudo -E python3 npk.py sign routeros-$LATEST_VERSION-arm.npk routeros-$LATEST_VERSION-arm.npk
+        sudo -E python3 patch.py npk routeros-$LATEST_VERSION-mmips.npk
+        sudo -E python3 npk.py sign routeros-$LATEST_VERSION-mmips.npk routeros-$LATEST_VERSION-mmips.npk
+        sudo -E python3 patch.py npk calea-$LATEST_VERSION-arm.npk
+        sudo -E python3 npk.py sign calea-$LATEST_VERSION-arm.npk calea-$LATEST_VERSION-arm.npk
+        sudo -E python3 patch.py npk container-$LATEST_VERSION-arm.npk
+        sudo -E python3 npk.py sign container-$LATEST_VERSION-arm.npk container-$LATEST_VERSION-arm.npk
+        sudo -E python3 patch.py npk gps-$LATEST_VERSION-arm.npk
+        sudo -E python3 npk.py sign gps-$LATEST_VERSION-arm.npk gps-$LATEST_VERSION-arm.npk
+        sudo -E python3 patch.py npk dude-$LATEST_VERSION-arm.npk
+        sudo -E python3 npk.py sign dude-$LATEST_VERSION-arm.npk dude-$LATEST_VERSION-arm.npk
+        sudo -E python3 patch.py npk iot-$LATEST_VERSION-arm.npk
+        sudo -E python3 npk.py sign iot-$LATEST_VERSION-arm.npk iot-$LATEST_VERSION-arm.npk
+        sudo -E python3 patch.py npk lora-$LATEST_VERSION-arm.npk
+        sudo -E python3 npk.py sign lora-$LATEST_VERSION-arm.npk lora-$LATEST_VERSION-arm.npk
+        sudo -E python3 patch.py npk rose-storage-$LATEST_VERSION-arm.npk
+        sudo -E python3 npk.py sign rose-storage-$LATEST_VERSION-arm.npk rose-storage-$LATEST_VERSION-arm.npk
+        sudo -E python3 patch.py npk tr069-client-$LATEST_VERSION-arm.npk
+        sudo -E python3 npk.py sign tr069-client-$LATEST_VERSION-arm.npk tr069-client-$LATEST_VERSION-arm.npk
+        sudo -E python3 patch.py npk ups-$LATEST_VERSION-arm.npk
+        sudo -E python3 npk.py sign ups-$LATEST_VERSION-arm.npk ups-$LATEST_VERSION-arm.npk
+        sudo -E python3 patch.py npk user-manager-$LATEST_VERSION-arm.npk
+        sudo -E python3 npk.py sign user-manager-$LATEST_VERSION-arm.npk user-manager-$LATEST_VERSION-arm.npk
+        sudo -E python3 patch.py npk wifi-qcom-$LATEST_VERSION-arm.npk
+        sudo -E python3 npk.py sign wifi-qcom-$LATEST_VERSION-arm.npk wifi-qcom-$LATEST_VERSION-arm.npk
+        sudo -E python3 patch.py npk wifi-qcom-ac-$LATEST_VERSION-arm.npk
+        sudo -E python3 npk.py sign wifi-qcom-ac-$LATEST_VERSION-arm.npk wifi-qcom-ac-$LATEST_VERSION-arm.npk
+        sudo -E python3 patch.py npk wireless-$LATEST_VERSION-arm.npk
+        sudo -E python3 npk.py sign wireless-$LATEST_VERSION-arm.npk wireless-$LATEST_VERSION-arm.npk
+        sudo -E python3 patch.py npk zerotier-$LATEST_VERSION-arm.npk
+        sudo -E python3 npk.py sign zerotier-$LATEST_VERSION-arm.npk zerotier-$LATEST_VERSION-arm.npk
+        sudo -E python3 npk.py create gps-$LATEST_VERSION-arm.npk ./option-$LATEST_VERSION.npk option ./option.sfs -desc="busybox and ash"
+        sudo -E python3 npk.py create gps-$LATEST_VERSION-arm.npk ./python3-$LATEST_VERSION.npk python3 ./python3.sfs -desc="python 3.11.9"
+
+    - name: Create Release tag ${{ env.LATEST_VERSION }}
+      uses: softprops/action-gh-release@v2
+      with:
+        name: "MikroTik ${{ env.LATEST_VERSION }}"
+        body: "MikroTik ${{ env.LATEST_VERSION }}"
+        tag_name: ${{ env.LATEST_VERSION }}
+        make_latest:  ${{ matrix.channel == 'stable' }}
+        prerelease:  ${{ matrix.channel == 'testing' }}
+        files: |
+          routeros-${{ env.LATEST_VERSION }}-arm.npk
+          routeros-${{ env.LATEST_VERSION }}-mmips.npk
+          option-${{ env.LATEST_VERSION }}.npk
+          calea-${{ env.LATEST_VERSION }}-arm.npk
+          container-${{ env.LATEST_VERSION }}-arm.npk
+          gps-${{ env.LATEST_VERSION }}-arm.npk
+          dude-${{ env.LATEST_VERSION }}-arm.npk
+          iot-${{ env.LATEST_VERSION }}-arm.npk
+          lora-${{ env.LATEST_VERSION }}-arm.npk
+          rose-storage-${{ env.LATEST_VERSION }}-arm.npk
+          tr069-client-${{ env.LATEST_VERSION }}-arm.npk
+          ups-${{ env.LATEST_VERSION }}-arm.npk
+          user-manager-${{ env.LATEST_VERSION }}-arm.npk
+          wifi-qcom-${{ env.LATEST_VERSION }}-arm.npk
+          wifi-qcom-ac-${{ env.LATEST_VERSION }}-arm.npk
+          wireless-${{ env.LATEST_VERSION }}-arm.npk
+          zerotier-${{ env.LATEST_VERSION }}-arm.npk
+          python3-${{ env.LATEST_VERSION }}-arm.npk
+          netinstall-${{ env.LATEST_VERSION }}.zip
