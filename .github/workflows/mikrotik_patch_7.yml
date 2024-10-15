@@ -42,7 +42,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        arch: [arm64]
+        arch: [x86,arm64]
         channel: [stable]
     env:
       TZ: 'Asia/Shanghai'
