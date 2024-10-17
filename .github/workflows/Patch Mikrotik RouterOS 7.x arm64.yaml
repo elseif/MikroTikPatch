@@ -126,8 +126,6 @@ jobs:
         sudo wget -nv -O zerotier-$LATEST_VERSION-arm64.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/zerotier-$LATEST_VERSION-arm64.npk
         sudo -E python3 patch.py npk routeros-$LATEST_VERSION-arm64.npk
         sudo -E python3 npk.py sign routeros-$LATEST_VERSION-arm64.npk routeros-$LATEST_VERSION-arm64.npk
-        sudo -E python3 patch.py npk routeros-$LATEST_VERSION-mmips.npk
-        sudo -E python3 npk.py sign routeros-$LATEST_VERSION-mmips.npk routeros-$LATEST_VERSION-mmips.npk
         sudo -E python3 patch.py npk calea-$LATEST_VERSION-arm64.npk
         sudo -E python3 npk.py sign calea-$LATEST_VERSION-arm64.npk calea-$LATEST_VERSION-arm64.npk
         sudo -E python3 patch.py npk container-$LATEST_VERSION-arm64.npk
