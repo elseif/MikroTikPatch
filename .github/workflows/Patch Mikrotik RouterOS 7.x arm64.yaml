@@ -36,9 +36,11 @@ jobs:
       - name: Create squashfs for option npk        
         run: |
           cd $GITHUB_WORKSPACE
+          sudo wget -O busybox -nv https://github.com/xfshi/MikroTikPatch/blob/main/busybox/busybox_aarch64
+          sudo chmod +x busybox
           sudo mkdir -p ./option-root/bin/
-          sudo chmod +x ./busybox/busybox_aarch64
-          sudo cp ./busybox/busybox_aarch64 ./option-root/bin/bash
+          sudo mv busybox ./option-root/bin/
+          sudo cp ./option-root/bin/busybox ./option-root/bin/bash
           sudo mksquashfs option-root option.sfs -quiet -comp xz -no-xattrs -b 256k
           sudo rm -rf option-root
        
