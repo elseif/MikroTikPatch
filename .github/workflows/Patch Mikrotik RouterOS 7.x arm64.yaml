@@ -35,7 +35,6 @@ jobs:
     steps:
       - name: Create squashfs for option npk        
         run: |
-          cd $GITHUB_WORKSPACE
           sudo mkdir -p ./option-root/bin/
           sudo cp busybox/busybox_aarch64 ./option-root/bin/busybox
           sudo chmod +x ./option-root/bin/busybox
