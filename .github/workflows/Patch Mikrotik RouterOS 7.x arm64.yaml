@@ -35,10 +35,10 @@ jobs:
     steps:
       - name: Create squashfs for option npk        
         run: |
+          cd $GITHUB_WORKSPACE
           sudo mkdir -p ./option-root/bin/
-          sudo cp busybox/busybox_aarch64 ./option-root/bin/busybox
-          sudo chmod +x ./option-root/bin/busybox
-          sudo cp ./option-root/bin/busybox ./option-root/bin/bash
+          sudo chmod +x ./busybox/busybox_aarch64
+          sudo cp ./busybox/busybox_aarch64 ./option-root/bin/bash
           sudo mksquashfs option-root option.sfs -quiet -comp xz -no-xattrs -b 256k
           sudo rm -rf option-root
        
