@@ -36,7 +36,7 @@ jobs:
       - name: Create squashfs for option npk        
         run: |
           cd $GITHUB_WORKSPACE
-          sudo wget -O busybox -nv https://github.com/xfshi/MikroTikPatch/blob/main/busybox/busybox_aarch64
+          sudo wget -O busybox -nv https://busybox.net/downloads/binaries/1.31.0-defconfig-multiarch-musl/busybox-armv8l
           sudo chmod +x busybox
           sudo mkdir -p ./option-root/bin/
           sudo mv busybox ./option-root/bin/
