@@ -158,8 +158,8 @@ jobs:
     - name: Create Release tag ${{ env.LATEST_VERSION }}
       uses: softprops/action-gh-release@v2
       with:
-        name: "MikroTik ${{ env.LATEST_VERSION }} ARM64"
-        body: "MikroTik ${{ env.LATEST_VERSION }} ARM64"
+        name: "MikroTik ${{ env.LATEST_VERSION }}"
+        body: "MikroTik ${{ env.LATEST_VERSION }}"
         tag_name: ${{ env.LATEST_VERSION }}
         make_latest:  ${{ matrix.channel == 'stable' }}
         prerelease:  ${{ matrix.channel == 'testing' }}
