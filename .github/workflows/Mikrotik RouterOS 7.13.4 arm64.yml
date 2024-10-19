@@ -121,8 +121,8 @@ jobs:
         sudo wget -nv -O tr069-client-$LATEST_VERSION-arm64.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/tr069-client-$LATEST_VERSION-arm64.npk
         sudo wget -nv -O ups-$LATEST_VERSION-arm64.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/ups-$LATEST_VERSION-arm64.npk
         sudo wget -nv -O user-manager-$LATEST_VERSION-arm64.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/user-manager-$LATEST_VERSION-arm64.npk
-        sudo wget -nv -O wifi-qcom-$LATEST_VERSION-arm.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/wifi-qcom-$LATEST_VERSION-arm.npk
-        sudo wget -nv -O wireless-$LATEST_VERSION-arm.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/wireless-$LATEST_VERSION-arm.npk
+        sudo wget -nv -O wifi-qcom-$LATEST_VERSION-arm64.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/wifi-qcom-$LATEST_VERSION-arm64.npk
+        sudo wget -nv -O wireless-$LATEST_VERSION-arm64.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/wireless-$LATEST_VERSION-arm64.npk
         sudo wget -nv -O zerotier-$LATEST_VERSION-arm64.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/zerotier-$LATEST_VERSION-arm64.npk
         sudo -E python3 patch.py npk routeros-$LATEST_VERSION-arm64.npk
         sudo -E python3 npk.py sign routeros-$LATEST_VERSION-arm64.npk routeros-$LATEST_VERSION-arm64.npk
@@ -146,10 +146,10 @@ jobs:
         sudo -E python3 npk.py sign ups-$LATEST_VERSION-arm64.npk ups-$LATEST_VERSION-arm64.npk
         sudo -E python3 patch.py npk user-manager-$LATEST_VERSION-arm64.npk
         sudo -E python3 npk.py sign user-manager-$LATEST_VERSION-arm64.npk user-manager-$LATEST_VERSION-arm64.npk
-        sudo -E python3 patch.py npk wifi-qcom-$LATEST_VERSION-arm.npk
-        sudo -E python3 npk.py sign wifi-qcom-$LATEST_VERSION-arm.npk wifi-qcom-$LATEST_VERSION-arm.npk
-        sudo -E python3 patch.py npk wireless-$LATEST_VERSION-arm.npk
-        sudo -E python3 npk.py sign wireless-$LATEST_VERSION-arm.npk wireless-$LATEST_VERSION-arm.npk
+        sudo -E python3 patch.py npk wifi-qcom-$LATEST_VERSION-arm64.npk
+        sudo -E python3 npk.py sign wifi-qcom-$LATEST_VERSION-arm64.npk wifi-qcom-$LATEST_VERSION-arm64.npk
+        sudo -E python3 patch.py npk wireless-$LATEST_VERSION-arm64.npk
+        sudo -E python3 npk.py sign wireless-$LATEST_VERSION-arm64.npk wireless-$LATEST_VERSION-arm64.npk
         sudo -E python3 patch.py npk zerotier-$LATEST_VERSION-arm64.npk
         sudo -E python3 npk.py sign zerotier-$LATEST_VERSION-arm64.npk zerotier-$LATEST_VERSION-arm64.npk
         sudo -E python3 npk.py create gps-$LATEST_VERSION-arm64.npk ./option-$LATEST_VERSION.npk option ./option.sfs -desc="busybox and ash"
@@ -176,8 +176,8 @@ jobs:
           tr069-client-${{ env.LATEST_VERSION }}-arm64.npk
           ups-${{ env.LATEST_VERSION }}-arm64.npk
           user-manager-${{ env.LATEST_VERSION }}-arm64.npk
-          wifi-qcom-${{ env.LATEST_VERSION }}-arm.npk
-          wireless-${{ env.LATEST_VERSION }}-arm.npk
+          wifi-qcom-${{ env.LATEST_VERSION }}-arm64.npk
+          wireless-${{ env.LATEST_VERSION }}-arm64.npk
           zerotier-${{ env.LATEST_VERSION }}-arm64.npk
           python3-${{ env.LATEST_VERSION }}-arm64.npk
           netinstall-${{ env.LATEST_VERSION }}.zip
