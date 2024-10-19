@@ -1,4 +1,4 @@
-name: Patch Mikrotik RouterOS 7.x arm64
+name: Patch Mikrotik RouterOS 7.13.4 arm64
 on:
   # push:
   #   branches: [ "main" ]
