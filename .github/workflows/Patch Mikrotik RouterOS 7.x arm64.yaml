@@ -173,9 +173,7 @@ jobs:
           tr069-client-${{ env.LATEST_VERSION }}-arm64.npk
           ups-${{ env.LATEST_VERSION }}-arm64.npk
           user-manager-${{ env.LATEST_VERSION }}-arm64.npk
-          wifi-qcom-${{ env.LATEST_VERSION }}-arm64.npk
-          wifi-qcom-ac-${{ env.LATEST_VERSION }}-arm64.npk
-          wireless-${{ env.LATEST_VERSION }}-arm64.npk
+          wifiwave2-${{ env.LATEST_VERSION }}-arm64.npk
           zerotier-${{ env.LATEST_VERSION }}-arm64.npk
           python3-${{ env.LATEST_VERSION }}-arm64.npk
           netinstall-${{ env.LATEST_VERSION }}.zip
