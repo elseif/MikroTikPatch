@@ -86,6 +86,7 @@ jobs:
           ARCH='-arm64'
           echo "ARCH=$ARCH" >> $GITHUB_ENV
         fi
+        sudo apt-get update > /dev/null
 
     - name: Cache Squashfs
       if: steps.get_latest.outputs.has_new_version == 'true'
