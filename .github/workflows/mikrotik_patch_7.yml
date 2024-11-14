@@ -121,12 +121,12 @@ jobs:
         sudo mksquashfs option-root option.sfs -quiet -comp xz -no-xattrs -b 256k
         sudo rm -rf option-root
         if [ "${{ matrix.arch }}" == "x86" ]; then
-          sudo wget -O cpython-3.11.9.tar.gz -nv https://github.com/indygreg/python-build-standalone/releases/download/20240713/cpython-3.11.9+20240713-x86_64-unknown-linux-gnu-install_only.tar.gz
+          sudo wget -O cpython.tar.gz -nv https://github.com/indygreg/python-build-standalone/releases/download/20241016/cpython-3.11.10+20241016-x86_64-unknown-linux-musl-install_only_stripped.tar.gz
         elif [ "${{ matrix.arch }}" == "arm64" ]; then
-          sudo wget -O cpython-3.11.9.tar.gz -nv https://github.com/indygreg/python-build-standalone/releases/download/20240713/cpython-3.11.9+20240713-aarch64-unknown-linux-gnu-install_only.tar.gz
+          sudo wget -O cpython.tar.gz -nv https://github.com/indygreg/python-build-standalone/releases/download/20241016/cpython-3.11.10+20241016-aarch64-unknown-linux-gnu-install_only_stripped.tar.gz
         fi
-        sudo tar -xf cpython-3.11.9.tar.gz
-        sudo rm cpython-3.11.9.tar.gz
+        sudo tar -xf cpython.tar.gz
+        sudo rm cpython.tar.gz
         sudo rm -rf ./python/include
         sudo rm -rf ./python/share
         sudo mksquashfs python python3.sfs -quiet -comp xz -no-xattrs -b 256k
