@@ -111,7 +111,7 @@ jobs:
     - name: Get and Patch routeros-${{ env.LATEST_VERSION }}-arm.npk
       run: |
         sudo wget -nv -O routeros-$LATEST_VERSION-arm.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/routeros-$LATEST_VERSION-arm.npk
-        sudo wget -nv -O routeros-$LATEST_VERSION-mmips.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/routeros-$LATEST_VERSION-mmips.npk
+        #sudo wget -nv -O routeros-$LATEST_VERSION-mmips.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/routeros-$LATEST_VERSION-mmips.npk
         sudo wget -nv -O calea-$LATEST_VERSION-arm.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/calea-$LATEST_VERSION-arm.npk
         sudo wget -nv -O container-$LATEST_VERSION-arm.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/container-$LATEST_VERSION-arm.npk
         sudo wget -nv -O gps-$LATEST_VERSION-arm.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/gps-$LATEST_VERSION-arm.npk
@@ -128,8 +128,8 @@ jobs:
         sudo wget -nv -O zerotier-$LATEST_VERSION-arm.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/zerotier-$LATEST_VERSION-arm.npk
         sudo -E python3 patch.py npk routeros-$LATEST_VERSION-arm.npk
         sudo -E python3 npk.py sign routeros-$LATEST_VERSION-arm.npk routeros-$LATEST_VERSION-arm.npk
-        sudo -E python3 patch.py npk routeros-$LATEST_VERSION-mmips.npk
-        sudo -E python3 npk.py sign routeros-$LATEST_VERSION-mmips.npk routeros-$LATEST_VERSION-mmips.npk
+        #sudo -E python3 patch.py npk routeros-$LATEST_VERSION-mmips.npk
+        #sudo -E python3 npk.py sign routeros-$LATEST_VERSION-mmips.npk routeros-$LATEST_VERSION-mmips.npk
         sudo -E python3 patch.py npk calea-$LATEST_VERSION-arm.npk
         sudo -E python3 npk.py sign calea-$LATEST_VERSION-arm.npk calea-$LATEST_VERSION-arm.npk
         sudo -E python3 patch.py npk container-$LATEST_VERSION-arm.npk
@@ -171,7 +171,7 @@ jobs:
         prerelease:  ${{ matrix.channel == 'testing' }}
         files: |
           routeros-${{ env.LATEST_VERSION }}-arm.npk
-          routeros-${{ env.LATEST_VERSION }}-mmips.npk
+          #routeros-${{ env.LATEST_VERSION }}-mmips.npk
           option-${{ env.LATEST_VERSION }}.npk
           calea-${{ env.LATEST_VERSION }}-arm.npk
           container-${{ env.LATEST_VERSION }}-arm.npk
