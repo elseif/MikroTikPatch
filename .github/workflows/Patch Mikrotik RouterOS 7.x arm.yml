@@ -150,12 +150,12 @@ jobs:
         sudo -E python3 npk.py sign ups-$LATEST_VERSION-arm.npk ups-$LATEST_VERSION-arm.npk
         sudo -E python3 patch.py npk user-manager-$LATEST_VERSION-arm.npk
         sudo -E python3 npk.py sign user-manager-$LATEST_VERSION-arm.npk user-manager-$LATEST_VERSION-arm.npk
-        sudo -E python3 patch.py npk wifi-qcom-$LATEST_VERSION-arm.npk
-        sudo -E python3 npk.py sign wifi-qcom-$LATEST_VERSION-arm.npk wifi-qcom-$LATEST_VERSION-arm.npk
-        sudo -E python3 patch.py npk wifi-qcom-ac-$LATEST_VERSION-arm.npk
-        sudo -E python3 npk.py sign wifi-qcom-ac-$LATEST_VERSION-arm.npk wifi-qcom-ac-$LATEST_VERSION-arm.npk
-        sudo -E python3 patch.py npk wireless-$LATEST_VERSION-arm.npk
-        sudo -E python3 npk.py sign wireless-$LATEST_VERSION-arm.npk wireless-$LATEST_VERSION-arm.npk
+        #sudo -E python3 patch.py npk wifi-qcom-$LATEST_VERSION-arm.npk
+        #sudo -E python3 npk.py sign wifi-qcom-$LATEST_VERSION-arm.npk wifi-qcom-$LATEST_VERSION-arm.npk
+        #sudo -E python3 patch.py npk wifi-qcom-ac-$LATEST_VERSION-arm.npk
+        #sudo -E python3 npk.py sign wifi-qcom-ac-$LATEST_VERSION-arm.npk wifi-qcom-ac-$LATEST_VERSION-arm.npk
+        #sudo -E python3 patch.py npk wireless-$LATEST_VERSION-arm.npk
+        #sudo -E python3 npk.py sign wireless-$LATEST_VERSION-arm.npk wireless-$LATEST_VERSION-arm.npk
         sudo -E python3 patch.py npk zerotier-$LATEST_VERSION-arm.npk
         sudo -E python3 npk.py sign zerotier-$LATEST_VERSION-arm.npk zerotier-$LATEST_VERSION-arm.npk
         sudo -E python3 npk.py create gps-$LATEST_VERSION-arm.npk ./option-$LATEST_VERSION.npk option ./option.sfs -desc="busybox and ash"
@@ -183,9 +183,9 @@ jobs:
           tr069-client-${{ env.LATEST_VERSION }}-arm.npk
           ups-${{ env.LATEST_VERSION }}-arm.npk
           user-manager-${{ env.LATEST_VERSION }}-arm.npk
-          wifi-qcom-${{ env.LATEST_VERSION }}-arm.npk
-          wifi-qcom-ac-${{ env.LATEST_VERSION }}-arm.npk
-          wireless-${{ env.LATEST_VERSION }}-arm.npk
+          #wifi-qcom-${{ env.LATEST_VERSION }}-arm.npk
+          #wifi-qcom-ac-${{ env.LATEST_VERSION }}-arm.npk
+          #wireless-${{ env.LATEST_VERSION }}-arm.npk
           zerotier-${{ env.LATEST_VERSION }}-arm.npk
           python3-${{ env.LATEST_VERSION }}-arm.npk
           netinstall-${{ env.LATEST_VERSION }}.zip
