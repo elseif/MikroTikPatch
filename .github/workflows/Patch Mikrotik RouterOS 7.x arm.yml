@@ -90,7 +90,7 @@ jobs:
         echo $(uname -a)
         if [ "${{ inputs.version }}" == "" ]; then
           # LATEST_VERSION=$(wget -nv -O - ${{ env.LATEST_VERSION_URL }}${{ matrix.channel }} | cut -d ' ' -f1)
-          LATEST_VERSION=7.16.1
+          LATEST_VERSION=7.12.2
         else
           LATEST_VERSION=${{ inputs.version }}
         fi
