@@ -1,4 +1,4 @@
-name: Patch Mikrotik RouterOS 7.x arm
+name: Patch Mikrotik RouterOS 7.x arm----
 on:
   # push:
   #   branches: [ "main" ]
@@ -122,9 +122,9 @@ jobs:
         sudo wget -nv -O tr069-client-$LATEST_VERSION-arm.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/tr069-client-$LATEST_VERSION-arm.npk
         sudo wget -nv -O ups-$LATEST_VERSION-arm.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/ups-$LATEST_VERSION-arm.npk
         sudo wget -nv -O user-manager-$LATEST_VERSION-arm.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/user-manager-$LATEST_VERSION-arm.npk
-        sudo wget -nv -O wifi-qcom-$LATEST_VERSION-arm.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/wifi-qcom-$LATEST_VERSION-arm.npk
-        sudo wget -nv -O wifi-qcom-ac-$LATEST_VERSION-arm.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/wifi-qcom-ac-$LATEST_VERSION-arm.npk
-        sudo wget -nv -O wireless-$LATEST_VERSION-arm.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/wireless-$LATEST_VERSION-arm.npk
+        #sudo wget -nv -O wifi-qcom-$LATEST_VERSION-arm.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/wifi-qcom-$LATEST_VERSION-arm.npk
+        #sudo wget -nv -O wifi-qcom-ac-$LATEST_VERSION-arm.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/wifi-qcom-ac-$LATEST_VERSION-arm.npk
+        #sudo wget -nv -O wireless-$LATEST_VERSION-arm.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/wireless-$LATEST_VERSION-arm.npk
         sudo wget -nv -O zerotier-$LATEST_VERSION-arm.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/zerotier-$LATEST_VERSION-arm.npk
         sudo -E python3 patch.py npk routeros-$LATEST_VERSION-arm.npk
         sudo -E python3 npk.py sign routeros-$LATEST_VERSION-arm.npk routeros-$LATEST_VERSION-arm.npk
