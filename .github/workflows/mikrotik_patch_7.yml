@@ -431,6 +431,5 @@ jobs:
           netinstall-${{ env.LATEST_VERSION }}.*
           install-image-${{ env.LATEST_VERSION }}.zip
           routeros-${{ env.LATEST_VERSION }}${{ env.ARCH }}.npk
-          option-${{ env.LATEST_VERSION }}${{ env.ARCH }}.npk
           all_packages-*-${{ env.LATEST_VERSION }}.zip
-          *.EFI
+
