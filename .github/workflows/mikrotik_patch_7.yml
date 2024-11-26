@@ -45,13 +45,13 @@ jobs:
         arch: [x86,arm64]
         channel: [stable, testing]
     env:
-      TZ: 'Asia/Shanghai'
+      TZ: 'America/Caracas'
       LATEST_VERSION: ""
       ARCH: ""
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
         
     - name: Set up Python
       uses: actions/setup-python@v5
