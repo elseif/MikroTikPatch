@@ -65,7 +65,7 @@ jobs:
         LATEST_VERSION=$(wget -nv -O - https://${{ env.MIKRO_UPGRADE_URL }}/routeros/NEWESTa7.${{ matrix.channel }} | cut -d ' ' -f1)
         echo Latest Version:$LATEST_VERSION
         if [ "${{ github.event_name }}" == "schedule" ]; then
-          _LATEST_VERSION=$(wget -nv -O - https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/NEWESTa7.${{ matrix.channel }} | cut -d ' ' -f1)
+          _LATEST_VERSION=$(wget -nv -O - https://${{ env.CUSTOM_UPGRADE_URL }}/${{ env.SSH_DIRECTORY }}/NEWESTa7.${{ matrix.channel }} | cut -d ' ' -f1)
           if [ "$_LATEST_VERSION" == "$LATEST_VERSION" ]; then
             echo "No new version found"
             echo "has_new_version=false" >> $GITHUB_OUTPUT
@@ -383,12 +383,12 @@ jobs:
         echo $LATEST_VERSION $BUILD_TIME | sudo tee ./publish/NEWESTa7.${{ matrix.channel }}
         sudo cp CHANGELOG ./publish/$LATEST_VERSION/
         sudo cp ./all_packages/*.npk ./publish/$LATEST_VERSION/
-        sudo chown -R root:root ./publish/
+        #sudo chown -R root:root ./publish/
         sudo apt-get install -y lftp > /dev/null 2>&1
-        sudo -E lftp -u ${{ secrets.SSH_USERNAME }},'${{ secrets.SSH_PASSWORD }}' sftp://${{ secrets.SSH_SERVER }}:${{ secrets.SSH_PORT }} <<EOF
-        set sftp:auto-confirm yes
+        sudo -E lftp -u ${{ secrets.SSH_USERNAME }},'${{ secrets.SSH_PASSWORD }}' ftp://${{ secrets.SSH_SERVER }}:${{ secrets.SSH_PORT }} <<EOF
+        #set sftp:auto-confirm yes
         mirror --reverse --verbose --only-newer ./publish ${{ secrets.SSH_DIRECTORY }}
-        chown -R 32768:32768 ${{ secrets.SSH_DIRECTORY }}
+        #chown -R 32768:32768 ${{ secrets.SSH_DIRECTORY }}
         bye
         EOF
 
