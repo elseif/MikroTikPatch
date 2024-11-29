@@ -391,7 +391,7 @@ jobs:
         bye
         EOF
         sudo apt-get install ssh sshpass 
-        sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_SERVER }} "chown -R 32768:32768 ${{ secrets.SSH_DIRECTORY }}"
+        sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_SERVER }} "chown -R 32768:32768 /rw/disk/${{ secrets.SSH_DIRECTORY }}/"
 
     - name: Clear Cloudflare cache
       if: steps.get_latest.outputs.has_new_version == 'true'
