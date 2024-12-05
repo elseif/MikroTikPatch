@@ -222,7 +222,7 @@ jobs:
       if: steps.get_latest.outputs.has_new_version == 'true'
       run: |
         sudo mkdir -p ./publish/$LATEST_VERSION
-        echo $LATEST_VERSION $BUILD_TIME | sudo tee ./publish/NEWESTa6.${{ matrix.channel }}
+        echo $LATEST_VERSION $BUILD_TIME | sudo tee ./publish/NEWEST6.${{ matrix.channel }}
         sudo cp CHANGELOG ./publish/$LATEST_VERSION/
         sudo cp ./all_packages/*.npk ./publish/$LATEST_VERSION/
         sudo chown -R root:root ./publish/
