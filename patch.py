@@ -252,7 +252,7 @@ def patch_squashfs(path,key_dict):
                         open(file,'wb').write(data)
                 data = open(file,'rb').read()
                 url_dict = {
-                    os.environ['MIKRO_LICENCE_URL'].encode():os.environ['CUSTOM_LICENCE_URL'].encode(),
+                    os.environ['MIKRO_LICENSE_URL'].encode():os.environ['CUSTOM_LICENSE_URL'].encode(),
                     os.environ['MIKRO_UPGRADE_URL'].encode():os.environ['CUSTOM_UPGRADE_URL'].encode(),
                     os.environ['MIKRO_CLOUD_URL'].encode():os.environ['CUSTOM_CLOUD_URL'].encode(),
                     os.environ['MIKRO_CLOUD_PUBLIC_KEY'].encode():os.environ['CUSTOM_CLOUD_PUBLIC_KEY'].encode(),
@@ -331,7 +331,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     key_dict = {
         bytes.fromhex(os.environ['MIKRO_LICENSE_PUBLIC_KEY']):bytes.fromhex(os.environ['CUSTOM_LICENSE_PUBLIC_KEY']),
-        bytes.fromhex(os.environ['MIKRO_NPK_SIGN_PUBLIC_LKEY']):bytes.fromhex(os.environ['CUSTOM_NPK_SIGN_PUBLIC_KEY'])
+        bytes.fromhex(os.environ['MIKRO_NPK_SIGN_PUBLIC_KEY']):bytes.fromhex(os.environ['CUSTOM_NPK_SIGN_PUBLIC_KEY'])
     }
     kcdsa_private_key = bytes.fromhex(os.environ['CUSTOM_LICENSE_PRIVATE_KEY'])
     eddsa_private_key = bytes.fromhex(os.environ['CUSTOM_NPK_SIGN_PRIVATE_KEY'])
