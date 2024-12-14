@@ -39,8 +39,8 @@ def mikro_softwareid_encode(id:int)->str:
   assert(isinstance(id, int))
   ret = ''
   for i in range(8):
-    ret += chr(SOFTWARE_ID_CHARACTER_TABLE[id % 0x23])
-    id //= 0x23
+    ret += chr(SOFTWARE_ID_CHARACTER_TABLE[id % len(SOFTWARE_ID_CHARACTER_TABLE)])
+    id //= len(SOFTWARE_ID_CHARACTER_TABLE)
     if i == 3:
       ret += '-'
   return ret
