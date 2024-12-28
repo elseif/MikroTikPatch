@@ -1,8 +1,7 @@
-
+import random
 import struct
 from sha256 import SHA256
 from toyecc import AffineCurvePoint, getcurvebyname, FieldElement,ECPrivateKey,ECPublicKey,Tools
-from toyecc.Random import secure_rand_int_between
 
 
 MIKRO_BASE64_CHARACTER_TABLE = b'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
@@ -167,7 +166,7 @@ def mikro_kcdsa_sign(data:bytes,private_key:bytes)->bytes:
     private_key:ECPrivateKey = ECPrivateKey(Tools.bytestoint_le(private_key), curve)
     public_key:ECPublicKey = private_key.pubkey
     while True:
-        nonce_secret = secure_rand_int_between(1, curve.n - 1)
+        nonce_secret = random.SystemRandom().randint(1, curve.n - 1)
         nonce_point = nonce_secret * curve.G
         nonce = int(nonce_point.x) % curve.n
         nonce_hash = mikro_sha256(Tools.inttobytes_le(nonce,32))
