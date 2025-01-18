@@ -260,13 +260,13 @@ def patch_squashfs(path,key_dict):
                         print(f'{file} public key patched {old_public_key[:16].hex().upper()}...')
                         data = data.replace(old_public_key,new_public_key)
                         open(file,'wb').write(data)
-                data = open(file,'rb').read()
                 url_dict = {
-                    os.environ['MIKRO_LICENSE_URL'].encode():os.environ['CUSTOM_LICENSE_URL'].encode(),
+                    os.environ['MIKRO_LICENCE_URL'].encode():os.environ['CUSTOM_LICENCE_URL'].encode(),
                     os.environ['MIKRO_UPGRADE_URL'].encode():os.environ['CUSTOM_UPGRADE_URL'].encode(),
                     os.environ['MIKRO_CLOUD_URL'].encode():os.environ['CUSTOM_CLOUD_URL'].encode(),
                     os.environ['MIKRO_CLOUD_PUBLIC_KEY'].encode():os.environ['CUSTOM_CLOUD_PUBLIC_KEY'].encode(),
                 }
+                data = open(file,'rb').read()
                 for old_url,new_url in url_dict.items():
                     if old_url in data:
                         print(f'{file} url patched {old_url.decode()[:7]}...')
