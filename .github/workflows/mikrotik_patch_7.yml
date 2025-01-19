@@ -331,10 +331,10 @@ jobs:
         sudo mount /dev/nbd0p1 ./img/boot/
         if [ "${{ matrix.arch }}" == "x86" ]; then
           sudo cp chr.img chr-$LATEST_VERSION$ARCH-legacy-bios.img 
-          sudo qemu-nbd -c /dev/nbd1 -f raw chr-$LATEST_VERSION$ARCH.img
+          sudo qemu-nbd -c /dev/nbd1 -f raw chr-$LATEST_VERSION$ARCH-legacy-bios.img
+          sudo -E python3 patch.py block /dev/nbd1p1 EFI/BOOT/BOOTX64.EFI
           sudo mkdir -p ./chr/{boot,routeros}
           sudo mount /dev/nbd1p1 ./chr/boot/
-          sudo -E python3 patch.py block /dev/nbd1p1 EFI/BOOT/BOOTX64.EFI
           sudo mkdir -p  ./img/boot/EFI/BOOT
           sudo cp ./chr/boot/EFI/BOOT/BOOTX64.EFI ./img/boot/EFI/BOOT/BOOTX64.EFI
           sudo umount /dev/nbd1p1
