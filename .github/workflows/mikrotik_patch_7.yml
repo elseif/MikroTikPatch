@@ -309,7 +309,7 @@ jobs:
       if: steps.get_latest.outputs.has_new_version == 'true'
       run: |
         sudo modprobe nbd
-        sudo apt-get install -y qemu-utils extlinux > /dev/null
+        sudo apt-get install -y qemu-utils > /dev/null
         truncate --size 128M chr-$LATEST_VERSION$ARCH.img
         sgdisk --clear --set-alignment=2 \
             --new=1::+32M --typecode=1:8300 --change-name=1:"RouterOS Boot" --attributes=1:set:2 \
@@ -330,12 +330,42 @@ jobs:
         sudo mkdir -p ./img/{boot,routeros}
         sudo mount /dev/nbd0p1 ./img/boot/
         if [ "${{ matrix.arch }}" == "x86" ]; then
-          sudo mkdir -p  ./img/boot/{BOOT,EFI/BOOT}
-          sudo cp BOOTX64.EFI ./img/boot/EFI/BOOT/BOOTX64.EFI
-          sudo extlinux --install  -H 64 -S 32 ./img/boot/BOOT
-          echo -e "default system\nlabel system\n\tkernel /EFI/BOOT/BOOTX64.EFI\n\tappend load_ramdisk=1 root=/dev/ram0 quiet" > syslinux.cfg
-          sudo cp syslinux.cfg ./img/boot/BOOT/
-          sudo rm syslinux.cfg
+          sudo cp ./chr.img ./chr-$LATEST_VERSION$ARCH-legacy-bios.img 
+          sudo qemu-nbd -c /dev/nbd1 -f raw chr-$LATEST_VERSION$ARCH.img
+          sudo mkdir -p ./chr/{boot,routeros}
+          sudo mount /dev/nbd1p1 ./chr/boot/
+          sudo -E python3 patch.py block /dev/nbd1p1 EFI/BOOT/BOOTX64.EFI
+          sudo mkdir -p  ./img/boot/EFI/BOOT
+          sudo cp ./chr/boot/EFI/BOOT/BOOTX64.EFI ./img/boot/EFI/BOOT/BOOTX64.EFI
+          sudo umount /dev/nbd1p1
+          sudo mount /dev/nbd1p2 ./chr/routeros/
+          sudo mkdir -p ./chr/routeros/var/pdb/{system,option}
+          sudo cp ./all_packages/option-$LATEST_VERSION$ARCH.npk ./chr/routeros/var/pdb/option/image
+          sudo cp ./all_packages/routeros-$LATEST_VERSION$ARCH.npk ./chr/routeros/var/pdb/system/image
+          sudo umount /dev/nbd1p2
+          sudo rm -rf ./chr
+          sudo qemu-nbd -d /dev/nbd1
+
+          sudo qemu-img convert -f raw -O qcow2 chr-$LATEST_VERSION$ARCH-legacy-bios.img chr-$LATEST_VERSION$ARCH-legacy-bios.qcow2
+          sudo qemu-img convert -f raw -O vmdk chr-$LATEST_VERSION$ARCH-legacy-bios.img chr-$LATEST_VERSION$ARCH-legacy-bios.vmdk
+          sudo qemu-img convert -f raw -O vpc chr-$LATEST_VERSION$ARCH-legacy-bios.img chr-$LATEST_VERSION$ARCH-legacy-bios.vhd
+          sudo qemu-img convert -f raw -O vhdx chr-$LATEST_VERSION$ARCH-legacy-bios.img chr-$LATEST_VERSION$ARCH-legacy-bios.vhdx
+          sudo qemu-img convert -f raw -O vdi chr-$LATEST_VERSION$ARCH-legacy-bios.img chr-$LATEST_VERSION$ARCH-legacy-bios.vdi
+
+          sudo zip chr-$LATEST_VERSION$ARCH-legacy-bios.qcow2.zip chr-$LATEST_VERSION$ARCH-legacy-bios.qcow2
+          sudo zip chr-$LATEST_VERSION$ARCH-legacy-bios.vmdk.zip chr-$LATEST_VERSION$ARCH-legacy-bios.vmdk
+          sudo zip chr-$LATEST_VERSION$ARCH-legacy-bios.vhd.zip chr-$LATEST_VERSION$ARCH-legacy-bios.vhd
+          sudo zip chr-$LATEST_VERSION$ARCH-legacy-bios.vhdx.zip chr-$LATEST_VERSION$ARCH-legacy-bios.vhdx
+          sudo zip chr-$LATEST_VERSION$ARCH-legacy-bios.vdi.zip chr-$LATEST_VERSION$ARCH-legacy-bios.vdi
+          sudo zip chr-$LATEST_VERSION$ARCH-legacy-bios.img.zip chr-$LATEST_VERSION$ARCH-legacy-bios.img
+
+          sudo rm chr-$LATEST_VERSION$ARCH-legacy-bios.qcow2
+          sudo rm chr-$LATEST_VERSION$ARCH-legacy-bios.vmdk
+          sudo rm chr-$LATEST_VERSION$ARCH-legacy-bios.vhd
+          sudo rm chr-$LATEST_VERSION$ARCH-legacy-bios.vhdx
+          sudo rm chr-$LATEST_VERSION$ARCH-legacy-bios.vdi
+          sudo rm chr-$LATEST_VERSION$ARCH-legacy-bios.img
+
         elif [ "${{ matrix.arch }}" == "arm64" ]; then
           sudo qemu-nbd -c /dev/nbd1 -f raw chr.img
           sudo mkdir -p ./chr/boot
@@ -376,22 +406,23 @@ jobs:
         sudo rm chr-$LATEST_VERSION$ARCH.vdi
         sudo rm chr-$LATEST_VERSION$ARCH.img
 
-    - name: Upload Files
-      if: steps.get_latest.outputs.has_new_version == 'true'
-      run: |
-        sudo mkdir -p ./publish/$LATEST_VERSION
-        echo $LATEST_VERSION $BUILD_TIME | sudo tee ./publish/NEWESTa7.${{ matrix.channel }}
-        sudo cp CHANGELOG ./publish/$LATEST_VERSION/
-        sudo cp ./all_packages/*.npk ./publish/$LATEST_VERSION/
-        sudo chown -R root:root ./publish/
-        sudo apt-get install -y lftp ssh sshpass > /dev/null 2>&1
-        sudo -E lftp -u ${{ secrets.SSH_USERNAME }},'${{ secrets.SSH_PASSWORD }}' sftp://${{ secrets.SSH_SERVER }}:${{ secrets.SSH_PORT }} <<EOF
-        set sftp:auto-confirm yes
-        mirror --reverse --verbose --only-newer ./publish ${{ secrets.SSH_DIRECTORY }}
-        bye
-        EOF
-        sudo apt-get install ssh sshpass 
-        sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_SERVER }} "chown -R 32768:32768 /rw/disk/${{ secrets.SSH_DIRECTORY }}/"
+
+    # - name: Upload Files
+    #   if: steps.get_latest.outputs.has_new_version == 'true'
+    #   run: |
+    #     sudo mkdir -p ./publish/$LATEST_VERSION
+    #     echo $LATEST_VERSION $BUILD_TIME | sudo tee ./publish/NEWESTa7.${{ matrix.channel }}
+    #     sudo cp CHANGELOG ./publish/$LATEST_VERSION/
+    #     sudo cp ./all_packages/*.npk ./publish/$LATEST_VERSION/
+    #     sudo chown -R root:root ./publish/
+    #     sudo apt-get install -y lftp ssh sshpass > /dev/null 2>&1
+    #     sudo -E lftp -u ${{ secrets.SSH_USERNAME }},'${{ secrets.SSH_PASSWORD }}' sftp://${{ secrets.SSH_SERVER }}:${{ secrets.SSH_PORT }} <<EOF
+    #     set sftp:auto-confirm yes
+    #     mirror --reverse --verbose --only-newer ./publish ${{ secrets.SSH_DIRECTORY }}
+    #     bye
+    #     EOF
+    #     sudo apt-get install ssh sshpass 
+    #     sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_SERVER }} "chown -R 32768:32768 /rw/disk/${{ secrets.SSH_DIRECTORY }}/"
 
     - name: Clear Cloudflare cache
       if: steps.get_latest.outputs.has_new_version == 'true'
@@ -433,4 +464,3 @@ jobs:
           install-image-${{ env.LATEST_VERSION }}.zip
           routeros-${{ env.LATEST_VERSION }}${{ env.ARCH }}.npk
           all_packages-*-${{ env.LATEST_VERSION }}.zip
-
