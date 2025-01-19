@@ -53,6 +53,7 @@ def patch_block(dev:str,file:str,key_dict):
     stdout,_ = run_shell_command(f"debugfs {dev} -R 'stat {file}' 2> /dev/null | sed -n '11p' ")
     #(0-11):1592-1603, (IND):1173, (12-15):1604-1607, (16-26):1424-1434
     blocks_info = stdout.decode().strip().split(',')
+    print(f'blocks_info : {blocks_info}')
     blocks = []
     ind_block_id = None
     for block_info in blocks_info:
@@ -60,6 +61,7 @@ def patch_block(dev:str,file:str,key_dict):
         if _tmp[0].strip() == '(IND)':
             ind_block_id =  int(_tmp[1])
         else:
+            print(f'block_info : {block_info}')
             id_range = _tmp[0].strip().replace('(','').replace(')','').split('-')
             block_range = _tmp[1].strip().replace('(','').replace(')','').split('-')
             blocks += [id for id in range(int(block_range[0]),int(block_range[1])+1)]
