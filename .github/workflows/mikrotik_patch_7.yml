@@ -338,13 +338,13 @@ jobs:
           sudo mkdir -p  ./img/boot/EFI/BOOT
           sudo cp ./chr/boot/EFI/BOOT/BOOTX64.EFI ./img/boot/EFI/BOOT/BOOTX64.EFI
           sudo umount /dev/nbd1p1
+          sudo dd if=/dev/zero of=/dev/nbd1p2 bs=1M 
+          sudo mkfs.ext4 -F -L "RouterOS"  -m 0 /dev/nbd1p2
           sudo mount /dev/nbd1p2 ./chr/routeros/
-          sudo rm -rf ./chr/routeros/*
           sudo mkdir -p ./chr/routeros/{var/pdb/{system,option},boot,rw}
           sudo cp ./all_packages/option-$LATEST_VERSION$ARCH.npk ./chr/routeros/var/pdb/option/image
           sudo cp ./all_packages/routeros-$LATEST_VERSION$ARCH.npk ./chr/routeros/var/pdb/system/image
           sudo umount /dev/nbd1p2
-          sudo zerofree -v /dev/nbd1p2
           sudo qemu-nbd -d /dev/nbd1
           sudo rm -rf ./chr
 
