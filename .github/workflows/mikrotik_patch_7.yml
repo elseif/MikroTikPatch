@@ -88,14 +88,14 @@ jobs:
         fi
         sudo apt-get update > /dev/null
 
-        echo "{\"arch\": \"${{ matrix.arch }}\", \"channel\": \"${{ matrix.channel }}\", \"latest_version\": \"$LATEST_VERSION\"}" > ${{ matrix.arch }}_${{ matrix.channel }}_latest_version.json
+        echo "{\"arch\": \"${{ matrix.arch }}\", \"channel\": \"${{ matrix.channel }}\", \"latest_version\": \"$LATEST_VERSION\"}" > latest_version_${{ matrix.arch }}_${{ matrix.channel }}.json
         echo "has_new_version=false" >> $GITHUB_OUTPUT
         
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ matrix.arch }}_${{ matrix.channel }}_latest_version
-        path: ${{ matrix.arch }}_${{ matrix.channel }}_latest_version.json
+        name: latest_version_${{ matrix.arch }}_${{ matrix.channel }}
+        path: latest_version_${{ matrix.arch }}_${{ matrix.channel }}.json
         
     - name: Cache Squashfs
       if: steps.get_latest.outputs.has_new_version == 'true'
@@ -484,10 +484,12 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts
+          pattern: latest_version_*
+          merge-multiple: true
       - name: Create Packages CSV File
         run: |
-          for file in artifacts/*.json; do
-            arch_channel=$(basename "$file" .json)
+          for file in artifacts/latest_version_*.json; do
+            arch_channel=$(basename "$file" .json | sed 's/latest_version_//')
             arch=$(echo "$arch_channel" | cut -d'_' -f1)
             channel=$(echo "$arch_channel" | cut -d'_' -f2)
             latest_version=$(jq -r '.latest_version' "$file")
