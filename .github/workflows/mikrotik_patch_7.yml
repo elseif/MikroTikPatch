@@ -484,7 +484,6 @@ jobs:
       - name: Create Packages CSV File
         run: |
           sudo apt-get install ssh sshpass
-          sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_SERVER }} "chown -R 32768:32768 /rw/disk/${{ secrets.SSH_DIRECTORY }}/"
           for file in artifacts/latest_version_*.json; do
             arch_channel=$(basename "$file" .json | sed 's/latest_version_//')
             arch=$(echo "$arch_channel" | cut -d'_' -f1)
@@ -494,3 +493,4 @@ jobs:
             echo "Arch: $arch, Channel: $channel, Latest Version: $latest_version,Build Time: $build_time"
             sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_SERVER }} "echo $latest_version $build_time | tee /rw/disk/${{ secrets.SSH_DIRECTORY }}/NEWESTa7.$channel; /rw/disk/${{ secrets.SSH_DIRECTORY }}/packages.sh /rw/disk/${{ secrets.SSH_DIRECTORY }}/$latest_version"
           done
+          sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_SERVER }} "chown -R 32768:32768 /rw/disk/${{ secrets.SSH_DIRECTORY }}/"
