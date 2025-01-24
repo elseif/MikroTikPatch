@@ -44,6 +44,8 @@ jobs:
       matrix:
         arch: [x86,arm64]
         channel: [stable, testing]
+    outputs:
+        ${{ matrix.arch }}_${{ matrix.channel }}_LATEST_VERSION: ${{ steps.get_latest.outputs.LATEST_VERSION }}
     env:
       TZ: 'Asia/Shanghai'
       LATEST_VERSION: ""
@@ -77,6 +79,7 @@ jobs:
         echo Build Time:$BUILD_TIME
         wget -nv -O CHANGELOG https://${{ env.MIKRO_UPGRADE_URL }}/routeros/$LATEST_VERSION/CHANGELOG
         cat CHANGELOG
+        echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_OUTPUT
         echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_ENV
         echo "BUILD_TIME=${BUILD_TIME}" >> $GITHUB_ENV
         if [ "${{ matrix.arch }}" == "x86" ]; then
@@ -87,6 +90,7 @@ jobs:
           echo "ARCH=$ARCH" >> $GITHUB_ENV
         fi
         sudo apt-get update > /dev/null
+        echo "has_new_version=false" >> $GITHUB_OUTPUT
 
     - name: Cache Squashfs
       if: steps.get_latest.outputs.has_new_version == 'true'
@@ -466,3 +470,15 @@ jobs:
           install-image-${{ env.LATEST_VERSION }}.zip
           routeros-${{ env.LATEST_VERSION }}${{ env.ARCH }}.npk
           all_packages-*-${{ env.LATEST_VERSION }}.zip
+          
+  Create_CSV:
+    needs: Patch_RouterOS
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Create Packages CSV File
+        run: |
+          for result in ${{ toJson(needs.Patch_RouterOS.outputs) }}; do
+            key=$(echo "$result" | jq -r 'keys[0]')
+            value=$(echo "$result" | jq -r '.[]')
+            echo "Key: $key, Value: $value"
+          done
