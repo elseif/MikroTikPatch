@@ -85,12 +85,11 @@ jobs:
           ARCH='-arm64'
           echo "ARCH=$ARCH" >> $GITHUB_ENV
         fi
-        sudo apt-get update > /dev/null
-
         echo "{\"arch\": \"${{ matrix.arch }}\", \"channel\": \"${{ matrix.channel }}\", \"latest_version\": \"$LATEST_VERSION\",\"build_time\": \"$BUILD_TIME\"}" > latest_version_${{ matrix.arch }}_${{ matrix.channel }}.json
-        echo "has_new_version=false" >> $GITHUB_OUTPUT
+        sudo apt-get update > /dev/null
         
     - name: Upload artifacts
+      if: steps.get_latest.outputs.has_new_version == 'true'
       uses: actions/upload-artifact@v4
       with:
         name: latest_version_${{ matrix.arch }}_${{ matrix.channel }}
