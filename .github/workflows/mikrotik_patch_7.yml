@@ -44,8 +44,6 @@ jobs:
       matrix:
         arch: [x86,arm64]
         channel: [stable, testing]
-    outputs:
-        ${{ matrix.arch }}_${{ matrix.channel }}_LATEST_VERSION: ${{ steps.get_latest.outputs.LATEST_VERSION }}
     env:
       TZ: 'Asia/Shanghai'
       LATEST_VERSION: ""
@@ -79,7 +77,6 @@ jobs:
         echo Build Time:$BUILD_TIME
         wget -nv -O CHANGELOG https://${{ env.MIKRO_UPGRADE_URL }}/routeros/$LATEST_VERSION/CHANGELOG
         cat CHANGELOG
-        echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_OUTPUT
         echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_ENV
         echo "BUILD_TIME=${BUILD_TIME}" >> $GITHUB_ENV
         if [ "${{ matrix.arch }}" == "x86" ]; then
@@ -90,8 +87,16 @@ jobs:
           echo "ARCH=$ARCH" >> $GITHUB_ENV
         fi
         sudo apt-get update > /dev/null
-        echo "has_new_version=false" >> $GITHUB_OUTPUT
 
+        echo "{\"arch\": \"${{ matrix.arch }}\", \"channel\": \"${{ matrix.channel }}\", \"latest_version\": \"$LATEST_VERSION\"}" > ${{ matrix.arch }}_${{ matrix.channel }}_latest_version.json
+        echo "has_new_version=false" >> $GITHUB_OUTPUT
+        
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.arch }}_${{ matrix.channel }}_latest_version
+        path: ${{ matrix.arch }}_${{ matrix.channel }}_latest_version.json
+        
     - name: Cache Squashfs
       if: steps.get_latest.outputs.has_new_version == 'true'
       id: cache-squashfs
@@ -475,10 +480,16 @@ jobs:
     needs: Patch_RouterOS
     runs-on: ubuntu-22.04
     steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
       - name: Create Packages CSV File
         run: |
-          for result in ${{ toJson(needs.Patch_RouterOS.outputs) }}; do
-            key=$(echo "$result" | jq -r 'keys[0]')
-            value=$(echo "$result" | jq -r '.[]')
-            echo "Key: $key, Value: $value"
+          for file in artifacts/*.json; do
+            arch_channel=$(basename "$file" .json)
+            arch=$(echo "$arch_channel" | cut -d'_' -f1)
+            channel=$(echo "$arch_channel" | cut -d'_' -f2)
+            latest_version=$(jq -r '.latest_version' "$file")
+            echo "Arch: $arch, Channel: $channel, Latest Version: $latest_version"
           done
