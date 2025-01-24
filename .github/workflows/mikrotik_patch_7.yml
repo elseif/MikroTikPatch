@@ -48,7 +48,6 @@ jobs:
       TZ: 'Asia/Shanghai'
       LATEST_VERSION: ""
       ARCH: ""
-
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -88,7 +87,7 @@ jobs:
         fi
         sudo apt-get update > /dev/null
 
-        echo "{\"arch\": \"${{ matrix.arch }}\", \"channel\": \"${{ matrix.channel }}\", \"latest_version\": \"$LATEST_VERSION\"}" > latest_version_${{ matrix.arch }}_${{ matrix.channel }}.json
+        echo "{\"arch\": \"${{ matrix.arch }}\", \"channel\": \"${{ matrix.channel }}\", \"latest_version\": \"$LATEST_VERSION\",\"build_time\": \"$BUILD_TIME\"}" > latest_version_${{ matrix.arch }}_${{ matrix.channel }}.json
         echo "has_new_version=false" >> $GITHUB_OUTPUT
         
     - name: Upload artifacts
@@ -422,7 +421,6 @@ jobs:
       if: steps.get_latest.outputs.has_new_version == 'true'
       run: |
         sudo mkdir -p ./publish/$LATEST_VERSION
-        echo $LATEST_VERSION $BUILD_TIME | sudo tee ./publish/NEWESTa7.${{ matrix.channel }}
         sudo cp CHANGELOG ./publish/$LATEST_VERSION/
         sudo cp ./all_packages/*.npk ./publish/$LATEST_VERSION/
         sudo chown -R root:root ./publish/
@@ -432,9 +430,7 @@ jobs:
         mirror --reverse --verbose --only-newer ./publish ${{ secrets.SSH_DIRECTORY }}
         bye
         EOF
-        sudo apt-get install ssh sshpass 
-        sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_SERVER }} "chown -R 32768:32768 /rw/disk/${{ secrets.SSH_DIRECTORY }}/"
-
+        
     - name: Clear Cloudflare cache
       if: steps.get_latest.outputs.has_new_version == 'true'
       run: |
@@ -488,13 +484,14 @@ jobs:
           merge-multiple: true
       - name: Create Packages CSV File
         run: |
-          sudo apt-get install ssh sshpass 
+          sudo apt-get install ssh sshpass
+          sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_SERVER }} "chown -R 32768:32768 /rw/disk/${{ secrets.SSH_DIRECTORY }}/"
           for file in artifacts/latest_version_*.json; do
             arch_channel=$(basename "$file" .json | sed 's/latest_version_//')
             arch=$(echo "$arch_channel" | cut -d'_' -f1)
             channel=$(echo "$arch_channel" | cut -d'_' -f2)
             latest_version=$(jq -r '.latest_version' "$file")
-            echo "Arch: $arch, Channel: $channel, Latest Version: $latest_version"
-            sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_SERVER }} "/rw/disk/${{ secrets.SSH_DIRECTORY }}/packages.sh /rw/disk/${{ secrets.SSH_DIRECTORY }}/$latest_version"
-
+            build_time=$(jq -r '.build_time' "$file")
+            echo "Arch: $arch, Channel: $channel, Latest Version: $latest_version,Build Time: $build_time"
+            sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_SERVER }} "echo $latest_version $build_time | tee /rw/disk/${{ secrets.SSH_DIRECTORY }}/NEWESTa7.$channel; /rw/disk/${{ secrets.SSH_DIRECTORY }}/packages.sh /rw/disk/${{ secrets.SSH_DIRECTORY }}/$latest_version"
           done
