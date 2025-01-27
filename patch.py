@@ -303,9 +303,10 @@ def patch_npk_package(package,key_dict):
         print(f"extract {squashfs_file} ...")
         run_shell_command(f"unsquashfs -d {extract_dir} {squashfs_file}")
         patch_squashfs(extract_dir,key_dict)
-        logo = os.path.join(extract_dir,"nova/lib/console/logo.txt")
-        run_shell_command(f"sudo sed -i '1d' {logo}") 
-        run_shell_command(f"sudo sed -i '8s#.*#  elseif@live.cn     https://github.com/elseif/MikroTikPatch#' {logo}")
+        if ('CUSTOM_LOGO_TEXT' in os.environ) and (len(os.environ['CUSTOM_LOGO_TEXT']) > 0):
+            logo = os.path.join(extract_dir,"nova/lib/console/logo.txt")
+            run_shell_command(f"sudo sed -i '1d' {logo}")
+            run_shell_command(f"sudo sed -i '8s#.*#{os.environ['CUSTOM_LOGO_TEXT']}#' {logo}")
         print(f"pack {extract_dir} ...")
         run_shell_command(f"rm -f {squashfs_file}")
         run_shell_command(f"mksquashfs {extract_dir} {squashfs_file} -quiet -comp xz -no-xattrs -b 256k")
