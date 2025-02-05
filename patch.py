@@ -1,6 +1,21 @@
 import subprocess,lzma
-import struct,os
+import struct,os,re
 from npk import NovaPackage,NpkPartID,NpkFileContainer
+
+def replace_key(old,new,data):
+    old_chunks = [old[i:i+4] for i in range(0, len(old), 4)]
+    new_chunks = [new[i:i+4] for i in range(0, len(new), 4)]
+    pattern_parts = [chunk + b'(.{0,6})' for chunk in old_chunks[:-1]]
+    pattern_parts.append(old_chunks[-1]) 
+    pattern_bytes = b''.join(pattern_parts)
+    pattern = re.compile(pattern_bytes) 
+    def replace_match(match):
+        print(f'public key patched {old[:16].hex().upper()}...')
+        replaced = b''.join([new_chunks[i] + match.group(i+1) for i in range(len(new_chunks) - 1)])
+        replaced += new_chunks[-1]
+        return replaced
+    return re.sub(pattern, replace_match, data)
+
 
 def patch_bzimage(data:bytes,key_dict:dict):
     PE_TEXT_SECTION_OFFSET = 414
@@ -22,9 +37,7 @@ def patch_bzimage(data:bytes,key_dict:dict):
     initramfs = initramfs[:cpio_offset2]
     new_initramfs = initramfs       
     for old_public_key,new_public_key in key_dict.items():
-        if old_public_key in new_initramfs:
-            print(f'initramfs public key patched {old_public_key[:16].hex().upper()}...')
-            new_initramfs = new_initramfs.replace(old_public_key,new_public_key)
+        new_initramfs = replace_key(old_public_key,new_public_key,new_initramfs)
     new_vmlinux = vmlinux.replace(initramfs,new_initramfs)
     new_vmlinux_xz = lzma.compress(new_vmlinux,check=lzma.CHECK_CRC32,filters=[
             {"id": lzma.FILTER_X86},
@@ -83,9 +96,7 @@ def patch_initrd_xz(initrd_xz:bytes,key_dict:dict,ljust=True):
     initrd = lzma.decompress(initrd_xz)
     new_initrd = initrd  
     for old_public_key,new_public_key in key_dict.items():
-        if old_public_key in new_initrd:
-            print(f'initrd public key patched {old_public_key[:16].hex().upper()}...')
-            new_initrd = new_initrd.replace(old_public_key,new_public_key)
+        new_initrd = replace_key(old_public_key,new_public_key,new_initrd)
     preset = 6
     new_initrd_xz = lzma.compress(new_initrd,check=lzma.CHECK_CRC32,filters=[{"id": lzma.FILTER_LZMA2, "preset": preset }] )
     while len(new_initrd_xz) > len(initrd_xz) and preset < 9:
@@ -258,10 +269,9 @@ def patch_squashfs(path,key_dict):
             if os.path.isfile(file):
                 data = open(file,'rb').read()
                 for old_public_key,new_public_key in key_dict.items():
-                    if old_public_key in data:
-                        print(f'{file} public key patched {old_public_key[:16].hex().upper()}...')
-                        data = data.replace(old_public_key,new_public_key)
-                        open(file,'wb').write(data)
+                    _data = replace_key(old_public_key,new_public_key,data)
+                    if _data != data:
+                        open(file,'wb').write(_data)
                 url_dict = {
                     os.environ['MIKRO_LICENCE_URL'].encode():os.environ['CUSTOM_LICENCE_URL'].encode(),
                     os.environ['MIKRO_UPGRADE_URL'].encode():os.environ['CUSTOM_UPGRADE_URL'].encode(),
