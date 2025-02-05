@@ -11,6 +11,7 @@ def replace_key(old,new,data):
     pattern = re.compile(pattern_bytes, flags=re.DOTALL) 
     def replace_match(match):
         print(f'public key patched {old[:16].hex().upper()}...')
+        print(f'public key patched {match.group(0).hex().upper()}...')
         replaced = b''.join([new_chunks[i] + match.group(i+1) for i in range(len(new_chunks) - 1)])
         replaced += new_chunks[-1]
         return replaced
