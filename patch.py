@@ -5,10 +5,10 @@ from npk import NovaPackage,NpkPartID,NpkFileContainer
 def replace_key(old,new,data):
     old_chunks = [old[i:i+4] for i in range(0, len(old), 4)]
     new_chunks = [new[i:i+4] for i in range(0, len(new), 4)]
-    pattern_parts = [chunk + b'(.{0,6})' for chunk in old_chunks[:-1]]
-    pattern_parts.append(old_chunks[-1]) 
+    pattern_parts = [re.escape(chunk) + b'(.{0,6})' for chunk in old_chunks[:-1]]
+    pattern_parts.append(re.escape(old_chunks[-1])) 
     pattern_bytes = b''.join(pattern_parts)
-    pattern = re.compile(pattern_bytes) 
+    pattern = re.compile(pattern_bytes, flags=re.DOTALL) 
     def replace_match(match):
         print(f'public key patched {old[:16].hex().upper()}...')
         replaced = b''.join([new_chunks[i] + match.group(i+1) for i in range(len(new_chunks) - 1)])
