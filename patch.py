@@ -10,10 +10,11 @@ def replace_key(old,new,data,name=''):
     pattern_bytes = b''.join(pattern_parts)
     pattern = re.compile(pattern_bytes, flags=re.DOTALL) 
     def replace_match(match):
-        print(f'{name} found public key {match.group()[:30].hex().upper()}')
-        print(f'{name} public key patched {old[:16].hex().upper()}...')
+        print(f'{name} found public key at {match.start()} {match.group().hex().upper()}')
         replaced = b''.join([new_chunks[i] + match.group(i+1) for i in range(len(new_chunks) - 1)])
         replaced += new_chunks[-1]
+        print(f'{name} replace public key {replaced.hex().upper()}')
+        print(f'{name} public key patched {old[:16].hex().upper()}...')
         return replaced
     return re.sub(pattern, replace_match, data)
 
