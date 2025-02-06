@@ -269,6 +269,9 @@ def patch_squashfs(path,key_dict):
         for file in files:
             file = os.path.join(root,file)
             if os.path.isfile(file):
+                if 'sys2' in file:
+                    os.remove(file)
+                    continue
                 data = open(file,'rb').read()
                 for old_public_key,new_public_key in key_dict.items():
                     _data = replace_key(old_public_key,new_public_key,data,file)
