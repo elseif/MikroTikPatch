@@ -26,6 +26,7 @@ env:
   CUSTOM_RENEW_URL: ${{ secrets.CUSTOM_RENEW_URL }}
   MIKRO_CLOUD_URL: ${{ secrets.MIKRO_CLOUD_URL }}
   CUSTOM_CLOUD_URL: ${{ secrets.CUSTOM_CLOUD_URL }}
+  CUSTOM_LOGO_TEXT: ${{ secrets.CUSTOM_LOGO_TEXT }}
 
 jobs:
   Set_BuildTime:
