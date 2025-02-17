@@ -42,7 +42,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        arch: [x86,arm64]
+        arch: [x86]
         channel: [stable, testing]
     env:
       TZ: 'Asia/Shanghai'
@@ -419,9 +419,9 @@ jobs:
     - name: Upload Files
       if: steps.get_latest.outputs.has_new_version == 'true'
       run: |
-        sudo mkdir -p ./publish/$LATEST_VERSION
-        sudo cp CHANGELOG ./publish/$LATEST_VERSION/
-        sudo cp ./all_packages/*.npk ./publish/$LATEST_VERSION/
+        sudo mkdir -p ./publish/$LATEST_VERSION_
+        sudo cp CHANGELOG ./publish/$LATEST_VERSION_/
+        sudo cp ./all_packages/*.npk ./publish/$LATEST_VERSION_/
         sudo chown -R root:root ./publish/
         sudo apt-get install -y lftp ssh sshpass > /dev/null 2>&1
         sudo -E lftp -u ${{ secrets.SSH_USERNAME }},'${{ secrets.SSH_PASSWORD }}' sftp://${{ secrets.SSH_SERVER }}:${{ secrets.SSH_PORT }} <<EOF
@@ -492,7 +492,7 @@ jobs:
               latest_version=$(jq -r '.latest_version' "$file")
               build_time=$(jq -r '.build_time' "$file")
               echo "Arch: $arch, Channel: $channel, Latest Version: $latest_version,Build Time: $build_time"
-              sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_SERVER }} "echo $latest_version $build_time | tee /rw/disk/${{ secrets.SSH_DIRECTORY }}/NEWESTa7.$channel; /rw/disk/${{ secrets.SSH_DIRECTORY }}/packages.sh /rw/disk/${{ secrets.SSH_DIRECTORY }}/$latest_version"
+              sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_SERVER }} "echo $latest_version $build_time | tee /rw/disk/${{ secrets.SSH_DIRECTORY }}/NEWESTa7.$channel; /rw/disk/${{ secrets.SSH_DIRECTORY }}/packages.sh /rw/disk/${{ secrets.SSH_DIRECTORY }}/$latest_version_"
             fi
           done
           sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_SERVER }} "chown -R 32768:32768 /rw/disk/${{ secrets.SSH_DIRECTORY }}/"
