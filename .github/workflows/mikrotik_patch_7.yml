@@ -139,31 +139,31 @@ jobs:
         sudo mksquashfs python python3.sfs -quiet -comp xz -no-xattrs -b 256k
         sudo rm -rf ./python
 
-    - name: Cache NetInstall ${{ env.LATEST_VERSION }}
-      if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86'
-      id: cache-netinstall
-      uses: actions/cache@v4
-      with:
-        path: |
-          netinstall.zip
-          netinstall.tar.gz
-        key: netinstall-${{ env.LATEST_VERSION }}
+    # - name: Cache NetInstall ${{ env.LATEST_VERSION }}
+    #   if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86'
+    #   id: cache-netinstall
+    #   uses: actions/cache@v4
+    #   with:
+    #     path: |
+    #       netinstall.zip
+    #       netinstall.tar.gz
+    #     key: netinstall-${{ env.LATEST_VERSION }}
 
-    - name: Get netinstall ${{ env.LATEST_VERSION }}
-      if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86' && steps.cache-netinstall.outputs.cache-hit != 'true'
-      run: |
-        sudo wget -nv -O netinstall.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/netinstall-$LATEST_VERSION.zip
-        sudo wget -nv -O netinstall.tar.gz https://download.mikrotik.com/routeros/$LATEST_VERSION/netinstall-$LATEST_VERSION.tar.gz
+    # - name: Get netinstall ${{ env.LATEST_VERSION }}
+    #   if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86' && steps.cache-netinstall.outputs.cache-hit != 'true'
+    #   run: |
+    #     sudo wget -nv -O netinstall.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/netinstall-$LATEST_VERSION.zip
+    #     sudo wget -nv -O netinstall.tar.gz https://download.mikrotik.com/routeros/$LATEST_VERSION/netinstall-$LATEST_VERSION.tar.gz
 
-    - name: Patch netinstall ${{ env.LATEST_VERSION }}
-      if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86'
-      run: |
-        sudo unzip netinstall.zip
-        sudo -E python3 patch.py netinstall netinstall.exe
-        sudo zip netinstall-$LATEST_VERSION.zip ./netinstall.exe
-        sudo tar -xvf netinstall.tar.gz
-        sudo -E python3 patch.py netinstall netinstall-cli
-        sudo tar -czvf netinstall-$LATEST_VERSION.tar.gz ./netinstall-cli
+    # - name: Patch netinstall ${{ env.LATEST_VERSION }}
+    #   if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86'
+    #   run: |
+    #     sudo unzip netinstall.zip
+    #     sudo -E python3 patch.py netinstall netinstall.exe
+    #     sudo zip netinstall-$LATEST_VERSION.zip ./netinstall.exe
+    #     sudo tar -xvf netinstall.tar.gz
+    #     sudo -E python3 patch.py netinstall netinstall-cli
+    #     sudo tar -czvf netinstall-$LATEST_VERSION.tar.gz ./netinstall-cli
 
     - name: Cache mikrotik-${{ env.LATEST_VERSION }}${{ env.ARCH }}.iso
       if: steps.get_latest.outputs.has_new_version == 'true'
@@ -245,183 +245,183 @@ jobs:
         sudo zip ../all_packages-${{ matrix.arch }}-$LATEST_VERSION.zip *.npk
         cd ..
 
-    - name: Cache refind
-      if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86'
-      id: cache-refind
-      uses: actions/cache@v4
-      with:
-        path: refind-bin-0.14.2.zip
-        key: refind
+    # - name: Cache refind
+    #   if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86'
+    #   id: cache-refind
+    #   uses: actions/cache@v4
+    #   with:
+    #     path: refind-bin-0.14.2.zip
+    #     key: refind
 
-    - name: Get refind
-      if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86' && steps.cache-refind.outputs.cache-hit != 'true'
-      run: sudo wget -nv -O refind-bin-0.14.2.zip https://nchc.dl.sourceforge.net/project/refind/0.14.2/refind-bin-0.14.2.zip
+    # - name: Get refind
+    #   if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86' && steps.cache-refind.outputs.cache-hit != 'true'
+    #   run: sudo wget -nv -O refind-bin-0.14.2.zip https://nchc.dl.sourceforge.net/project/refind/0.14.2/refind-bin-0.14.2.zip
 
-    - name: Create install-image-${{ env.LATEST_VERSION }}.img
-      if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86'
-      run: |
-        sudo modprobe nbd
-        sudo apt-get install -y qemu-utils extlinux > /dev/null
-        truncate --size 128M install-image-$LATEST_VERSION.img
-        sudo qemu-nbd -c /dev/nbd0 -f raw install-image-$LATEST_VERSION.img
-        sudo mkfs.vfat -n "Install" /dev/nbd0
-        sudo mkdir ./install
-        sudo mount /dev/nbd0 ./install
-        sudo mkdir -p ./install/EFI/BOOT
-        sudo unzip refind-bin-0.14.2.zip refind-bin-0.14.2/refind/refind_x64.efi
-        sudo cp refind-bin-0.14.2/refind/refind_x64.efi ./install/EFI/BOOT/BOOTX64.EFI
-        sudo rm -rf refind-bin-0.14.2
-        echo -e 'timeout 0\ntextonly\ntextmode 0\nshowtools shutdown, reboot, exit\nmenuentry "Install RouterOS" {\n\tloader /linux\n\toptions "load_ramdisk=1 root=/dev/ram0 -install -hdd"\n}\ndefault_selection /EFI/BOOT/BOOTX64.EFI' \
-          > refind.conf
-        sudo cp refind.conf ./install/EFI/BOOT/
-        sudo rm refind.conf
-        sudo extlinux --install -H 64 -S 32 ./install/
-        echo -e 'default system\nLABEL system\n\tKERNEL linux\n\tAPPEND load_ramdisk=1 -install -hdd' \
-          > syslinux.cfg
-        sudo cp syslinux.cfg ./install/
-        sudo rm syslinux.cfg
-        sudo cp ./BOOTX64.EFI ./install/linux
-        NPK_FILES=($(find ./all_packages/*.npk))
-        for ((i=1; i<=${#NPK_FILES[@]}; i++))
-        do
-          echo "${NPK_FILES[$i-1]}=>$i.npk" 
-          sudo cp ${NPK_FILES[$i-1]} ./install/$i.npk
-        done
-        sudo touch ./install/CHOOSE
-        sudo touch ./install/autorun.scr 
-        sudo umount /dev/nbd0
-        sudo qemu-nbd -d /dev/nbd0
-        sudo rm -rf ./install
-        sudo zip install-image-$LATEST_VERSION.zip ./install-image-$LATEST_VERSION.img
-        sudo rm ./install-image-$LATEST_VERSION.img
+    # - name: Create install-image-${{ env.LATEST_VERSION }}.img
+    #   if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86'
+    #   run: |
+    #     sudo modprobe nbd
+    #     sudo apt-get install -y qemu-utils extlinux > /dev/null
+    #     truncate --size 128M install-image-$LATEST_VERSION.img
+    #     sudo qemu-nbd -c /dev/nbd0 -f raw install-image-$LATEST_VERSION.img
+    #     sudo mkfs.vfat -n "Install" /dev/nbd0
+    #     sudo mkdir ./install
+    #     sudo mount /dev/nbd0 ./install
+    #     sudo mkdir -p ./install/EFI/BOOT
+    #     sudo unzip refind-bin-0.14.2.zip refind-bin-0.14.2/refind/refind_x64.efi
+    #     sudo cp refind-bin-0.14.2/refind/refind_x64.efi ./install/EFI/BOOT/BOOTX64.EFI
+    #     sudo rm -rf refind-bin-0.14.2
+    #     echo -e 'timeout 0\ntextonly\ntextmode 0\nshowtools shutdown, reboot, exit\nmenuentry "Install RouterOS" {\n\tloader /linux\n\toptions "load_ramdisk=1 root=/dev/ram0 -install -hdd"\n}\ndefault_selection /EFI/BOOT/BOOTX64.EFI' \
+    #       > refind.conf
+    #     sudo cp refind.conf ./install/EFI/BOOT/
+    #     sudo rm refind.conf
+    #     sudo extlinux --install -H 64 -S 32 ./install/
+    #     echo -e 'default system\nLABEL system\n\tKERNEL linux\n\tAPPEND load_ramdisk=1 -install -hdd' \
+    #       > syslinux.cfg
+    #     sudo cp syslinux.cfg ./install/
+    #     sudo rm syslinux.cfg
+    #     sudo cp ./BOOTX64.EFI ./install/linux
+    #     NPK_FILES=($(find ./all_packages/*.npk))
+    #     for ((i=1; i<=${#NPK_FILES[@]}; i++))
+    #     do
+    #       echo "${NPK_FILES[$i-1]}=>$i.npk" 
+    #       sudo cp ${NPK_FILES[$i-1]} ./install/$i.npk
+    #     done
+    #     sudo touch ./install/CHOOSE
+    #     sudo touch ./install/autorun.scr 
+    #     sudo umount /dev/nbd0
+    #     sudo qemu-nbd -d /dev/nbd0
+    #     sudo rm -rf ./install
+    #     sudo zip install-image-$LATEST_VERSION.zip ./install-image-$LATEST_VERSION.img
+    #     sudo rm ./install-image-$LATEST_VERSION.img
 
-    - name: Cache chr-${{ env.LATEST_VERSION }}${{ env.ARCH }}.img.zip
-      if: steps.get_latest.outputs.has_new_version == 'true'
-      id: cache-chr-img
-      uses: actions/cache@v4
-      with:
-        path: |
-          chr.img
-        key: chr-${{ env.LATEST_VERSION }}-${{ matrix.arch }}.img
+    # - name: Cache chr-${{ env.LATEST_VERSION }}${{ env.ARCH }}.img.zip
+    #   if: steps.get_latest.outputs.has_new_version == 'true'
+    #   id: cache-chr-img
+    #   uses: actions/cache@v4
+    #   with:
+    #     path: |
+    #       chr.img
+    #     key: chr-${{ env.LATEST_VERSION }}-${{ matrix.arch }}.img
 
-    - name: Get chr-${{ env.LATEST_VERSION }}${{ env.ARCH }}.img
-      if: steps.get_latest.outputs.has_new_version == 'true' && steps.cache-chr-img.outputs.cache-hit != 'true'
-      run: |
-          sudo wget -nv -O chr.img.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/chr-$LATEST_VERSION$ARCH.img.zip
-          sudo unzip chr.img.zip
-          sudo rm chr.img.zip
-          sudo mv chr-$LATEST_VERSION$ARCH.img chr.img
+    # - name: Get chr-${{ env.LATEST_VERSION }}${{ env.ARCH }}.img
+    #   if: steps.get_latest.outputs.has_new_version == 'true' && steps.cache-chr-img.outputs.cache-hit != 'true'
+    #   run: |
+    #       sudo wget -nv -O chr.img.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/chr-$LATEST_VERSION$ARCH.img.zip
+    #       sudo unzip chr.img.zip
+    #       sudo rm chr.img.zip
+    #       sudo mv chr-$LATEST_VERSION$ARCH.img chr.img
 
-    - name: Create chr-${{ env.LATEST_VERSION }}${{ env.ARCH }}.img
-      if: steps.get_latest.outputs.has_new_version == 'true'
-      run: |
-        sudo modprobe nbd
-        sudo apt-get install -y qemu-utils > /dev/null
-        truncate --size 128M chr-$LATEST_VERSION$ARCH.img
-        sgdisk --clear --set-alignment=2 \
-            --new=1::+32M --typecode=1:8300 --change-name=1:"RouterOS Boot" --attributes=1:set:2 \
-            --new=2::-0 --typecode=2:8300 --change-name=2:"RouterOS" \
-            --gpttombr=1:2 \
-            chr-$LATEST_VERSION$ARCH.img
-        dd if=chr-$LATEST_VERSION$ARCH.img of=pt.bin bs=1 count=66 skip=446
-        echo -e "\x80" | dd of=pt.bin  bs=1 count=1  conv=notrunc
-        sgdisk --mbrtogpt --clear --set-alignment=2 \
-            --new=1::+32M --typecode=1:8300 --change-name=1:"RouterOS Boot" --attributes=1:set:2 \
-            --new=2::-0 --typecode=2:8300 --change-name=2:"RouterOS" \
-            chr-$LATEST_VERSION$ARCH.img
-        dd if=mbr.bin of=chr-$LATEST_VERSION$ARCH.img  bs=1 count=446 conv=notrunc
-        dd if=pt.bin of=chr-$LATEST_VERSION$ARCH.img  bs=1 count=66 seek=446 conv=notrunc
-        sudo qemu-nbd -c /dev/nbd0 -f raw chr-$LATEST_VERSION$ARCH.img
-        sudo mkfs.vfat -n "Boot" /dev/nbd0p1
-        sudo mkfs.ext4 -F -L "RouterOS"  -m 0 /dev/nbd0p2
-        sudo mkdir -p ./img/{boot,routeros}
-        sudo mount /dev/nbd0p1 ./img/boot/
-        if [ "${{ matrix.arch }}" == "x86" ]; then
-          sudo cp chr.img chr-$LATEST_VERSION$ARCH-legacy-bios.img 
-          sudo qemu-nbd -c /dev/nbd1 -f raw chr-$LATEST_VERSION$ARCH-legacy-bios.img
-          sudo -E python3 patch.py block /dev/nbd1p1 EFI/BOOT/BOOTX64.EFI
-          sudo mkdir -p ./chr/{boot,routeros}
-          sudo mount /dev/nbd1p1 ./chr/boot/
-          sudo mkdir -p  ./img/boot/EFI/BOOT
-          sudo cp ./chr/boot/EFI/BOOT/BOOTX64.EFI ./img/boot/EFI/BOOT/BOOTX64.EFI
-          sudo umount /dev/nbd1p1
-          sudo shred -v -n 1 -z /dev/nbd1p2 
-          sudo mkfs.ext4 -F -L "RouterOS"  -m 0 /dev/nbd1p2
-          sudo mount /dev/nbd1p2 ./chr/routeros/
-          sudo mkdir -p ./chr/routeros/{var/pdb/{system,option},boot,rw}
-          sudo cp ./all_packages/option-$LATEST_VERSION$ARCH.npk ./chr/routeros/var/pdb/option/image
-          sudo cp ./all_packages/routeros-$LATEST_VERSION$ARCH.npk ./chr/routeros/var/pdb/system/image
-          sudo umount /dev/nbd1p2
-          sudo qemu-nbd -d /dev/nbd1
-          sudo rm -rf ./chr
+    # - name: Create chr-${{ env.LATEST_VERSION }}${{ env.ARCH }}.img
+    #   if: steps.get_latest.outputs.has_new_version == 'true'
+    #   run: |
+    #     sudo modprobe nbd
+    #     sudo apt-get install -y qemu-utils > /dev/null
+    #     truncate --size 128M chr-$LATEST_VERSION$ARCH.img
+    #     sgdisk --clear --set-alignment=2 \
+    #         --new=1::+32M --typecode=1:8300 --change-name=1:"RouterOS Boot" --attributes=1:set:2 \
+    #         --new=2::-0 --typecode=2:8300 --change-name=2:"RouterOS" \
+    #         --gpttombr=1:2 \
+    #         chr-$LATEST_VERSION$ARCH.img
+    #     dd if=chr-$LATEST_VERSION$ARCH.img of=pt.bin bs=1 count=66 skip=446
+    #     echo -e "\x80" | dd of=pt.bin  bs=1 count=1  conv=notrunc
+    #     sgdisk --mbrtogpt --clear --set-alignment=2 \
+    #         --new=1::+32M --typecode=1:8300 --change-name=1:"RouterOS Boot" --attributes=1:set:2 \
+    #         --new=2::-0 --typecode=2:8300 --change-name=2:"RouterOS" \
+    #         chr-$LATEST_VERSION$ARCH.img
+    #     dd if=mbr.bin of=chr-$LATEST_VERSION$ARCH.img  bs=1 count=446 conv=notrunc
+    #     dd if=pt.bin of=chr-$LATEST_VERSION$ARCH.img  bs=1 count=66 seek=446 conv=notrunc
+    #     sudo qemu-nbd -c /dev/nbd0 -f raw chr-$LATEST_VERSION$ARCH.img
+    #     sudo mkfs.vfat -n "Boot" /dev/nbd0p1
+    #     sudo mkfs.ext4 -F -L "RouterOS"  -m 0 /dev/nbd0p2
+    #     sudo mkdir -p ./img/{boot,routeros}
+    #     sudo mount /dev/nbd0p1 ./img/boot/
+    #     if [ "${{ matrix.arch }}" == "x86" ]; then
+    #       sudo cp chr.img chr-$LATEST_VERSION$ARCH-legacy-bios.img 
+    #       sudo qemu-nbd -c /dev/nbd1 -f raw chr-$LATEST_VERSION$ARCH-legacy-bios.img
+    #       sudo -E python3 patch.py block /dev/nbd1p1 EFI/BOOT/BOOTX64.EFI
+    #       sudo mkdir -p ./chr/{boot,routeros}
+    #       sudo mount /dev/nbd1p1 ./chr/boot/
+    #       sudo mkdir -p  ./img/boot/EFI/BOOT
+    #       sudo cp ./chr/boot/EFI/BOOT/BOOTX64.EFI ./img/boot/EFI/BOOT/BOOTX64.EFI
+    #       sudo umount /dev/nbd1p1
+    #       sudo shred -v -n 1 -z /dev/nbd1p2 
+    #       sudo mkfs.ext4 -F -L "RouterOS"  -m 0 /dev/nbd1p2
+    #       sudo mount /dev/nbd1p2 ./chr/routeros/
+    #       sudo mkdir -p ./chr/routeros/{var/pdb/{system,option},boot,rw}
+    #       sudo cp ./all_packages/option-$LATEST_VERSION$ARCH.npk ./chr/routeros/var/pdb/option/image
+    #       sudo cp ./all_packages/routeros-$LATEST_VERSION$ARCH.npk ./chr/routeros/var/pdb/system/image
+    #       sudo umount /dev/nbd1p2
+    #       sudo qemu-nbd -d /dev/nbd1
+    #       sudo rm -rf ./chr
 
-          sudo qemu-img convert -f raw -O qcow2 chr-$LATEST_VERSION$ARCH-legacy-bios.img chr-$LATEST_VERSION$ARCH-legacy-bios.qcow2
-          sudo qemu-img convert -f raw -O vmdk chr-$LATEST_VERSION$ARCH-legacy-bios.img chr-$LATEST_VERSION$ARCH-legacy-bios.vmdk
-          sudo qemu-img convert -f raw -O vpc chr-$LATEST_VERSION$ARCH-legacy-bios.img chr-$LATEST_VERSION$ARCH-legacy-bios.vhd
-          sudo qemu-img convert -f raw -O vhdx chr-$LATEST_VERSION$ARCH-legacy-bios.img chr-$LATEST_VERSION$ARCH-legacy-bios.vhdx
-          sudo qemu-img convert -f raw -O vdi chr-$LATEST_VERSION$ARCH-legacy-bios.img chr-$LATEST_VERSION$ARCH-legacy-bios.vdi
+    #       sudo qemu-img convert -f raw -O qcow2 chr-$LATEST_VERSION$ARCH-legacy-bios.img chr-$LATEST_VERSION$ARCH-legacy-bios.qcow2
+    #       sudo qemu-img convert -f raw -O vmdk chr-$LATEST_VERSION$ARCH-legacy-bios.img chr-$LATEST_VERSION$ARCH-legacy-bios.vmdk
+    #       sudo qemu-img convert -f raw -O vpc chr-$LATEST_VERSION$ARCH-legacy-bios.img chr-$LATEST_VERSION$ARCH-legacy-bios.vhd
+    #       sudo qemu-img convert -f raw -O vhdx chr-$LATEST_VERSION$ARCH-legacy-bios.img chr-$LATEST_VERSION$ARCH-legacy-bios.vhdx
+    #       sudo qemu-img convert -f raw -O vdi chr-$LATEST_VERSION$ARCH-legacy-bios.img chr-$LATEST_VERSION$ARCH-legacy-bios.vdi
 
-          sudo zip chr-$LATEST_VERSION$ARCH-legacy-bios.qcow2.zip chr-$LATEST_VERSION$ARCH-legacy-bios.qcow2
-          sudo zip chr-$LATEST_VERSION$ARCH-legacy-bios.vmdk.zip chr-$LATEST_VERSION$ARCH-legacy-bios.vmdk
-          sudo zip chr-$LATEST_VERSION$ARCH-legacy-bios.vhd.zip chr-$LATEST_VERSION$ARCH-legacy-bios.vhd
-          sudo zip chr-$LATEST_VERSION$ARCH-legacy-bios.vhdx.zip chr-$LATEST_VERSION$ARCH-legacy-bios.vhdx
-          sudo zip chr-$LATEST_VERSION$ARCH-legacy-bios.vdi.zip chr-$LATEST_VERSION$ARCH-legacy-bios.vdi
-          sudo zip chr-$LATEST_VERSION$ARCH-legacy-bios.img.zip chr-$LATEST_VERSION$ARCH-legacy-bios.img
+    #       sudo zip chr-$LATEST_VERSION$ARCH-legacy-bios.qcow2.zip chr-$LATEST_VERSION$ARCH-legacy-bios.qcow2
+    #       sudo zip chr-$LATEST_VERSION$ARCH-legacy-bios.vmdk.zip chr-$LATEST_VERSION$ARCH-legacy-bios.vmdk
+    #       sudo zip chr-$LATEST_VERSION$ARCH-legacy-bios.vhd.zip chr-$LATEST_VERSION$ARCH-legacy-bios.vhd
+    #       sudo zip chr-$LATEST_VERSION$ARCH-legacy-bios.vhdx.zip chr-$LATEST_VERSION$ARCH-legacy-bios.vhdx
+    #       sudo zip chr-$LATEST_VERSION$ARCH-legacy-bios.vdi.zip chr-$LATEST_VERSION$ARCH-legacy-bios.vdi
+    #       sudo zip chr-$LATEST_VERSION$ARCH-legacy-bios.img.zip chr-$LATEST_VERSION$ARCH-legacy-bios.img
 
-          sudo rm chr-$LATEST_VERSION$ARCH-legacy-bios.qcow2
-          sudo rm chr-$LATEST_VERSION$ARCH-legacy-bios.vmdk
-          sudo rm chr-$LATEST_VERSION$ARCH-legacy-bios.vhd
-          sudo rm chr-$LATEST_VERSION$ARCH-legacy-bios.vhdx
-          sudo rm chr-$LATEST_VERSION$ARCH-legacy-bios.vdi
-          sudo rm chr-$LATEST_VERSION$ARCH-legacy-bios.img
+    #       sudo rm chr-$LATEST_VERSION$ARCH-legacy-bios.qcow2
+    #       sudo rm chr-$LATEST_VERSION$ARCH-legacy-bios.vmdk
+    #       sudo rm chr-$LATEST_VERSION$ARCH-legacy-bios.vhd
+    #       sudo rm chr-$LATEST_VERSION$ARCH-legacy-bios.vhdx
+    #       sudo rm chr-$LATEST_VERSION$ARCH-legacy-bios.vdi
+    #       sudo rm chr-$LATEST_VERSION$ARCH-legacy-bios.img
 
-        elif [ "${{ matrix.arch }}" == "arm64" ]; then
-          sudo qemu-nbd -c /dev/nbd1 -f raw chr.img
-          sudo mkdir -p ./chr/boot
-          sudo mount /dev/nbd1p1 ./chr/boot/
-          sudo -E python3 patch.py kernel ./chr/boot/EFI/BOOT/BOOTAA64.EFI -O ./BOOTAA64.EFI 
-          sudo mkdir -p  ./img/boot/EFI/BOOT
-          sudo cp ./BOOTAA64.EFI ./img/boot/EFI/BOOT/BOOTAA64.EFI
-          sudo umount /dev/nbd1p1
-          sudo rm -rf ./chr
-          sudo qemu-nbd -d /dev/nbd1
-        fi
-        sudo umount /dev/nbd0p1
-        sudo mount  /dev/nbd0p2 ./img/routeros/
-        sudo mkdir -p ./img/routeros/{var/pdb/{system,option},boot,rw}
-        sudo cp ./all_packages/option-$LATEST_VERSION$ARCH.npk ./img/routeros/var/pdb/option/image
-        sudo cp ./all_packages/routeros-$LATEST_VERSION$ARCH.npk ./img/routeros/var/pdb/system/image
-        sudo umount /dev/nbd0p2
-        sudo rm -rf ./img
-        sudo qemu-nbd -d /dev/nbd0
+    #     elif [ "${{ matrix.arch }}" == "arm64" ]; then
+    #       sudo qemu-nbd -c /dev/nbd1 -f raw chr.img
+    #       sudo mkdir -p ./chr/boot
+    #       sudo mount /dev/nbd1p1 ./chr/boot/
+    #       sudo -E python3 patch.py kernel ./chr/boot/EFI/BOOT/BOOTAA64.EFI -O ./BOOTAA64.EFI 
+    #       sudo mkdir -p  ./img/boot/EFI/BOOT
+    #       sudo cp ./BOOTAA64.EFI ./img/boot/EFI/BOOT/BOOTAA64.EFI
+    #       sudo umount /dev/nbd1p1
+    #       sudo rm -rf ./chr
+    #       sudo qemu-nbd -d /dev/nbd1
+    #     fi
+    #     sudo umount /dev/nbd0p1
+    #     sudo mount  /dev/nbd0p2 ./img/routeros/
+    #     sudo mkdir -p ./img/routeros/{var/pdb/{system,option},boot,rw}
+    #     sudo cp ./all_packages/option-$LATEST_VERSION$ARCH.npk ./img/routeros/var/pdb/option/image
+    #     sudo cp ./all_packages/routeros-$LATEST_VERSION$ARCH.npk ./img/routeros/var/pdb/system/image
+    #     sudo umount /dev/nbd0p2
+    #     sudo rm -rf ./img
+    #     sudo qemu-nbd -d /dev/nbd0
 
-        sudo qemu-img convert -f raw -O qcow2 chr-$LATEST_VERSION$ARCH.img chr-$LATEST_VERSION$ARCH.qcow2
-        sudo qemu-img convert -f raw -O vmdk chr-$LATEST_VERSION$ARCH.img chr-$LATEST_VERSION$ARCH.vmdk
-        sudo qemu-img convert -f raw -O vpc chr-$LATEST_VERSION$ARCH.img chr-$LATEST_VERSION$ARCH.vhd
-        sudo qemu-img convert -f raw -O vhdx chr-$LATEST_VERSION$ARCH.img chr-$LATEST_VERSION$ARCH.vhdx
-        sudo qemu-img convert -f raw -O vdi chr-$LATEST_VERSION$ARCH.img chr-$LATEST_VERSION$ARCH.vdi
+    #     sudo qemu-img convert -f raw -O qcow2 chr-$LATEST_VERSION$ARCH.img chr-$LATEST_VERSION$ARCH.qcow2
+    #     sudo qemu-img convert -f raw -O vmdk chr-$LATEST_VERSION$ARCH.img chr-$LATEST_VERSION$ARCH.vmdk
+    #     sudo qemu-img convert -f raw -O vpc chr-$LATEST_VERSION$ARCH.img chr-$LATEST_VERSION$ARCH.vhd
+    #     sudo qemu-img convert -f raw -O vhdx chr-$LATEST_VERSION$ARCH.img chr-$LATEST_VERSION$ARCH.vhdx
+    #     sudo qemu-img convert -f raw -O vdi chr-$LATEST_VERSION$ARCH.img chr-$LATEST_VERSION$ARCH.vdi
 
-        sudo zip chr-$LATEST_VERSION$ARCH.qcow2.zip chr-$LATEST_VERSION$ARCH.qcow2
-        sudo zip chr-$LATEST_VERSION$ARCH.vmdk.zip chr-$LATEST_VERSION$ARCH.vmdk
-        sudo zip chr-$LATEST_VERSION$ARCH.vhd.zip chr-$LATEST_VERSION$ARCH.vhd
-        sudo zip chr-$LATEST_VERSION$ARCH.vhdx.zip chr-$LATEST_VERSION$ARCH.vhdx
-        sudo zip chr-$LATEST_VERSION$ARCH.vdi.zip chr-$LATEST_VERSION$ARCH.vdi
-        sudo zip chr-$LATEST_VERSION$ARCH.img.zip chr-$LATEST_VERSION$ARCH.img
+    #     sudo zip chr-$LATEST_VERSION$ARCH.qcow2.zip chr-$LATEST_VERSION$ARCH.qcow2
+    #     sudo zip chr-$LATEST_VERSION$ARCH.vmdk.zip chr-$LATEST_VERSION$ARCH.vmdk
+    #     sudo zip chr-$LATEST_VERSION$ARCH.vhd.zip chr-$LATEST_VERSION$ARCH.vhd
+    #     sudo zip chr-$LATEST_VERSION$ARCH.vhdx.zip chr-$LATEST_VERSION$ARCH.vhdx
+    #     sudo zip chr-$LATEST_VERSION$ARCH.vdi.zip chr-$LATEST_VERSION$ARCH.vdi
+    #     sudo zip chr-$LATEST_VERSION$ARCH.img.zip chr-$LATEST_VERSION$ARCH.img
 
-        sudo rm chr-$LATEST_VERSION$ARCH.qcow2
-        sudo rm chr-$LATEST_VERSION$ARCH.vmdk
-        sudo rm chr-$LATEST_VERSION$ARCH.vhd
-        sudo rm chr-$LATEST_VERSION$ARCH.vhdx
-        sudo rm chr-$LATEST_VERSION$ARCH.vdi
-        sudo rm chr-$LATEST_VERSION$ARCH.img
+    #     sudo rm chr-$LATEST_VERSION$ARCH.qcow2
+    #     sudo rm chr-$LATEST_VERSION$ARCH.vmdk
+    #     sudo rm chr-$LATEST_VERSION$ARCH.vhd
+    #     sudo rm chr-$LATEST_VERSION$ARCH.vhdx
+    #     sudo rm chr-$LATEST_VERSION$ARCH.vdi
+    #     sudo rm chr-$LATEST_VERSION$ARCH.img
 
 
     - name: Upload Files
       if: steps.get_latest.outputs.has_new_version == 'true'
       run: |
-        sudo mkdir -p ./publish/$LATEST_VERSION_
-        sudo cp CHANGELOG ./publish/$LATEST_VERSION_/
-        sudo cp ./all_packages/*.npk ./publish/$LATEST_VERSION_/
+        sudo mkdir -p ./publish/$LATEST_VERSION-UNDONE
+        sudo cp CHANGELOG ./publish/$LATEST_VERSION-UNDONE/
+        sudo cp ./all_packages/*.npk ./publish/$LATEST_VERSION-UNDONE/
         sudo chown -R root:root ./publish/
         sudo apt-get install -y lftp ssh sshpass > /dev/null 2>&1
         sudo -E lftp -u ${{ secrets.SSH_USERNAME }},'${{ secrets.SSH_PASSWORD }}' sftp://${{ secrets.SSH_SERVER }}:${{ secrets.SSH_PORT }} <<EOF
@@ -492,7 +492,7 @@ jobs:
               latest_version=$(jq -r '.latest_version' "$file")
               build_time=$(jq -r '.build_time' "$file")
               echo "Arch: $arch, Channel: $channel, Latest Version: $latest_version,Build Time: $build_time"
-              sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_SERVER }} "echo $latest_version $build_time | tee /rw/disk/${{ secrets.SSH_DIRECTORY }}/NEWESTa7.$channel; /rw/disk/${{ secrets.SSH_DIRECTORY }}/packages.sh /rw/disk/${{ secrets.SSH_DIRECTORY }}/$latest_version_"
+              sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_SERVER }} "echo $latest_version $build_time | tee /rw/disk/${{ secrets.SSH_DIRECTORY }}/NEWESTa7.$channel; /rw/disk/${{ secrets.SSH_DIRECTORY }}/packages.sh /rw/disk/${{ secrets.SSH_DIRECTORY }}/$latest_version-UNDONE"
             fi
           done
           sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_SERVER }} "chown -R 32768:32768 /rw/disk/${{ secrets.SSH_DIRECTORY }}/"
