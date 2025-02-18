@@ -19,14 +19,14 @@ def replace_key(old,new,data,name=''):
     new_chunks = [new[i:i+4] for i in range(0, len(new), 4)]
     data =  replace_chunks(old_chunks, new_chunks, data,name)
     if os.environ['ARCH'] == '-arm64' and os.environ['LATEST_VERSION'] == '7.17.2':
-        old_codes = [bytes.fromhex('793583E2'),bytes.fromhex('FD3A83E2'),bytes.fromhex('193D83E2')]    
-        new_codes = [bytes.fromhex('FF34A0E3'),bytes.fromhex('753C83E2'),bytes.fromhex('FC3083E2')]  
-        data =  replace_chunks(old_codes, new_codes, data,name)
         old_bytes = old_chunks[4] + old_chunks[5] + old_chunks[2] + old_chunks[0] + old_chunks[1] + old_chunks[6] + old_chunks[7]
         new_bytes = new_chunks[4] + new_chunks[5] + new_chunks[2] + new_chunks[0] + new_chunks[1] + new_chunks[6] + new_chunks[7]
         if old_bytes in data:
             print(f'{name} public key patched {old[:16].hex().upper()}...')
             data = data.replace(old_bytes,new_bytes)
+            old_codes = [bytes.fromhex('793583E2'),bytes.fromhex('FD3A83E2'),bytes.fromhex('193D83E2')]    
+            new_codes = [bytes.fromhex('FF34A0E3'),bytes.fromhex('753C83E2'),bytes.fromhex('FC3083E2')]  
+            data =  replace_chunks(old_codes, new_codes, data,name)
     return data
 
 def patch_bzimage(data:bytes,key_dict:dict):
