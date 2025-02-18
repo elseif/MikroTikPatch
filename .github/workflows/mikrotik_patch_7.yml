@@ -22,6 +22,11 @@ on:
         options:
           - stable
           - testing
+      version:
+        description: 'Version (latest, 7.17, 7.17.1, 7.17.2,...)'
+        required: false
+        default: 'latest'
+        type: string
 permissions:
   contents: write
 
@@ -58,8 +63,8 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        arch: ${{ fromJSON(format('["{0}"]', join('","', split(github.event.inputs.arch, ','))) }}
-        channel: ${{ fromJSON(format('["{0}"]', join('","', split(github.event.inputs.channel, ','))) }}
+        arch: ${{ fromJSON(format('["{0}"]', github.event.inputs.arch || 'x86')) }}
+        channel: ${{ fromJSON(format('["{0}"]', github.event.inputs.channel || 'stable')) }}
     env:
       TZ: 'Asia/Shanghai'
       LATEST_VERSION: ""
@@ -77,7 +82,10 @@ jobs:
       id: get_latest
       run: |
         echo $(uname -a)
-        LATEST_VERSION=$(wget -nv -O - https://${{ env.MIKRO_UPGRADE_URL }}/routeros/NEWESTa7.${{ matrix.channel }} | cut -d ' ' -f1)
+        LATEST_VERSION=${{ github.event.inputs.version || "latest" }}
+        if [$LATEST_VERSION == "latest"];then
+          LATEST_VERSION=$(wget -nv -O - https://${{ env.MIKRO_UPGRADE_URL }}/routeros/NEWESTa7.${{ matrix.channel }} | cut -d ' ' -f1)
+        fi
         echo Latest Version:$LATEST_VERSION
         if [ "${{ github.event_name }}" == "schedule" ]; then
           _LATEST_VERSION=$(wget -nv -O - https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/NEWESTa7.${{ matrix.channel }} | cut -d ' ' -f1)
