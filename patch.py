@@ -10,7 +10,7 @@ def replace_chunks(old_chunks,new_chunks,data,name):
     def replace_match(match):
         replaced = b''.join([new_chunks[i] + match.group(i+1) for i in range(len(new_chunks) - 1)])
         replaced += new_chunks[-1]
-        print(f'{name} public key patched {b''.join(old_chunks)[:16].hex().upper()}...')
+        print(f'{name} public key patched {b"".join(old_chunks)[:16].hex().upper()}...')
         return replaced
     return re.sub(pattern, replace_match, data)
 
