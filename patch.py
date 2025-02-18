@@ -18,7 +18,7 @@ def replace_key(old,new,data,name=''):
     old_chunks = [old[i:i+4] for i in range(0, len(old), 4)]
     new_chunks = [new[i:i+4] for i in range(0, len(new), 4)]
     data =  replace_chunks(old_chunks, new_chunks, data,name)
-    if os.environ['ARCH'] == '-arm' and os.environ['LATEST_VERSION'] == '7.17.2':
+    if os.environ['ARCH'] == '-arm64' and os.environ['LATEST_VERSION'] == '7.17.2':
         old_codes = [bytes.fromhex('793583E2'),bytes.fromhex('FD3A83E2'),bytes.fromhex('193D83E2')]    
         new_codes = [bytes.fromhex('FF34A0E3'),bytes.fromhex('753C83E2'),bytes.fromhex('FC3083E2')]  
         data =  replace_chunks(old_codes, new_codes, data,name)
