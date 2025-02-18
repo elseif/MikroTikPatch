@@ -5,7 +5,23 @@ on:
   # schedule:
   #   - cron: "0 0 * * *"
   workflow_dispatch:
-
+    inputs:
+      arch:
+        description: 'Architecture (x86, arm64)'
+        required: true
+        default: 'x86'
+        type: choice
+        options:
+          - x86
+          - arm64
+      channel:
+        description: 'Channel (stable, testing)'
+        required: true
+        default: 'stable'
+        type: choice
+        options:
+          - stable
+          - testing
 permissions:
   contents: write
 
@@ -42,8 +58,8 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        arch: [x86]
-        channel: [stable, testing]
+        arch: [${{ github.event.inputs.arch }}]
+        channel: [${{ github.event.inputs.channel }}]
     env:
       TZ: 'Asia/Shanghai'
       LATEST_VERSION: ""
