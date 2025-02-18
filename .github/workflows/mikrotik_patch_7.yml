@@ -58,8 +58,8 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        arch: [${{ github.event.inputs.arch }}]
-        channel: [${{ github.event.inputs.channel }}]
+        arch: ${{ fromJSON(format('["{0}"]', join('","', split(github.event.inputs.arch, ','))) }}
+        channel: ${{ fromJSON(format('["{0}"]', join('","', split(github.event.inputs.channel, ','))) }}
     env:
       TZ: 'Asia/Shanghai'
       LATEST_VERSION: ""
