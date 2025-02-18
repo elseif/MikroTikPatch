@@ -2,22 +2,32 @@ import subprocess,lzma
 import struct,os,re
 from npk import NovaPackage,NpkPartID,NpkFileContainer
 
-def replace_key(old,new,data,name=''):
-    old_chunks = [old[i:i+4] for i in range(0, len(old), 4)]
-    new_chunks = [new[i:i+4] for i in range(0, len(new), 4)]
+def replace_chunks(old_chunks,new_chunks,data,name):
     pattern_parts = [re.escape(chunk) + b'(.{0,6})' for chunk in old_chunks[:-1]]
     pattern_parts.append(re.escape(old_chunks[-1])) 
     pattern_bytes = b''.join(pattern_parts)
     pattern = re.compile(pattern_bytes, flags=re.DOTALL) 
     def replace_match(match):
-        # print(f'{name} found public key at {match.start()} {match.group().hex().upper()}')
         replaced = b''.join([new_chunks[i] + match.group(i+1) for i in range(len(new_chunks) - 1)])
         replaced += new_chunks[-1]
-        # print(f'{name} replace public key {replaced.hex().upper()}')
-        print(f'{name} public key patched {old[:16].hex().upper()}...')
+        print(f'{name} public key patched {b''.join(old_chunks)[:16].hex().upper()}...')
         return replaced
     return re.sub(pattern, replace_match, data)
 
+def replace_key(old,new,data,name=''):
+    old_chunks = [old[i:i+4] for i in range(0, len(old), 4)]
+    new_chunks = [new[i:i+4] for i in range(0, len(new), 4)]
+    data =  replace_chunks(old_chunks, new_chunks, data,name)
+    if os.environ['ARCH'] == '-arm' and os.environ['LATEST_VERSION'] == '7.17.2':
+        old_codes = [bytes.fromhex('793583E2'),bytes.fromhex('FD3A83E2'),bytes.fromhex('193D83E2')]    
+        new_codes = [bytes.fromhex('FF34A0E3'),bytes.fromhex('753C83E2'),bytes.fromhex('FC3083E2')]  
+        data =  replace_chunks(old_codes, new_codes, data,name)
+        old_bytes = old_chunks[4] + old_chunks[5] + old_chunks[2] + old_chunks[0] + old_chunks[1] + old_chunks[6] + old_chunks[7]
+        new_bytes = new_chunks[4] + new_chunks[5] + new_chunks[2] + new_chunks[0] + new_chunks[1] + new_chunks[6] + new_chunks[7]
+        if old_bytes in data:
+            print(f'{name} public key patched {old[:16].hex().upper()}...')
+            data = data.replace(old_bytes,new_bytes)
+    return data
 
 def patch_bzimage(data:bytes,key_dict:dict):
     PE_TEXT_SECTION_OFFSET = 414
