@@ -63,7 +63,7 @@ jobs:
         id: set_buildtime
         run: 
           _BUILD_TIME=${{ github.event.inputs.buildtime }}
-          if [$BUILD_TIME == ""];then
+          if [$_BUILD_TIME == ""];then
             echo "BUILD_TIME=$(date +'%s')" >> $GITHUB_OUTPUT
           else
              echo "BUILD_TIME=$_BUILD_TIME" >> $GITHUB_OUTPUT
