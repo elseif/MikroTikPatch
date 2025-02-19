@@ -540,7 +540,6 @@ jobs:
           merge-multiple: true
       - name: Create Packages CSV File
         run: |
-        
           sudo apt-get install ssh sshpass
           for file in artifacts/latest_version_*.json; do
             if [ -f "$file" ]; then
@@ -550,7 +549,7 @@ jobs:
               build_time=$(jq -r '.build_time' "$file")
               has_patched_npk=$(jq -r '.patched' "$file")
               echo "Arch: $arch, Channel: $channel, Latest Version: $latest_version,Build Time: $build_time,Has Patched NPK: $has_patched_npk"
-              if [ "${{ has_patched_npk }}" == "false" ]; then
+              if [ "$has_patched_npk" == "false" ]; then
                 OUTDIR="$latest_version-UNDONE"
               else
                 OUTDIR="$latest_version"
