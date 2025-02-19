@@ -240,8 +240,8 @@ jobs:
           sudo mv ./new_iso/routeros-$LATEST_VERSION$ARCH.npk ./
           sudo -E python3 patch.py npk routeros-$LATEST_VERSION$ARCH.npk
         else
-          sudo sudo -E python3 npk.py sign routeros-$LATEST_VERSION$ARCH.npk routeros-$LATEST_VERSION$ARCH.npk
-          sudo sudo -E python3 npk.py sign wireless-$LATEST_VERSION$ARCH.npk wireless-$LATEST_VERSION$ARCH.npk
+          sudo -E python3 npk.py sign routeros-$LATEST_VERSION$ARCH.npk routeros-$LATEST_VERSION$ARCH.npk
+          sudo -E python3 npk.py sign wireless-$LATEST_VERSION$ARCH.npk wireless-$LATEST_VERSION$ARCH.npk
           sudo cp -f wireless-$LATEST_VERSION$ARCH.npk ./new_iso/
         fi
 
