@@ -27,6 +27,11 @@ on:
         required: false
         default: ''
         type: string
+      buildtime:
+        description: "Build Time"
+        required: false
+        default: ''
+        type: string
 permissions:
   contents: write
 
@@ -56,7 +61,13 @@ jobs:
     steps:
       - name: Set build time
         id: set_buildtime
-        run: echo "BUILD_TIME=$(date +'%s')" >> $GITHUB_OUTPUT
+        run: 
+          _BUILD_TIME=${{ github.event.inputs.buildtime }}
+          if [$BUILD_TIME == ""];then
+            echo "BUILD_TIME=$(date +'%s')" >> $GITHUB_OUTPUT
+          else
+             echo "BUILD_TIME=$_BUILD_TIME" >> $GITHUB_OUTPUT
+          fi
 
   Patch_RouterOS:
     needs: Set_BuildTime
