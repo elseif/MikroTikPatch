@@ -130,7 +130,7 @@ jobs:
         fi
         echo "has_patched_npk=$has_patched_npk" >> $GITHUB_OUTPUT
         
-        echo "{\"arch\": \"${{ matrix.arch }}\", \"channel\": \"${{ matrix.channel }}\", \"latest_version\": \"$LATEST_VERSION\",\"build_time\": \"$BUILD_TIME\",\"patched\": \"${{ has_patched_npk }}\"}" > latest_version_${{ matrix.arch }}_${{ matrix.channel }}.json
+        echo "{\"arch\": \"${{ matrix.arch }}\", \"channel\": \"${{ matrix.channel }}\", \"latest_version\": \"$LATEST_VERSION\",\"build_time\": \"$BUILD_TIME\",\"patched\": \"$has_patched_npk\"}" > latest_version_${{ matrix.arch }}_${{ matrix.channel }}.json
         sudo apt-get update > /dev/null
         
     - name: Upload artifacts
