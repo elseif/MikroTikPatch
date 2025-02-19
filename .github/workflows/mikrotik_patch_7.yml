@@ -63,7 +63,7 @@ jobs:
         id: set_buildtime
         run: |
           _BUILD_TIME=${{ github.event.inputs.buildtime }}
-          if [$_BUILD_TIME == ""];then
+          if [ -z "$_BUILD_TIME" ]; then
             echo "BUILD_TIME=$(date +'%s')" >> $GITHUB_OUTPUT
           else
              echo "BUILD_TIME=$_BUILD_TIME" >> $GITHUB_OUTPUT
@@ -94,7 +94,7 @@ jobs:
       run: |
         echo $(uname -a)
         LATEST_VERSION=${{ github.event.inputs.version }}
-        if [$LATEST_VERSION ==""];then
+        if [ -z  "$_LATEST_VERSION" ]; then
           LATEST_VERSION=$(wget -nv -O - https://${{ env.MIKRO_UPGRADE_URL }}/routeros/NEWESTa7.${{ matrix.channel }} | cut -d ' ' -f1)
         fi
         echo Latest Version:$LATEST_VERSION
