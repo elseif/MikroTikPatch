@@ -147,7 +147,7 @@ jobs:
         path: latest_version_${{ matrix.arch }}_${{ matrix.channel }}.json
 
     - name: Cache Squashfs
-      if: steps.get_latest.outputs.has_new_version == 'true' && steps.get_latest.outputs.has_patched_npk == 'true'
+      if: steps.get_latest.outputs.has_new_version == 'true'
       id: cache-squashfs
       uses: actions/cache@v4
       with:
@@ -157,7 +157,7 @@ jobs:
         key: busybox-python3-squashfs-${{ matrix.arch }}
 
     - name: Create Squashfs for option and python3
-      if: steps.get_latest.outputs.has_new_version == 'true' && steps.cache-squashfs.outputs.cache-hit != 'true' && steps.get_latest.outputs.has_patched_npk == 'true'
+      if: steps.get_latest.outputs.has_new_version == 'true' && steps.cache-squashfs.outputs.cache-hit != 'true'
       run: |
         sudo mkdir -p ./option-root/bin/
         if [ "${{ matrix.arch }}" == "x86" ]; then
