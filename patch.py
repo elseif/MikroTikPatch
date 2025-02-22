@@ -277,6 +277,8 @@ def patch_kernel(data:bytes,key_dict):
 def patch_squashfs(path,key_dict):
     for root, dirs, files in os.walk(path):
         for file in files:
+            if file =='loader':
+                continue
             file = os.path.join(root,file)
             if os.path.isfile(file):
                 data = open(file,'rb').read()
