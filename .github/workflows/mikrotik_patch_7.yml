@@ -121,11 +121,17 @@ jobs:
           echo "ARCH=$ARCH" >> $GITHUB_ENV
         fi
         has_patched_npk=false
-        wget -nv -O routeros-$LATEST_VERSION$ARCH.npk https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/$LATEST_VERSION/routeros-$LATEST_VERSION$ARCH.npk
+        wget -nv --spider https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/$LATEST_VERSION/routeros-$LATEST_VERSION$ARCH.npk
         if [ $? -eq 0 ]; then
-          wget -nv -O wireless-$LATEST_VERSION$ARCH.npk https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/$LATEST_VERSION/wireless-$LATEST_VERSION$ARCH.npk
+          wget -nv -O routeros-$LATEST_VERSION$ARCH.npk https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/$LATEST_VERSION/routeros-$LATEST_VERSION$ARCH.npk
           if [ $? -eq 0 ]; then
-            has_patched_npk=true
+            wget -nv --spider https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/$LATEST_VERSION/wireless-$LATEST_VERSION$ARCH.npk
+            if [ $? -eq 0 ]; then
+              wget -nv -O wireless-$LATEST_VERSION$ARCH.npk https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/$LATEST_VERSION/wireless-$LATEST_VERSION$ARCH.npk
+              if [ $? -eq 0 ]; then
+                if [ $? -eq 0 ]; then
+              fi
+            fi
           fi
         fi
         echo "has_patched_npk=$has_patched_npk" >> $GITHUB_OUTPUT
