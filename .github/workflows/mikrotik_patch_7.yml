@@ -121,15 +121,15 @@ jobs:
           echo "ARCH=$ARCH" >> $GITHUB_ENV
         fi
         has_patched_npk=false
-        wget -nv --spider https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/$LATEST_VERSION/routeros-$LATEST_VERSION$ARCH.npk
-        if [ $? -eq 0 ]; then
-          wget -nv -O routeros-$LATEST_VERSION$ARCH.npk https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/$LATEST_VERSION/routeros-$LATEST_VERSION$ARCH.npk
-          if [ $? -eq 0 ]; then
-            wget -nv --spider https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/$LATEST_VERSION/wireless-$LATEST_VERSION$ARCH.npk
-            if [ $? -eq 0 ]; then
-              wget -nv -O wireless-$LATEST_VERSION$ARCH.npk https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/$LATEST_VERSION/wireless-$LATEST_VERSION$ARCH.npk
-              if [ $? -eq 0 ]; then
-                if [ $? -eq 0 ]; then
+        if wget -nv --spider https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/$LATEST_VERSION/routeros-$LATEST_VERSION$ARCH.npk; then
+          echo "RouterOS NPK file exists, attempting to download..."
+          if wget -nv -O routeros-$LATEST_VERSION$ARCH.npk https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/$LATEST_VERSION/routeros-$LATEST_VERSION$ARCH.npk; then
+            echo "RouterOS NPK file downloaded successfully."
+            if wget -nv --spider https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/$LATEST_VERSION/wireless-$LATEST_VERSION$ARCH.npk; then
+              echo "Wireless NPK file exists, attempting to download..."
+              if wget -nv -O wireless-$LATEST_VERSION$ARCH.npk https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/$LATEST_VERSION/wireless-$LATEST_VERSION$ARCH.npk; then
+                echo "Wireless NPK file downloaded successfully."
+                has_patched_npk=true
               fi
             fi
           fi
