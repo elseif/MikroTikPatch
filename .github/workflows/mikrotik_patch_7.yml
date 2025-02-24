@@ -125,13 +125,7 @@ jobs:
           echo "RouterOS NPK file exists, attempting to download..."
           if wget -nv -O routeros-$LATEST_VERSION$ARCH.npk https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/$LATEST_VERSION/routeros-$LATEST_VERSION$ARCH.npk; then
             echo "RouterOS NPK file downloaded successfully."
-            if wget -nv --spider https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/$LATEST_VERSION/wireless-$LATEST_VERSION$ARCH.npk; then
-              echo "Wireless NPK file exists, attempting to download..."
-              if wget -nv -O wireless-$LATEST_VERSION$ARCH.npk https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/$LATEST_VERSION/wireless-$LATEST_VERSION$ARCH.npk; then
-                echo "Wireless NPK file downloaded successfully."
-                has_patched_npk=true
-              fi
-            fi
+            has_patched_npk=true
           fi
         fi
         echo "has_patched_npk=$has_patched_npk" >> $GITHUB_OUTPUT
@@ -245,9 +239,6 @@ jobs:
         if [ "${{ steps.get_latest.outputs.has_patched_npk }}" == "false" ]; then
           sudo mv ./new_iso/routeros-$LATEST_VERSION$ARCH.npk ./
           sudo -E python3 patch.py npk routeros-$LATEST_VERSION$ARCH.npk
-        else
-          sudo cp -f wireless-$LATEST_VERSION$ARCH.npk ./new_iso/
-          sudo cp -f routeros-$LATEST_VERSION$ARCH.npk ./new_iso/
         fi
         NPK_FILES=$(find ./new_iso/*.npk)
         for file in $NPK_FILES; do
