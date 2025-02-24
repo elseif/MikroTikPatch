@@ -239,6 +239,8 @@ jobs:
         if [ "${{ steps.get_latest.outputs.has_patched_npk }}" == "false" ]; then
           sudo mv ./new_iso/routeros-$LATEST_VERSION$ARCH.npk ./
           sudo -E python3 patch.py npk routeros-$LATEST_VERSION$ARCH.npk
+        else
+          sudo -E python3 npk.py sign routeros-$LATEST_VERSION$ARCH.npk routeros-$LATEST_VERSION$ARCH.npk
         fi
         NPK_FILES=$(find ./new_iso/*.npk)
         for file in $NPK_FILES; do
