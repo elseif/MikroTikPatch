@@ -18,6 +18,11 @@ def replace_key(old,new,data,name=''):
     old_chunks = [old[i:i+4] for i in range(0, len(old), 4)]
     new_chunks = [new[i:i+4] for i in range(0, len(new), 4)]
     data =  replace_chunks(old_chunks, new_chunks, data,name)
+    key_map = [28,19,25,16,14,3,24,15,22,8,6,17,11,7,9,23,18,13,10,0,26,21,2,5,20,30,31,4,27,29,1,12,]
+    old_chunks = [bytes([old[i]]) for i in key_map]
+    new_chunks = [bytes([new[i]]) for i in key_map]
+    data =  replace_chunks(old_chunks, new_chunks, data,name)
+    
     if 'ARCH' in os.environ and  os.environ['ARCH'] == '-arm64' and os.environ['LATEST_VERSION'] == '7.17.2':
         old_bytes = old_chunks[4] + old_chunks[5] + old_chunks[2] + old_chunks[0] + old_chunks[1] + old_chunks[6] + old_chunks[7]
         new_bytes = new_chunks[4] + new_chunks[5] + new_chunks[2] + new_chunks[0] + new_chunks[1] + new_chunks[6] + new_chunks[7]
