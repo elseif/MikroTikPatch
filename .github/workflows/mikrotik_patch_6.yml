@@ -236,7 +236,6 @@ jobs:
         if [ "${{ steps.get_latest.outputs.has_patched_npk }}" == "false" ]; then
           sudo -E python3 patch.py npk ./chr/var/pdb/routeros-x86/image
           sudo cp ./chr/var/pdb/routeros-x86/image ./all_packages/routeros-x86-$LATEST_VERSION.npk
-          sudo cp ./all_packages/routeros-x86-$LATEST_VERSION.npk routeros-x86-$LATEST_VERSION.npk
         else
           sudo -E python3 npk.py sign routeros-x86-$LATEST_VERSION.npk routeros-x86-$LATEST_VERSION.npk
           sudo cp -f routeros-x86-$LATEST_VERSION.npk ./chr/var/pdb/routeros-x86/image
