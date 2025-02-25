@@ -225,6 +225,7 @@ jobs:
     - name: Create chr-${{ env.LATEST_VERSION }}.img
       if: steps.get_latest.outputs.has_new_version == 'true'
       run: |
+        sudo apt-get install -y qemu-utils extlinux > /dev/null
         sudo mkdir ./chr
         sudo cp chr.img chr-$LATEST_VERSION.img
         sudo qemu-nbd -c /dev/nbd0 -f raw chr-$LATEST_VERSION.img
