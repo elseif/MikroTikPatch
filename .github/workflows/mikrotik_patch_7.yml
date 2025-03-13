@@ -465,24 +465,24 @@ jobs:
         sudo rm chr-$LATEST_VERSION$ARCH.img
 
 
-    - name: Upload Files
-      if: steps.get_latest.outputs.has_new_version == 'true'
-      run: |
-        if [ "${{ steps.get_latest.outputs.has_patched_npk }}" == "false" ]; then
-          OUTDIR="$LATEST_VERSION-UNDONE"
-        else
-          OUTDIR="$LATEST_VERSION"
-        fi
-        sudo mkdir -p ./publish/$OUTDIR
-        sudo cp CHANGELOG ./publish/$OUTDIR/
-        sudo cp ./all_packages/*.npk ./publish/$OUTDIR/
-        sudo chown -R root:root ./publish/
-        sudo apt-get install -y lftp ssh sshpass > /dev/null 2>&1
-        sudo -E lftp -u ${{ secrets.SSH_USERNAME }},'${{ secrets.SSH_PASSWORD }}' sftp://${{ secrets.SSH_SERVER }}:${{ secrets.SSH_PORT }} <<EOF
-        set sftp:auto-confirm yes
-        mirror --reverse --verbose --only-newer ./publish ${{ secrets.SSH_DIRECTORY }}
-        bye
-        EOF
+    # - name: Upload Files
+    #   if: steps.get_latest.outputs.has_new_version == 'true'
+    #   run: |
+    #     if [ "${{ steps.get_latest.outputs.has_patched_npk }}" == "false" ]; then
+    #       OUTDIR="$LATEST_VERSION-UNDONE"
+    #     else
+    #       OUTDIR="$LATEST_VERSION"
+    #     fi
+    #     sudo mkdir -p ./publish/$OUTDIR
+    #     sudo cp CHANGELOG ./publish/$OUTDIR/
+    #     sudo cp ./all_packages/*.npk ./publish/$OUTDIR/
+    #     sudo chown -R root:root ./publish/
+    #     sudo apt-get install -y lftp ssh sshpass > /dev/null 2>&1
+    #     sudo -E lftp -u ${{ secrets.SSH_USERNAME }},'${{ secrets.SSH_PASSWORD }}' sftp://${{ secrets.SSH_SERVER }}:${{ secrets.SSH_PORT }} <<EOF
+    #     set sftp:auto-confirm yes
+    #     mirror --reverse --verbose --only-newer ./publish ${{ secrets.SSH_DIRECTORY }}
+    #     bye
+    #     EOF
         
     - name: Clear Cloudflare cache
       if: steps.get_latest.outputs.has_new_version == 'true'
