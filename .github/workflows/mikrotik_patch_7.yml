@@ -93,7 +93,8 @@ jobs:
       id: get_latest
       run: |
         echo $(uname -a)
-        LATEST_VERSION=${{ github.event.inputs.version }}
+        # LATEST_VERSION=${{ github.event.inputs.version }}
+        LATEST_VERSION="7..18.1"
         if [ -z  "$_LATEST_VERSION" ]; then
           LATEST_VERSION=$(wget -nv -O - https://${{ env.MIKRO_UPGRADE_URL }}/routeros/NEWESTa7.${{ matrix.channel }} | cut -d ' ' -f1)
         fi
