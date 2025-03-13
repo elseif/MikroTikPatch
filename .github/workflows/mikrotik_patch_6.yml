@@ -85,10 +85,10 @@ jobs:
       run: |
         echo $(uname -a)
         # LATEST_VERSION=${{ github.event.inputs.version }}
-        LATEST_VERSION="6.49.17"
-        if [ -z  "$_LATEST_VERSION" ]; then
-          LATEST_VERSION=$(wget -nv -O - https://${{ env.MIKRO_UPGRADE_URL }}/routeros/NEWEST6.${{ matrix.channel }} | cut -d ' ' -f1)
-        fi
+        LATEST_VERSION='6.49.17'
+        # if [ -z  "$_LATEST_VERSION" ]; then
+        #   LATEST_VERSION=$(wget -nv -O - https://${{ env.MIKRO_UPGRADE_URL }}/routeros/NEWEST6.${{ matrix.channel }} | cut -d ' ' -f1)
+        # fi
         echo Latest Version:$LATEST_VERSION
         # if [ "${{ github.event_name }}" == "schedule" ]; then
         #   _LATEST_VERSION=$(wget -nv -O - https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/NEWEST6.${{ matrix.channel }}  | cut -d ' ' -f1)
