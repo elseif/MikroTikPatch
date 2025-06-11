@@ -184,6 +184,8 @@ jobs:
             sudo -E python3 npk.py sign $file $file
         done
         sudo cp system-$LATEST_VERSION.npk ./new_iso/
+        sudo -E python3 npk.py create ./new_iso/gps-$LATEST_VERSION.npk ./option-$LATEST_VERSION.npk option ./option.sfs -desc="busybox"
+        sudo cp option-$LATEST_VERSION.npk ./new_iso/
         sudo mkisofs -o mikrotik-$LATEST_VERSION.iso \
                     -V "MikroTik $LATEST_VERSION" \
                     -sysid "" -preparer "MiKroTiK" \
