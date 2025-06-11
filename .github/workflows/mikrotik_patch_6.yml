@@ -287,12 +287,12 @@ jobs:
         sudo zip chr-$LATEST_VERSION.vdi.zip chr-$LATEST_VERSION.vdi
         sudo zip chr-$LATEST_VERSION.img.zip chr-$LATEST_VERSION.img
 
-        sudo rm chr-$LATEST_VERSION$ARCH.qcow2
-        sudo rm chr-$LATEST_VERSION$ARCH.vmdk
-        sudo rm chr-$LATEST_VERSION$ARCH.vhd
-        sudo rm chr-$LATEST_VERSION$ARCH.vhdx
-        sudo rm chr-$LATEST_VERSION$ARCH.vdi
-        sudo rm chr-$LATEST_VERSION$ARCH.img
+        sudo rm chr-$LATEST_VERSION.qcow2
+        sudo rm chr-$LATEST_VERSION.vmdk
+        sudo rm chr-$LATEST_VERSION.vhd
+        sudo rm chr-$LATEST_VERSION.vhdx
+        sudo rm chr-$LATEST_VERSION.vdi
+        sudo rm chr-$LATEST_VERSION.img
 
         cd ./all_packages
         sudo zip ../all_packages-x86-$LATEST_VERSION.zip *.npk
@@ -316,7 +316,7 @@ jobs:
         mirror --reverse --verbose --only-newer ./publish ${{ secrets.SSH_DIRECTORY }}
         bye
         EOF
-        sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_SERVER }} "chown -R 32768:32768 /rw/disk/${{ secrets.SSH_DIRECTORY }}/"   
+        sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_SERVER }} "echo $LATEST_VERSION $BUILD_TIME | tee /rw/disk/${{ secrets.SSH_DIRECTORY }}/NEWEST6.${{ matrix.channel }}; chown -R 32768:32768 /rw/disk/${{ secrets.SSH_DIRECTORY }}/"   
         
     - name: Clear Cloudflare cache
       if: steps.get_latest.outputs.has_new_version == 'true'
@@ -330,14 +330,14 @@ jobs:
       if: steps.get_latest.outputs.has_new_version == 'true' && steps.get_latest.outputs.has_patched_npk == 'true'
       run: |
         HEADER="Authorization: token ${{ secrets.GITHUB_TOKEN }}"
-        RELEASE_INFO=$(curl -s -H $HEADER https://api.github.com/repos/${{ github.repository }}/releases/tags/$LATEST_VERSION$ARCH)
+        RELEASE_INFO=$(curl -s -H $HEADER https://api.github.com/repos/${{ github.repository }}/releases/tags/$LATEST_VERSION)
         RELEASE_ID=$(echo $RELEASE_INFO | jq -r '.id')
         echo "Release ID: $RELEASE_ID"
         if [ "$RELEASE_ID" != "null" ]; then
-            curl -X DELETE -H "$HEADER" https://api.github.com/repos/${{ github.repository }}/git/refs/tags/$LATEST_VERSION$ARCH
-            echo "Tag $LATEST_VERSION$ARCH deleted successfully."
+            curl -X DELETE -H "$HEADER" https://api.github.com/repos/${{ github.repository }}/git/refs/tags/$LATEST_VERSION
+            echo "Tag $LATEST_VERSION deleted successfully."
             curl -X DELETE -H "$HEADER" https://api.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID
-            echo "Release with tag $LATEST_VERSION$ARCH deleted successfully."
+            echo "Release with tag $LATEST_VERSION deleted successfully."
         else
             echo "Release not found for tag: $LATEST_VERSION)"
         fi
