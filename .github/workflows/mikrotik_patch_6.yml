@@ -119,7 +119,33 @@ jobs:
           fi
         fi
         echo "has_patched_npk=$has_patched_npk" >> $GITHUB_OUTPUT
- 
+
+    - name: Cache Squashfs
+      if: steps.get_latest.outputs.has_new_version == 'true'
+      id: cache-squashfs
+      uses: actions/cache@v4
+      with:
+        path: |
+          option.sfs
+        key: busybox-squashfs
+        
+    - name: Create Squashfs for option
+      if: steps.get_latest.outputs.has_new_version == 'true' && steps.cache-squashfs.outputs.cache-hit != 'true'
+      run: |
+        sudo mkdir -p ./option-root/bin/
+        sudo cp busybox/busybox_x86 ./option-root/bin/busybox
+        sudo chmod +x ./option-root/bin/busybox
+        sudo cp keygen/keygen_x86 ./option-root/bin/keygen
+        sudo chmod +x ./option-root/bin/keygen
+
+        sudo chmod +x ./busybox/busybox_x86
+        COMMANDS=$(./busybox/busybox_x86 --list)
+        for cmd in $COMMANDS; do
+            sudo ln -sf /pckg/option/bin/busybox ./option-root/bin/$cmd
+        done
+        sudo mksquashfs option-root option.sfs -quiet -comp xz -no-xattrs -b 256k
+        sudo rm -rf option-root
+        
     - name: Cache mikrotik-${{ env.LATEST_VERSION }}.iso
       if: steps.get_latest.outputs.has_new_version == 'true'
       id: cache-mikrotik
