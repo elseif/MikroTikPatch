@@ -269,6 +269,8 @@ jobs:
           sudo cp -f routeros-x86-$LATEST_VERSION.npk ./chr/var/pdb/routeros-x86/image
           sudo cp routeros-x86-$LATEST_VERSION.npk ./all_packages/routeros-x86-$LATEST_VERSION.npk
         fi
+        sudo mkdir -p ./chr/var/pdb/option
+        sudo cp ./all_packages/option-$LATEST_VERSION.npk ./chr/var/pdb/option/image
         sudo umount ./chr
         sudo qemu-nbd -d /dev/nbd0
         sudo rm -rf ./chr
