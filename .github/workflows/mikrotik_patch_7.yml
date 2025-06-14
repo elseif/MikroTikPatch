@@ -550,8 +550,8 @@ jobs:
                 OUTDIR="$latest_version-UNDONE"
               else
                 OUTDIR="$latest_version"
+                sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_SERVER }} "echo $latest_version $build_time | tee /rw/disk/${{ secrets.SSH_DIRECTORY }}/NEWESTa7.$channel; /rw/disk/${{ secrets.SSH_DIRECTORY }}/packages.sh /rw/disk/${{ secrets.SSH_DIRECTORY }}/$OUTDIR"
               fi
-              sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_SERVER }} "echo $latest_version $build_time | tee /rw/disk/${{ secrets.SSH_DIRECTORY }}/NEWESTa7.$channel; /rw/disk/${{ secrets.SSH_DIRECTORY }}/packages.sh /rw/disk/${{ secrets.SSH_DIRECTORY }}/$OUTDIR"
             fi
           done
           sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_SERVER }} "chown -R 32768:32768 /rw/disk/${{ secrets.SSH_DIRECTORY }}/"
