@@ -82,7 +82,7 @@ jobs:
       uses: actions/checkout@v4
       
     - name: Copy loader patch files
-      run: sudo cp -rf /home/kali/Desktop/loader .
+      run: sudo cp -rf /home/$(whoami)/Desktop/loader .
       
     - name: Get latest routeros version
       id: get_latest
