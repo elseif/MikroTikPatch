@@ -283,12 +283,12 @@ def patch_kernel(data:bytes,key_dict):
 
 def patch_loader(loader_file):
     try:
-        from loader import patch_loader
+        from loader.patch_loader import patch_loader as do_patch_loader
         if 'ARCH' in os.environ and  os.environ['ARCH'] == '-arm64':
             arch = 'arm64'
         else:
             arch = 'x86'
-        patch_loader(loader_file,loader_file,arch)
+        do_patch_loader(loader_file,loader_file,arch)
     except ImportError:
         print("loader module not found. cannot run patch_loader.py")
         
