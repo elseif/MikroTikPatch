@@ -281,11 +281,22 @@ def patch_kernel(data:bytes,key_dict):
     else:
         raise Exception('unknown kernel format')
 
+def patch_loader(loader_file):
+    try:
+        from loader import patch_loader
+        if 'ARCH' in os.environ and  os.environ['ARCH'] == '-arm64':
+            arch = 'arm64'
+        else:
+            arch = 'x86'
+        patch_loader(loader_file,loader_file,arch)
+    except ImportError:
+        print("loader module not found. cannot run patch_loader.py")
+        
 def patch_squashfs(path,key_dict):
     for root, dirs, files in os.walk(path):
         for file in files:
             if file =='loader':
-                continue
+                patch_loader(loader_file)
             file = os.path.join(root,file)
             if os.path.isfile(file):
                 data = open(file,'rb').read()
