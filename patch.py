@@ -294,11 +294,12 @@ def patch_loader(loader_file):
         
 def patch_squashfs(path,key_dict):
     for root, dirs, files in os.walk(path):
-        for file in files:
-            if file =='loader':
-                patch_loader(loader_file)
-            file = os.path.join(root,file)
+        for _file in files:
+            file = os.path.join(root,_file)
             if os.path.isfile(file):
+                if _file =='loader':
+                    patch_loader(file)
+                    continue
                 data = open(file,'rb').read()
                 for old_public_key,new_public_key in key_dict.items():
                     _data = replace_key(old_public_key,new_public_key,data,file)
