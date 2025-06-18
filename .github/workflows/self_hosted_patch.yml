@@ -198,7 +198,7 @@ jobs:
         sudo mount -o loop ./new_iso/efiboot.img ./efiboot
         if [ "${{ matrix.arch }}" == "x86" ]; then
           sudo -E python3 patch.py kernel ./efiboot/linux.x86_64
-          sudo cp ./efiboot/linux.x86_64 ./new_iso/isolinux/linux/BOOTX64.EFI
+          sudo cp ./efiboot/linux.x86_64 ./new_iso/isolinux/linux
           sudo umount ./efiboot
           sudo mkisofs -o mikrotik-$LATEST_VERSION$ARCH.iso \
                       -V "MikroTik $LATEST_VERSION ${{ matrix.arch }}" \
