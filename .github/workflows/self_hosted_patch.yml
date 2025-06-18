@@ -80,7 +80,10 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-        
+      
+    - name: Copy loader patch files
+      run: sudo cp -rf /home/kali/Desktop/loader .
+      
     - name: Get latest routeros version
       id: get_latest
       run: |
