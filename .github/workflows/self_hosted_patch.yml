@@ -278,6 +278,12 @@ jobs:
         sudo rm -f pt.bin
         sudo qemu-nbd -d /dev/nbd0
         sudo qemu-nbd --persistent -c /dev/nbd0 -f raw chr-$LATEST_VERSION$ARCH.img
+        for part in /dev/nbd0p1 /dev/nbd0p2; do
+          while [ ! -e "$part" ]; do
+            echo "wait $part ..."
+            sleep 0.2
+          done
+        done
         sudo lsblk /dev/nbd0
         sudo mkfs.vfat -n "Boot" /dev/nbd0p1
         sudo mkfs.ext4 -F -L "RouterOS"  -m 0 /dev/nbd0p2
@@ -287,6 +293,13 @@ jobs:
           sudo cp chr.img chr-$LATEST_VERSION$ARCH-legacy-bios.img 
           sudo qemu-nbd -d /dev/nbd1
           sudo qemu-nbd --persistent -c /dev/nbd1 -f raw chr-$LATEST_VERSION$ARCH-legacy-bios.img
+          for part in /dev/nbd1p1 /dev/nbd1p2; do
+            while [ ! -e "$part" ]; do
+              echo "wait $part ..."
+              sleep 0.2
+            done
+          done
+          sudo lsblk /dev/nbd1
           sudo -E python3 patch.py block /dev/nbd1p1 EFI/BOOT/BOOTX64.EFI
           sudo mkdir -p ./chr/{boot,routeros}
           sudo mount /dev/nbd1p1 ./chr/boot/
@@ -326,6 +339,13 @@ jobs:
         elif [ "${{ matrix.arch }}" == "arm64" ]; then
           sudo qemu-nbd -d /dev/nbd1
           sudo qemu-nbd --persistent -c /dev/nbd1 -f raw chr.img
+          for part in /dev/nbd1p1 /dev/nbd1p2; do
+            while [ ! -e "$part" ]; do
+              echo "wait $part ..."
+              sleep 0.2
+            done
+          done
+          sudo lsblk /dev/nbd1
           sudo mkdir -p ./chr/boot
           sudo mount /dev/nbd1p1 ./chr/boot/
           sudo -E python3 patch.py kernel ./chr/boot/EFI/BOOT/BOOTAA64.EFI -O ./BOOTAA64.EFI 
