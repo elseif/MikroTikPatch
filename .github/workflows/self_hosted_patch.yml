@@ -1,8 +1,4 @@
-# This workflow will install Python dependencies, run tests and lint with a single version of Python
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
-
 name: Self Hosted Patch
-
 on:
   workflow_dispatch:
     inputs:
@@ -85,11 +81,6 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
         
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.12' 
-
     - name: Get latest routeros version
       id: get_latest
       run: |
