@@ -277,9 +277,7 @@ jobs:
         sudo rm -f mbr.bin
         sudo rm -f pt.bin
         sudo qemu-nbd -d /dev/nbd0
-        sudo qemu-nbd -c /dev/nbd0 -f raw chr-$LATEST_VERSION$ARCH.img
-        sudo partprobe /dev/nbd0
-        sleep 1
+        sudo qemu-nbd --persistent -c /dev/nbd0 -f raw chr-$LATEST_VERSION$ARCH.img
         sudo lsblk /dev/nbd0
         sudo mkfs.vfat -n "Boot" /dev/nbd0p1
         sudo mkfs.ext4 -F -L "RouterOS"  -m 0 /dev/nbd0p2
@@ -288,7 +286,7 @@ jobs:
         if [ "${{ matrix.arch }}" == "x86" ]; then
           sudo cp chr.img chr-$LATEST_VERSION$ARCH-legacy-bios.img 
           sudo qemu-nbd -d /dev/nbd1
-          sudo qemu-nbd -c /dev/nbd1 -f raw chr-$LATEST_VERSION$ARCH-legacy-bios.img
+          sudo qemu-nbd --persistent -c /dev/nbd1 -f raw chr-$LATEST_VERSION$ARCH-legacy-bios.img
           sudo partprobe /dev/nbd1
           sleep 1
           sudo -E python3 patch.py block /dev/nbd1p1 EFI/BOOT/BOOTX64.EFI
@@ -329,7 +327,7 @@ jobs:
 
         elif [ "${{ matrix.arch }}" == "arm64" ]; then
           sudo qemu-nbd -d /dev/nbd1
-          sudo qemu-nbd -c /dev/nbd1 -f raw chr.img
+          sudo qemu-nbd --persistent -c /dev/nbd1 -f raw chr.img
           sudo partprobe /dev/nbd1
           sleep 1
           sudo mkdir -p ./chr/boot
