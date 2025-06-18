@@ -29,7 +29,7 @@ on:
         default: ''
         type: string
       release:
-        description: "Whether to publish the release"
+        description: "Release and Upload"
         required: false
         default: 'false'
         type: boolean
