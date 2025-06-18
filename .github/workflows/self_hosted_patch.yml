@@ -189,11 +189,11 @@ jobs:
         for file in $NPK_FILES; do
             sudo -E python3 npk.py sign $file $file
         done
-        sudo cp -f routeros-$LATEST_VERSION$ARCH.npk ./new_iso/
+        sudo mv -f routeros-$LATEST_VERSION$ARCH.npk ./new_iso/
         sudo -E python3 npk.py create ./new_iso/gps-$LATEST_VERSION$ARCH.npk ./option-$LATEST_VERSION$ARCH.npk option ./option.sfs -desc="busybox"
-        sudo cp option-$LATEST_VERSION$ARCH.npk ./new_iso/
+        sudo mv option-$LATEST_VERSION$ARCH.npk ./new_iso/
         sudo -E python3 npk.py create ./new_iso/gps-$LATEST_VERSION$ARCH.npk ./python3-$LATEST_VERSION$ARCH.npk python3 ./python3.sfs -desc="python 3.11.9"
-        sudo cp python3-$LATEST_VERSION$ARCH.npk ./new_iso/
+        sudo mv python3-$LATEST_VERSION$ARCH.npk ./new_iso/
         sudo mkdir ./efiboot
         sudo mount -o loop ./new_iso/efiboot.img ./efiboot
         if [ "${{ matrix.arch }}" == "x86" ]; then
@@ -251,7 +251,7 @@ jobs:
       run: |
           sudo wget -nv -O chr.img.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/chr-$LATEST_VERSION$ARCH.img.zip
           sudo unzip chr.img.zip
-          sudo rm chr.img.zip
+          sudo rm -f chr.img.zip
           sudo mv chr-$LATEST_VERSION$ARCH.img chr.img
 
     - name: Create chr-${{ env.LATEST_VERSION }}${{ env.ARCH }}.img
@@ -274,9 +274,13 @@ jobs:
             chr-$LATEST_VERSION$ARCH.img
         dd if=mbr.bin of=chr-$LATEST_VERSION$ARCH.img  bs=1 count=446 conv=notrunc
         dd if=pt.bin of=chr-$LATEST_VERSION$ARCH.img  bs=1 count=66 seek=446 conv=notrunc
+        sudo rm -f mbr.bin
+        sudo rm -f pt.bin
         sudo qemu-nbd -d /dev/nbd0
         sudo qemu-nbd -c /dev/nbd0 -f raw chr-$LATEST_VERSION$ARCH.img
         sudo partprobe /dev/nbd0
+        sleep 1
+        sudo lsblk /dev/nbd0
         sudo mkfs.vfat -n "Boot" /dev/nbd0p1
         sudo mkfs.ext4 -F -L "RouterOS"  -m 0 /dev/nbd0p2
         sudo mkdir -p ./img/{boot,routeros}
@@ -286,6 +290,7 @@ jobs:
           sudo qemu-nbd -d /dev/nbd1
           sudo qemu-nbd -c /dev/nbd1 -f raw chr-$LATEST_VERSION$ARCH-legacy-bios.img
           sudo partprobe /dev/nbd1
+          sleep 1
           sudo -E python3 patch.py block /dev/nbd1p1 EFI/BOOT/BOOTX64.EFI
           sudo mkdir -p ./chr/{boot,routeros}
           sudo mount /dev/nbd1p1 ./chr/boot/
@@ -326,6 +331,7 @@ jobs:
           sudo qemu-nbd -d /dev/nbd1
           sudo qemu-nbd -c /dev/nbd1 -f raw chr.img
           sudo partprobe /dev/nbd1
+          sleep 1
           sudo mkdir -p ./chr/boot
           sudo mount /dev/nbd1p1 ./chr/boot/
           sudo -E python3 patch.py kernel ./chr/boot/EFI/BOOT/BOOTAA64.EFI -O ./BOOTAA64.EFI 
