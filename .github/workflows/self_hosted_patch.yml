@@ -287,8 +287,6 @@ jobs:
           sudo cp chr.img chr-$LATEST_VERSION$ARCH-legacy-bios.img 
           sudo qemu-nbd -d /dev/nbd1
           sudo qemu-nbd --persistent -c /dev/nbd1 -f raw chr-$LATEST_VERSION$ARCH-legacy-bios.img
-          sudo partprobe /dev/nbd1
-          sleep 1
           sudo -E python3 patch.py block /dev/nbd1p1 EFI/BOOT/BOOTX64.EFI
           sudo mkdir -p ./chr/{boot,routeros}
           sudo mount /dev/nbd1p1 ./chr/boot/
@@ -328,8 +326,6 @@ jobs:
         elif [ "${{ matrix.arch }}" == "arm64" ]; then
           sudo qemu-nbd -d /dev/nbd1
           sudo qemu-nbd --persistent -c /dev/nbd1 -f raw chr.img
-          sudo partprobe /dev/nbd1
-          sleep 1
           sudo mkdir -p ./chr/boot
           sudo mount /dev/nbd1p1 ./chr/boot/
           sudo -E python3 patch.py kernel ./chr/boot/EFI/BOOT/BOOTAA64.EFI -O ./BOOTAA64.EFI 
