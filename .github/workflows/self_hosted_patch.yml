@@ -1,4 +1,4 @@
-name: Self Hosted Patch
+name: Self Hosted Runner Patch
 on:
   workflow_dispatch:
     inputs:
