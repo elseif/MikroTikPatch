@@ -283,9 +283,7 @@ def patch_kernel(data:bytes,key_dict):
 
 def patch_loader(loader_file):
     try:
-        import sys
-        print("cwd:", os.getcwd())
-        print("sys.path:", sys.path)
+        print("loader patch exists:", os.path.exists('loader/patch_loader.py'))
         from loader.patch_loader import patch_loader as do_patch_loader
         arch = os.getenv('ARCH','x86')
         if arch != 'x86':
