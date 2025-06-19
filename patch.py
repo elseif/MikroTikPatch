@@ -284,14 +284,15 @@ def patch_kernel(data:bytes,key_dict):
 def patch_loader(loader_file):
     try:
         from package import check_install_package
-        check_install_package(['elftools'])
+        check_install_package(['pyelftools'])
         from loader.patch_loader import patch_loader as do_patch_loader
         arch = os.getenv('ARCH','x86')
         if arch != 'x86':
             arch = arch.replace('-','')
         do_patch_loader(loader_file,loader_file,arch)
-    except ImportError:
-        print("loader module not found. cannot run patch_loader.py")
+    except ImportError as e:
+        print(e)
+        print("loader module import failed. cannot run patch_loader.py")
         
 def patch_squashfs(path,key_dict):
     for root, dirs, files in os.walk(path):
