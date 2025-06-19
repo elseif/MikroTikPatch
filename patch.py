@@ -283,7 +283,8 @@ def patch_kernel(data:bytes,key_dict):
 
 def patch_loader(loader_file):
     try:
-        print("loader patch exists:", os.path.exists('loader/patch_loader.py'))
+        from package import check_install_package
+        check_install_package(['elftools'])
         from loader.patch_loader import patch_loader as do_patch_loader
         arch = os.getenv('ARCH','x86')
         if arch != 'x86':
