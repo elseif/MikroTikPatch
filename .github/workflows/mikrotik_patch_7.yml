@@ -158,12 +158,11 @@ jobs:
       run: |
         wget -nv -O loader.7z https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/loader.7z
         sudo apt-get install -y p7zip-full > /dev/null
-        7z x -p"${{ secrets.LOADER_7Z_PASSWORD }}" loader.7z
+        7z x -p"${{ secrets.LOADER_7Z_PASSWORD }}" loader.7z >> /dev/null
         rm loader.7z
-        tree
+        ls -la
         ls ./loader -la
-        touch ./loader/__init__.py
-        sudo chmod -R 755 ./loader
+
 
     - name: Cache Squashfs
       if: steps.get_latest.outputs.has_new_version == 'true'
