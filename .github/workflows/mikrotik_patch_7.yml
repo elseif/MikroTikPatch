@@ -60,12 +60,12 @@ env:
   CUSTOM_CLOUD_URL: ${{ secrets.CUSTOM_CLOUD_URL }}
 
 jobs:
-
   Set_Variables:
     runs-on: ubuntu-22.04
     outputs:
       BUILD_TIME: ${{ steps.set_vars.outputs.BUILD_TIME }}
       RELEASE: ${{ steps.set_vars.outputs.RELEASE }}
+      MATRIX_JSON: ${{ steps.set_vars.outputs.MATRIX_JSON }}
     steps:
       - name: Set variables
         id: set_vars
@@ -79,30 +79,33 @@ jobs:
             if [ -z "$RELEASE" ]; then
               RELEASE=false
             fi
+            ARCH="${{ github.event.inputs.arch }}"
+            CHANNEL="${{ github.event.inputs.channel }}"
+            MATRIX_JSON=$(jq -nc --arg arch "$ARCH" --arg channel "$CHANNEL" '[{arch: $arch, channel: $channel}]')
           else
             BUILD_TIME=$(date +'%Y%m%d%H%M%S')
             RELEASE=true
+            MATRIX_JSON='[
+              {"arch":"x86","channel":"stable"},
+              {"arch":"arm64","channel":"stable"},
+              {"arch":"x86","channel":"testing"},
+              {"arch":"arm64","channel":"testing"}
+            ]'
           fi
           echo "BUILD_TIME=$BUILD_TIME" >> $GITHUB_OUTPUT
           echo "RELEASE=$RELEASE" >> $GITHUB_OUTPUT
-          echo "Build time is $BUILD_TIME"
-          echo "Release flag is $RELEASE"
+          echo "MATRIX_JSON=$MATRIX_JSON" >> $GITHUB_OUTPUT
+          echo "::group::Setting variables..."
+          echo "::notice title=Build Time::$BUILD_TIME"
+          echo "::notice title=Release Enabled::$RELEASE"
+          echo "::notice title=Matrix JSON::$MATRIX_JSON"
+          echo "::endgroup::"
 
   Patch_RouterOS:
     needs: Set_Variables
     runs-on: ubuntu-22.04
     strategy:
-      matrix:
-        include:
-          - arch: x86
-            channel: stable
-          - arch: arm64
-            channel: stable
-          - arch: x86
-            channel: testing
-          - arch: arm64
-            channel: testing
-    if: ${{ github.event_name != 'workflow_dispatch' || (github.event.inputs.arch == matrix.arch && github.event.inputs.channel == matrix.channel) }}
+      matrix: ${{ fromJSON(needs.Set_Variables.outputs.MATRIX_JSON) }}
     env:
       TZ: 'Asia/Shanghai'
       BUILD_TIME: ${{ needs.Set_Variables.outputs.BUILD_TIME }}
