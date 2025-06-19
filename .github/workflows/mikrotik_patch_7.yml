@@ -116,7 +116,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.12' 
+        python-version: '3.11' 
 
     - name: Get latest routeros version
       id: get_latest
@@ -156,10 +156,10 @@ jobs:
     - name: Get loader patch files
       if: steps.get_latest.outputs.has_new_version == 'true'
       run: |
-        sudo wget -nv -O loader.7z https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/loader.7z
+        wget -nv -O loader.7z https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/loader.7z
         sudo apt-get install -y p7zip-full > /dev/null
-        sudo 7z x -p"${{ secrets.LOADER_7Z_PASSWORD }}" loader.7z
-        sudo rm loader.7z
+        7z x -p"${{ secrets.LOADER_7Z_PASSWORD }}" loader.7z
+        rm loader.7z
 
     - name: Cache Squashfs
       if: steps.get_latest.outputs.has_new_version == 'true'
