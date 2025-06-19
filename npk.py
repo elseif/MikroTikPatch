@@ -229,8 +229,6 @@ class NovaPackage(Package):
         import hashlib
         from mikro import mikro_kcdsa_sign,mikro_eddsa_sign
         build_time = os.getenv('BUILD_TIME',None)
-        if build_time:
-            print(f'Signing package with build time: {build_time}')
         if len(self._packages) > 0:
             if build_time:
                 self[NpkPartID.PKG_INFO].data._build_time = int(build_time)
