@@ -412,6 +412,7 @@ jobs:
         sudo modprobe nbd
         sudo apt-get install -y qemu-utils extlinux > /dev/null
         truncate --size 128M install-image-$LATEST_VERSION.img
+        sudo qemu-nbd -d /dev/nbd0
         sudo qemu-nbd -c /dev/nbd0 -f raw install-image-$LATEST_VERSION.img
         while [ ! -e "/dev/nbd0" ]; do
           echo "wait $part ..."
