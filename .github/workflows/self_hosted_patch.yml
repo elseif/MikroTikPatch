@@ -414,11 +414,17 @@ jobs:
         truncate --size 128M install-image-$LATEST_VERSION.img
         sudo qemu-nbd -d /dev/nbd0
         sudo qemu-nbd -c /dev/nbd0 -f raw install-image-$LATEST_VERSION.img
-        while [ ! -e "/dev/nbd0" ]; do
-          echo "wait $part ..."
-          sleep 0.2
+        while true; do
+          if [ -b /dev/nbd0 ]; then
+            size=$(cat /sys/block/nbd0/size)
+            if [ "$size" -gt 0 ]; then
+              echo "/dev/nbd0 is ready with size: $size"
+              break
+            fi
+          fi
+          echo "Waiting for /dev/nbd0 to become ready..."
+          sleep 0.1
         done
-        sudo lsblk /dev/nbd0
         sudo mkfs.vfat -n "Install" /dev/nbd0
         sudo mkdir ./install
         sudo mount /dev/nbd0 ./install
