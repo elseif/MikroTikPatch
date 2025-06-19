@@ -395,7 +395,7 @@ jobs:
 
 
     - name: Cache refind
-      if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86' && inputs.release == 'true'
+      if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86' && github.event.inputs.release == 'true'
       id: cache-refind
       uses: actions/cache@v4
       with:
@@ -403,11 +403,11 @@ jobs:
         key: refind
 
     - name: Get refind
-      if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86' && steps.cache-refind.outputs.cache-hit != 'true' && inputs.release == 'true'
+      if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86' && steps.cache-refind.outputs.cache-hit != 'true' && github.event.inputs.release == 'true'
       run: sudo wget -nv -O refind-bin-0.14.2.zip https://nchc.dl.sourceforge.net/project/refind/0.14.2/refind-bin-0.14.2.zip
 
     - name: Create install-image-${{ env.LATEST_VERSION }}.img
-      if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86' && inputs.release == 'true'
+      if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86' && github.event.inputs.release == 'true'
       run: |
         sudo modprobe nbd
         sudo apt-get install -y qemu-utils extlinux > /dev/null
