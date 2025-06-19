@@ -95,17 +95,16 @@ jobs:
           echo "BUILD_TIME=$BUILD_TIME" >> $GITHUB_OUTPUT
           echo "RELEASE=$RELEASE" >> $GITHUB_OUTPUT
           echo "MATRIX_JSON=$MATRIX_JSON" >> $GITHUB_OUTPUT
-          echo "::group::Setting variables..."
-          echo "::notice title=Build Time::$BUILD_TIME"
-          echo "::notice title=Release Enabled::$RELEASE"
-          echo "::notice title=Matrix JSON::$MATRIX_JSON"
-          echo "::endgroup::"
+          echo "BUILD_TIME: $BUILD_TIME"
+          echo "RELEASE: $RELEASE"
+          echo "MATRIX_JSON: $MATRIX_JSON"
 
   Patch_RouterOS:
     needs: Set_Variables
     runs-on: ubuntu-22.04
     strategy:
-      matrix: ${{ fromJSON(needs.Set_Variables.outputs.MATRIX_JSON) }}
+      matrix: 
+        include: ${{ fromJSON(needs.Set_Variables.outputs.MATRIX_JSON) }}
     env:
       TZ: 'Asia/Shanghai'
       BUILD_TIME: ${{ needs.Set_Variables.outputs.BUILD_TIME }}
