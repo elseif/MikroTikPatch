@@ -31,12 +31,12 @@
 ## Como usar o shell
 ```bash
 instale o pacote option-{versão}.npk  
-acesse via telnet o routeros com o usuário `devel` e a senha igual à do usuário `admin`
+acesse via telnet o routeros com o usuário devel e a senha igual a do usuário admin
 ```
 
 ## Como licenciar o RouterOS
 ```bash
-acesse via telnet o routeros com o usuário `devel` e a senha igual à do `admin`  
+acesse via telnet o routeros com o usuário devel e a senha igual a do admin  
 execute o keygen  
 modo CHR pode usar a renovação de licença online
 ```
@@ -44,14 +44,18 @@ modo CHR pode usar a renovação de licença online
 ## Como usar o Python 3
 ```bash
 instale o pacote python3-{versão}.npk  
-acesse via telnet o routeros com o usuário `devel` e a senha igual à do `admin`  
+acesse via telnet o routeros com o usuário devel e a senha igual a do admin  
 execute `python -V`
 ```
 
 ### npk.py  
+```bash
 Assina, verifica, cria e extrai arquivos .npk
+```
 
 ### patch.py  
+```bash
 Altera a chave pública e assina arquivos .npk
+```
 
 ## Todos os patches são aplicados automaticamente com [GitHub Actions](https://github.com/elseif/MikroTikPatch/blob/main/.github/workflows/)
