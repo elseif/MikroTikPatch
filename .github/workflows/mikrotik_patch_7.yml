@@ -144,12 +144,11 @@ jobs:
         echo "has_new_version=true" >> $GITHUB_OUTPUT
         wget -nv -O CHANGELOG https://${{ env.MIKRO_UPGRADE_URL }}/routeros/$LATEST_VERSION/CHANGELOG
         cat CHANGELOG
-        if [ "${{ matrix.arch }}" == "x86" ]; then
-          ARCH=''
-        elif [ "${{ matrix.arch }}" == "arm64" ]; then
-          ARCH='-arm64'
+        if [[ "${{ matrix.arch }}" == "arm64" ]]; then
+          echo "ARCH=-arm64" >> $GITHUB_ENV
+        else
+          echo "ARCH=" >> $GITHUB_ENV
         fi
-        echo "ARCH=$ARCH" >> $GITHUB_ENV
         echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_ENV
         sudo apt-get update > /dev/null
         
