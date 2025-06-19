@@ -74,7 +74,7 @@ jobs:
             BUILD_TIME="${{ github.event.inputs.buildtime }}"
             RELEASE="${{ github.event.inputs.release }}"
             if [ -z "$BUILD_TIME" ]; then
-              BUILD_TIME=$(date +'%Y%m%d%H%M%S')
+              BUILD_TIME=$(date +'%s')
             fi
             if [ -z "$RELEASE" ]; then
               RELEASE=false
@@ -83,7 +83,7 @@ jobs:
             CHANNEL="${{ github.event.inputs.channel }}"
             MATRIX_JSON=$(jq -nc --arg arch "$ARCH" --arg channel "$CHANNEL" '[{arch: $arch, channel: $channel}]')
           else
-            BUILD_TIME=$(date +'%Y%m%d%H%M%S')
+            BUILD_TIME=$(date +'%s')
             RELEASE=true
             MATRIX_JSON='[
               {"arch":"x86","channel":"stable"},
