@@ -93,13 +93,16 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        arch: ['x86','arm64']
-        channel: ['stable','testing']
-    if: >
-      github.event_name == 'schedule' ||
-      (github.event_name == 'workflow_dispatch' &&
-      matrix.arch == github.event.inputs.arch &&
-      matrix.channel == github.event.inputs.channel)
+        include:
+          - arch: x86
+            channel: stable
+          - arch: arm64
+            channel: stable
+          - arch: x86
+            channel: testing
+          - arch: arm64
+            channel: testing
+    if: ${{ github.event_name != 'workflow_dispatch' || (github.event.inputs.arch == matrix.arch && github.event.inputs.channel == matrix.channel) }}
     env:
       TZ: 'Asia/Shanghai'
       BUILD_TIME: ${{ needs.Set_Variables.outputs.BUILD_TIME }}
