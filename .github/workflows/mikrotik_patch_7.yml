@@ -305,8 +305,7 @@ jobs:
             --new=1::+32M --typecode=1:EF00 --change-name=1:"RouterOS Boot" \
             --new=2::-0 --typecode=2:8300 --change-name=2:"RouterOS" \
             chr-$LATEST_VERSION$ARCH.img
-        dd if=chr.img of=mbr.bin bs=1 count=446 skip=0
-        dd if=mbr.bin of=chr-$LATEST_VERSION$ARCH.img  bs=1 count=446 conv=notrunc
+        dd if=chr.img of=chr-$LATEST_VERSION$ARCH.img bs=1 count=446 conv=notrunc
         sudo qemu-nbd -c /dev/nbd0 -f raw chr-$LATEST_VERSION$ARCH.img
         sudo mkfs.vfat -n "Boot" /dev/nbd0p1
         sudo mkfs.ext4 -F -L "RouterOS"  -m 0 /dev/nbd0p2
