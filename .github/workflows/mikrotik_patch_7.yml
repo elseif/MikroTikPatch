@@ -3,7 +3,7 @@ on:
   # push:
   #   branches: [ "main" ]
   schedule:
-    - cron: "0 0 * * *"
+    - cron: "0 0 * * *" # At UTC 00:00 on every day
   workflow_dispatch:
     inputs:
       arch:
@@ -23,7 +23,7 @@ on:
           - stable
           - testing
       version:
-        description: "Specify version (e.g., 7.17.2), empty for latest"
+        description: "Specify version (e.g., 7.19.2), empty for latest"
         required: false
         default: ''
         type: string
@@ -206,7 +206,7 @@ jobs:
       with:
         path: |
           mikrotik.iso
-        key: mikrotik-${{ env.LATEST_VERSION }}-${{ matrix.arch }}
+        key: mikrotik-${{ env.LATEST_VERSION }}${{ env.ARCH }}
 
     - name: Get mikrotik-${{ env.LATEST_VERSION }}${{ env.ARCH }}.iso
       if: steps.get_latest.outputs.has_new_version == 'true' && steps.cache-mikrotik.outputs.cache-hit != 'true'
@@ -285,7 +285,7 @@ jobs:
       with:
         path: |
           chr.img
-        key: chr-${{ env.LATEST_VERSION }}-${{ matrix.arch }}.img
+        key: chr-${{ env.LATEST_VERSION }}${{ env.ARCH }}.img
 
     - name: Get chr-${{ env.LATEST_VERSION }}${{ env.ARCH }}.img
       if: steps.get_latest.outputs.has_new_version == 'true' && steps.cache-chr-img.outputs.cache-hit != 'true'
@@ -403,7 +403,7 @@ jobs:
       if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86' && steps.cache-refind.outputs.cache-hit != 'true' && env.RELEASE == 'true'
       run: sudo wget -nv -O refind-bin-0.14.2.zip https://nchc.dl.sourceforge.net/project/refind/0.14.2/refind-bin-0.14.2.zip
 
-    - name: Create install-image-${{ env.LATEST_VERSION }}.img
+    - name: Create install-image-${{ env.LATEST_VERSION }}${{ env.ARCH }}.img
       if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86' && env.RELEASE == 'true'
       run: |
         sudo modprobe nbd
@@ -442,7 +442,7 @@ jobs:
         sudo rm ./install-image-$LATEST_VERSION.img
 
 
-    - name: Cache NetInstall ${{ env.LATEST_VERSION }}
+    - name: Cache NetInstall ${{ env.LATEST_VERSION }}${{ env.ARCH }}
       if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86' && env.RELEASE == 'true'
       id: cache-netinstall
       uses: actions/cache@v4
@@ -458,7 +458,7 @@ jobs:
         sudo wget -nv -O netinstall.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/netinstall-$LATEST_VERSION.zip
         sudo wget -nv -O netinstall.tar.gz https://download.mikrotik.com/routeros/$LATEST_VERSION/netinstall-$LATEST_VERSION.tar.gz
 
-    - name: Patch netinstall ${{ env.LATEST_VERSION }}
+    - name: Patch netinstall ${{ env.LATEST_VERSION }}${{ env.ARCH }}
       if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86' && env.RELEASE == 'true'
       run: |
         sudo unzip netinstall.zip
@@ -508,7 +508,7 @@ jobs:
             --header "Content-Type:application/json" \
             --data '{"purge_everything": true}'
 
-    - name: Delete Release tag ${{ env.LATEST_VERSION }} ${{ matrix.arch }}
+    - name: Delete Release tag ${{ env.LATEST_VERSION }} ${{ env.ARCH }}
       if: steps.get_latest.outputs.has_new_version == 'true' && env.RELEASE == 'true'
       run: |
         HEADER="Authorization: token ${{ secrets.GITHUB_TOKEN }}"
@@ -524,11 +524,11 @@ jobs:
             echo "Release not found for tag: $LATEST_VERSION)"
         fi
 
-    - name: Create Release tag ${{ env.LATEST_VERSION }} ${{ matrix.arch }}
+    - name: Create Release tag ${{ env.LATEST_VERSION }} ${{ env.ARCH }}
       if: steps.get_latest.outputs.has_new_version == 'true' && env.RELEASE == 'true'
       uses: softprops/action-gh-release@v2
       with:
-        name: "RouterOS ${{ env.LATEST_VERSION }} ${{ matrix.arch }}"
+        name: "RouterOS ${{ env.LATEST_VERSION }} ${{ env.ARCH }}"
         body_path: "CHANGELOG"
         tag_name: ${{ env.LATEST_VERSION }}${{ env.ARCH }}
         make_latest:  ${{ matrix.channel == 'stable'}} && ${{ matrix.arch == 'x86'}}
@@ -545,7 +545,7 @@ jobs:
       if: steps.get_latest.outputs.has_new_version == 'true' && env.RELEASE == 'false'
       uses: actions/upload-artifact@v4
       with:
-        name: mikrotik-${{ env.LATEST_VERSION }}-${{ matrix.arch }}
+        name: mikrotik-${{ env.LATEST_VERSION }}${{ env.ARCH }}
         path: |
           all_packages-*-${{ env.LATEST_VERSION }}.zip
           mikrotik-${{ env.LATEST_VERSION }}${{ env.ARCH }}.iso
