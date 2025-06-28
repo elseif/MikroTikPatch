@@ -45,7 +45,8 @@
 ### patch.py
     替换公钥并签名
 
-
+### 感谢赞助
+[ZMTO](https://console.zmto.com)
 ## 所有的修补操作都自动运行在[Github Action](https://github.com/elseif/MikroTikPatch/blob/main/.github/workflows/)。
 
 

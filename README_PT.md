@@ -58,4 +58,7 @@ Assina, verifica, cria e extrai arquivos .npk
 Altera a chave pública e assina arquivos .npk
 ```
 
+## Thanks for sponsoring
+[ZMTO](https://console.zmto.com/)
+
 ## Todos os patches são aplicados automaticamente com [GitHub Actions](https://github.com/elseif/MikroTikPatch/blob/main/.github/workflows/)

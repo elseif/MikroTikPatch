@@ -40,6 +40,9 @@
 ### patch.py
     Patch public key and sign NPK files
 
+## Thanks for sponsoring
+[ZMTO](https://console.zmto.com/)
+
 ## all patches are applied automatically with [Github Action](https://github.com/elseif/MikroTikPatch/blob/main/.github/workflows/).
 
 
