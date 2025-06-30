@@ -1,0 +1,94 @@
+name: Patch MikroTik RouterOS
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # 每天 UTC 时间 00:00 运行
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  patch-routeros:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        channel: [stable, long-term]
+        arch: [x86, arm, arm64, mipsbe, mmips]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          sudo apt-get update
+          sudo apt-get install -y squashfs-tools unzip
+
+      - name: Get Latest MikroTik Version
+        id: get_latest
+        run: |
+          LATEST_VERSION=$(wget -q -O - https://download.mikrotik.com/routeros/NEWESTa7.${{ matrix.channel }} | cut -d ' ' -f1)
+          echo "LATEST_VERSION=$LATEST_VERSION" >> $GITHUB_ENV
+
+      - name: Download MikroTik Files
+        run: |
+          wget -q -O mikrotik.iso https://download.mikrotik.com/routeros/$LATEST_VERSION/mikrotik-$LATEST_VERSION-${{ matrix.arch }}.iso
+          wget -q -O install-image.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/install-image-$LATEST_VERSION-${{ matrix.arch }}.zip
+          wget -q -O chr.img.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/chr-$LATEST_VERSION-${{ matrix.arch }}.img.zip
+          wget -q -O netinstall.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/netinstall-$LATEST_VERSION-${{ matrix.arch }}.zip
+          wget -q -O routeros.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/routeros-$LATEST_VERSION-${{ matrix.arch }}.npk
+          wget -q -O all_packages.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/all_packages-${{ matrix.arch }}-$LATEST_VERSION.zip
+
+      - name: Unzip Files
+        run: |
+          unzip install-image.zip -d .
+          unzip chr.img.zip -d .
+          unzip netinstall.zip -d .
+          unzip all_packages.zip -d all_packages
+
+      - name: Patch Files
+        run: |
+          python3 patch.py iso mikrotik.iso mikrotik-patched.iso
+          python3 patch.py image install-image.img install-image-patched.img
+          python3 patch.py chr chr.img chr-patched.img
+          python3 patch.py netinstall netinstall.exe netinstall-patched.exe
+          python3 patch.py npk routeros-$LATEST_VERSION-${{ matrix.arch }}.npk routeros-$LATEST_VERSION-${{ matrix.arch }}-patched.npk
+          for file in all_packages/*.npk; do
+            python3 npk.py sign $file $file
+          done
+          cd all_packages
+          zip ../all_packages-patched.zip *.npk
+          cd ..
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: patched-files-${{ matrix.channel }}-${{ matrix.arch }}
+          path: |
+            mikrotik-patched.iso
+            install-image-patched.img
+            chr-patched.img
+            netinstall-patched.exe
+            routeros-$LATEST_VERSION-${{ matrix.arch }}-patched.npk
+            all_packages-patched.zip
+
+      - name: Upload to SFTP (Optional)
+        if: env.SFTP_ENABLED == 'true'
+        run: |
+          sudo apt-get install -y lftp
+          lftp -u ${{ secrets.SSH_USERNAME }},${{ secrets.SSH_PASSWORD }} sftp://${{ secrets.SSH_SERVER }}:${{ secrets.SSH_PORT }} <<EOF
+          cd patched_files
+          put mikrotik-patched.iso
+          put install-image-patched.img
+          put chr-patched.img
+          put netinstall-patched.exe
+          put routeros-$LATEST_VERSION-${{ matrix.arch }}-patched.npk
+          put all_packages-patched.zip
+          bye
+          EOF
+        env:
+          SFTP_ENABLED: ${{ secrets.SFTP_ENABLED }}
