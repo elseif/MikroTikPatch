@@ -1,4 +1,4 @@
-curl -# -L  https://github.com/elseif/MikroTikPatch/releases/download/7.19.1/chr-7.19.1-legacy-bios.img.zip -o /tmp/chr.img.zip  && cd /tmp && \
+curl -# -L  https://github.com/elseif/MikroTikPatch/releases/download/7.19.2/chr-7.19.2-legacy-bios.img.zip -o /tmp/chr.img.zip  && cd /tmp && \
 gunzip -c chr.img.zip > chr.img  && \
 STORAGE=`lsblk | grep disk | cut -d ' ' -f 1 | head -n 1` && \
 echo STORAGE is $STORAGE && \
