@@ -450,7 +450,9 @@ jobs:
         sudo cp -f routeros-$LATEST_VERSION$ARCH.npk ./all_packages/routeros-$LATEST_VERSION$ARCH.npk
         sudo -E python3 npk.py create ./all_packages/gps-$LATEST_VERSION$ARCH.npk ./all_packages/option-$LATEST_VERSION$ARCH.npk option ./option.sfs -desc="busybox"
         sudo -E python3 npk.py create ./all_packages/gps-$LATEST_VERSION$ARCH.npk ./all_packages/python3-$LATEST_VERSION$ARCH.npk python3 ./python3.sfs -desc="python 3.11.13"
-
+        cd ./all_packages
+        sudo zip ../all_packages-${{ matrix.arch }}-$LATEST_VERSION.zip *.npk
+        cd ..
 
     - name: Cache refind
       if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch == 'x86' && env.RELEASE == 'true'
