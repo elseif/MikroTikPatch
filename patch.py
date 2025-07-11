@@ -24,7 +24,7 @@ def replace_key(old,new,data,name=''):
     data =  replace_chunks(old_chunks, new_chunks, data,name)
     arch = os.getenv('ARCH') or 'x86'
     arch = arch.replace('-', '')
-    if arch == 'arm64':
+    if arch in ['arm64','arm']:
         old_chunks = [old[i:i+4] for i in range(0, len(old), 4)]
         new_chunks = [new[i:i+4] for i in range(0, len(new), 4)]
         old_bytes = old_chunks[4] + old_chunks[5] + old_chunks[2] + old_chunks[0] + old_chunks[1] + old_chunks[6] + old_chunks[7]

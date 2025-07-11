@@ -7,13 +7,14 @@ on:
   workflow_dispatch:
     inputs:
       arch:
-        description: 'Architecture (x86, arm64)'
+        description: 'Architecture (x86, arm64, arm)'
         required: true
         default: 'x86'
         type: choice
         options:
           - x86
           - arm64
+          - arm
       channel:
         description: 'Channel (stable, testing)'
         required: true
@@ -85,7 +86,7 @@ jobs:
           else
             BUILD_TIME=$(date +'%s')
             RELEASE=true
-            MATRIX_JSON='[{"arch":"x86","channel":"stable"},{"arch":"arm64","channel":"stable"},{"arch":"x86","channel":"testing"},{"arch":"arm64","channel":"testing"}]'
+            MATRIX_JSON='[{"arch":"x86","channel":"stable"},{"arch":"arm64","channel":"stable"},{"arch":"arm","channel":"stable"},{"arch":"x86","channel":"testing"},{"arch":"arm64","channel":"testing"},{"arch":"arm","channel":"testing"}]'
           fi
           echo "BUILD_TIME=$BUILD_TIME" >> $GITHUB_OUTPUT
           echo "RELEASE=$RELEASE" >> $GITHUB_OUTPUT
@@ -141,6 +142,8 @@ jobs:
         cat CHANGELOG
         if [[ "${{ matrix.arch }}" == "arm64" ]]; then
           echo "ARCH=-arm64" >> $GITHUB_ENV
+        elif [[ "${{ matrix.arch }}" == "arm" ]]; then
+          echo "ARCH=-arm" >> $GITHUB_ENV
         else
           echo "ARCH=" >> $GITHUB_ENV
         fi
@@ -179,6 +182,14 @@ jobs:
           sudo chmod +x ./option-root/bin/busybox
           sudo cp keygen/keygen_aarch64 ./option-root/bin/keygen
           sudo chmod +x ./option-root/bin/keygen
+        elif [ "${{ matrix.arch }}" == "arm" ]; then
+          sudo cp busybox/busybox_arm ./option-root/bin/busybox
+          sudo chmod +x ./option-root/bin/busybox
+          sudo cp keygen/keygen_arm ./option-root/bin/keygen
+          sudo chmod +x ./option-root/bin/keygen
+        else
+          echo "Unsupported architecture: ${{ matrix.arch }}"
+          exit 1
         fi
         sudo chmod +x ./busybox/busybox_x86
         COMMANDS=$(./busybox/busybox_x86 --list)
@@ -188,9 +199,11 @@ jobs:
         sudo mksquashfs option-root option.sfs -quiet -comp xz -no-xattrs -b 256k
         sudo rm -rf option-root
         if [ "${{ matrix.arch }}" == "x86" ]; then
-          sudo wget -O cpython.tar.gz -nv https://github.com/indygreg/python-build-standalone/releases/download/20241016/cpython-3.11.10+20241016-x86_64-unknown-linux-musl-install_only_stripped.tar.gz
+          sudo wget -O cpython.tar.gz -nv https://github.com/indygreg/python-build-standalone/releases/download/20250708/cpython-3.11.13+20250708-x86_64-unknown-linux-musl-install_only_stripped.tar.gz
         elif [ "${{ matrix.arch }}" == "arm64" ]; then
-          sudo wget -O cpython.tar.gz -nv https://github.com/indygreg/python-build-standalone/releases/download/20241016/cpython-3.11.10+20241016-aarch64-unknown-linux-gnu-install_only_stripped.tar.gz
+          sudo wget -O cpython.tar.gz -nv https://github.com/indygreg/python-build-standalone/releases/download/20250708/cpython-3.11.13+20250708-aarch64-unknown-linux-gnu-install_only_stripped.tar.gz
+        elif [ "${{ matrix.arch }}" == "arm" ]; then
+          sudo wget -O cpython.tar.gz -nv https://github.com/indygreg/python-build-standalone/releases/download/20250708/cpython-3.11.13+20250708-armv7-unknown-linux-gnueabi-install_only_stripped.tar.gz
         fi
         sudo tar -xf cpython.tar.gz
         sudo rm cpython.tar.gz
@@ -200,7 +213,7 @@ jobs:
         sudo rm -rf ./python
 
     - name: Cache mikrotik-${{ env.LATEST_VERSION }}${{ env.ARCH }}.iso
-      if: steps.get_latest.outputs.has_new_version == 'true'
+      if: steps.get_latest.outputs.has_new_version == 'true'  && (matrix.arch == 'x86' || matrix.arch == 'arm64')
       id: cache-mikrotik
       uses: actions/cache@v4
       with:
@@ -209,13 +222,13 @@ jobs:
         key: mikrotik-${{ env.LATEST_VERSION }}${{ env.ARCH }}
 
     - name: Get mikrotik-${{ env.LATEST_VERSION }}${{ env.ARCH }}.iso
-      if: steps.get_latest.outputs.has_new_version == 'true' && steps.cache-mikrotik.outputs.cache-hit != 'true'
+      if: steps.get_latest.outputs.has_new_version == 'true' && steps.cache-mikrotik.outputs.cache-hit != 'true' && (matrix.arch == 'x86' || matrix.arch == 'arm64')
       run: |
           sudo wget -nv -O mikrotik.iso https://download.mikrotik.com/routeros/$LATEST_VERSION/mikrotik-$LATEST_VERSION$ARCH.iso
 
 
     - name: Patch mikrotik-${{ env.LATEST_VERSION }}${{ env.ARCH }}.iso
-      if: steps.get_latest.outputs.has_new_version == 'true'
+      if: steps.get_latest.outputs.has_new_version == 'true' && (matrix.arch == 'x86' || matrix.arch == 'arm64')
       run: |
         sudo apt-get install -y mkisofs xorriso > /dev/null
         sudo mkdir ./iso 
@@ -233,7 +246,7 @@ jobs:
         sudo cp -f routeros-$LATEST_VERSION$ARCH.npk ./new_iso/
         sudo -E python3 npk.py create ./new_iso/gps-$LATEST_VERSION$ARCH.npk ./option-$LATEST_VERSION$ARCH.npk option ./option.sfs -desc="busybox"
         sudo cp option-$LATEST_VERSION$ARCH.npk ./new_iso/
-        sudo -E python3 npk.py create ./new_iso/gps-$LATEST_VERSION$ARCH.npk ./python3-$LATEST_VERSION$ARCH.npk python3 ./python3.sfs -desc="python 3.11.9"
+        sudo -E python3 npk.py create ./new_iso/gps-$LATEST_VERSION$ARCH.npk ./python3-$LATEST_VERSION$ARCH.npk python3 ./python3.sfs -desc="python 3.11.13"
         sudo cp python3-$LATEST_VERSION$ARCH.npk ./new_iso/
         sudo mkdir ./efiboot
         sudo mount -o loop ./new_iso/efiboot.img ./efiboot
@@ -279,7 +292,7 @@ jobs:
         cd ..
 
     - name: Cache chr-${{ env.LATEST_VERSION }}${{ env.ARCH }}.img.zip
-      if: steps.get_latest.outputs.has_new_version == 'true'
+      if: steps.get_latest.outputs.has_new_version == 'true' && (matrix.arch == 'x86' || matrix.arch == 'arm64')
       id: cache-chr-img
       uses: actions/cache@v4
       with:
@@ -288,7 +301,7 @@ jobs:
         key: chr-${{ env.LATEST_VERSION }}${{ env.ARCH }}.img
 
     - name: Get chr-${{ env.LATEST_VERSION }}${{ env.ARCH }}.img
-      if: steps.get_latest.outputs.has_new_version == 'true' && steps.cache-chr-img.outputs.cache-hit != 'true'
+      if: steps.get_latest.outputs.has_new_version == 'true' && steps.cache-chr-img.outputs.cache-hit != 'true' && (matrix.arch == 'x86' || matrix.arch == 'arm64')
       run: |
           sudo wget -nv -O chr.img.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/chr-$LATEST_VERSION$ARCH.img.zip
           sudo unzip chr.img.zip
@@ -296,7 +309,7 @@ jobs:
           sudo mv chr-$LATEST_VERSION$ARCH.img chr.img
 
     - name: Create chr-${{ env.LATEST_VERSION }}${{ env.ARCH }}.img
-      if: steps.get_latest.outputs.has_new_version == 'true' 
+      if: steps.get_latest.outputs.has_new_version == 'true' && (matrix.arch == 'x86' || matrix.arch == 'arm64')
       run: |
         sudo modprobe nbd
         sudo apt-get install -y qemu-utils > /dev/null
@@ -397,6 +410,46 @@ jobs:
         sudo rm chr-$LATEST_VERSION$ARCH.vhdx
         sudo rm chr-$LATEST_VERSION$ARCH.vdi
         sudo rm chr-$LATEST_VERSION$ARCH.img
+    
+    - name: Cache all_packages-${{ matrix.arch }}-$LATEST_VERSION.zip
+      if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch != 'x86' && matrix.arch != 'arm64'
+      id: cache-all-packages
+      uses: actions/cache@v4
+      with:
+        path: all_packages.zip
+        key: all_packages-${{ matrix.arch }}-$LATEST_VERSION.zip
+
+    - name: Get all_packages-${{ matrix.arch }}-$LATEST_VERSION.zip
+      if: steps.get_latest.outputs.has_new_version == 'true' && steps.cache-all-packages.outputs.cache-hit != 'true' && matrix.arch != 'x86' && matrix.arch != 'arm64'
+      run: |  
+        sudo wget -nv -O all_packages.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/all_packages-${{ matrix.arch }}-$LATEST_VERSION.zi
+
+    - name: Cache Main package routeros-${{ env.LATEST_VERSION }}${{ env.ARCH }}.npk
+      if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch != 'x86' && matrix.arch != 'arm64'
+      id: cache-main-package
+      uses: actions/cache@v4
+      with:
+        path: routeros.npk
+        key: routeros-${{ env.LATEST_VERSION }}${{ env.ARCH }}.npk
+
+    - name: Get Main package routeros-${{ env.LATEST_VERSION }}${{ env.ARCH }}.npk
+      if: steps.get_latest.outputs.has_new_version == 'true' && steps.cache-main-package.outputs.cache-hit != 'true' && matrix.arch != 'x86' && matrix.arch != 'arm64'
+      run: |
+        sudo wget -nv -O routeros.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/routeros-$LATEST_VERSION$ARCH.npk
+
+    - name: Patch all_packages-${{ matrix.arch }}-$LATEST_VERSION.zip
+      if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch != 'x86' && matrix.arch != 'arm64'
+      run: |
+        sudo unzip all_packages.zip -d ./all_packages
+        sudo cp routeros.npk routeros-$LATEST_VERSION$ARCH.npk
+        sudo -E python3 patch.py npk routeros-$LATEST_VERSION$ARCH.npk
+        NPK_FILES=$(find ./all_packages/*.npk)
+        for file in $NPK_FILES; do
+            sudo -E python3 npk.py sign $file $file
+        done
+        sudo cp -f routeros-$LATEST_VERSION$ARCH.npk ./all_packages/routeros-$LATEST_VERSION$ARCH.npk
+        sudo -E python3 npk.py create ./all_packages/gps-$LATEST_VERSION$ARCH.npk ./all_packages/option-$LATEST_VERSION$ARCH.npk option ./option.sfs -desc="busybox"
+        sudo -E python3 npk.py create ./new_iso/gps-$LATEST_VERSION$ARCH.npk ./all_packages/python3-$LATEST_VERSION$ARCH.npk python3 ./python3.sfs -desc="python 3.11.13"
 
 
     - name: Cache refind
