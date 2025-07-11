@@ -87,6 +87,7 @@ jobs:
             BUILD_TIME=$(date +'%s')
             RELEASE=true
             MATRIX_JSON='[{"arch":"x86","channel":"stable"},{"arch":"arm64","channel":"stable"},{"arch":"arm","channel":"stable"},{"arch":"x86","channel":"testing"},{"arch":"arm64","channel":"testing"},{"arch":"arm","channel":"testing"}]'
+            MATRIX_JSON='[{"arch":"x86","channel":"stable"},{"arch":"arm64","channel":"stable"},{"arch":"x86","channel":"testing"},{"arch":"arm64","channel":"testing"}]'
           fi
           echo "BUILD_TIME=$BUILD_TIME" >> $GITHUB_OUTPUT
           echo "RELEASE=$RELEASE" >> $GITHUB_OUTPUT
