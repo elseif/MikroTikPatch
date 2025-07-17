@@ -412,15 +412,15 @@ jobs:
         sudo rm chr-$LATEST_VERSION$ARCH.vdi
         sudo rm chr-$LATEST_VERSION$ARCH.img
     
-    - name: Cache all_packages-${{ matrix.arch }}-$LATEST_VERSION.zip
+    - name: Cache all_packages${{ env.ARCH }}-${{ env.LATEST_VERSION }}.zip
       if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch != 'x86' && matrix.arch != 'arm64'
       id: cache-all-packages
       uses: actions/cache@v4
       with:
         path: all_packages.zip
-        key: all_packages-${{ matrix.arch }}-$LATEST_VERSION.zip
+        key: all_packages${{ env.ARCH }}-${{ env.LATEST_VERSION }}.zip
 
-    - name: Get all_packages-${{ matrix.arch }}-$LATEST_VERSION.zip
+    - name: Get all_packages{{ env.ARCH }}-${{ env.LATEST_VERSION }}.zip
       if: steps.get_latest.outputs.has_new_version == 'true' && steps.cache-all-packages.outputs.cache-hit != 'true' && matrix.arch != 'x86' && matrix.arch != 'arm64'
       run: |  
         sudo wget -nv -O all_packages.zip https://download.mikrotik.com/routeros/$LATEST_VERSION/all_packages-${{ matrix.arch }}-$LATEST_VERSION.zip
@@ -438,7 +438,7 @@ jobs:
       run: |
         sudo wget -nv -O routeros.npk https://download.mikrotik.com/routeros/$LATEST_VERSION/routeros-$LATEST_VERSION$ARCH.npk
 
-    - name: Patch all_packages-${{ matrix.arch }}-$LATEST_VERSION.zip
+    - name: Patch all_packages{{ env.ARCH }}-${{ env.LATEST_VERSION }}.zip
       if: steps.get_latest.outputs.has_new_version == 'true' && matrix.arch != 'x86' && matrix.arch != 'arm64'
       run: |
         sudo unzip all_packages.zip -d ./all_packages
