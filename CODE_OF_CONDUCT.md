@@ -1,29 +1,39 @@
-"Do What The Fuck You Want, But Don't Be A Dick"
+# WTF Code of Conduct (WTFCoC)
+*"Do What The Fuck You Want, But Don't Be A Dick"*
 
-Do Whatever You Want
+## The Short Version
+1. **Do whatever you want** with the code
+2. **Don't be a dick** to others
+3. **No bureaucracy** - handle problems like adults
+4. **You're on your own** - this isn't a safe space
+5. **Final rule**: If this bothers you, re-read the WTFPL license name (words 2-4)
 
-Use, modify, and distribute the code however you like.
+## The Slightly Longer Version
 
-No one owes you support, and you owe nothing to anyone.
+### 1. Freedom First
+- Use, modify, distribute however you like
+- No one owes you support or niceness
 
-Don’t Be A Dick
+### 2. Don't Be A Dick (DBAD)
+- Criticize code, not people
+- Harassment = instant ban
+- Spam = toilet reading material
 
-You can criticize code, but don’t harass people.
+### 3. No Bullshit Policy
+- No virtue signaling
+- No committees
+- No tone policing
+- Just code and STFU when needed
 
-Disagreements are fine, but personal attacks are not.
+### 4. Survival of the Fittest
+- Offended? Your problem
+- Can't handle raw opinions? Go to a SAP project
+- Drama? Take it outside
 
-No Bullshit
+### 5. Enforcement
+1. First offense: Public shaming
+2. Second offense: Mockery
+3. Third offense: `rm -rf` your contributions
 
-No bureaucracy, no committees, no virtue signaling.
-
-If someone’s being a dick, call them out (or ignore them).
-
-You’re On Your Own
-
-If you get offended, that’s your problem.
-
-If you can’t handle raw opinions, go somewhere else.
-
-Final Rule
-
-If this CoC annoys you, re-read the name of the WTFPL license (words 2, 3, and 4).
+## Final Notice
+This CoC is WTFPL licensed - do WTF you want with it.
