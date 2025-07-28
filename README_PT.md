@@ -2,6 +2,8 @@
 [![Patch Mikrotik RouterOS 7.x](https://github.com/elseif/MikroTikPatch/actions/workflows/mikrotik_patch_7.yml/badge.svg)](https://github.com/elseif/MikroTikPatch/actions/workflows/mikrotik_patch_7.yml)
 
 # Patch para MikroTik RouterOS [[中文](README.md)]
+[![License: WTFPL](https://img.shields.io/badge/License-WTFPL-brightgreen.svg)](http://www.wtfpl.net/about/)
+[![WTFCoC](https://img.shields.io/badge/CoC-WTFPL%20Style-ff69b4.svg)](./CODE_OF_CONDUCT.md)
 
 ### [[Discord](https://discord.gg/keV6MWQFtX)] [[Telegram](https://t.me/mikrotikpatch)] [[Keygen (Bot do Telegram)](https://t.me/ROS_Keygen_Bot)]
 
