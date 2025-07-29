@@ -33,6 +33,7 @@
 ## 如何使用Shell
     安装 option-{version}.npk 包
     telnet到RouterOS,用户名devel,密码与admin的密码相同
+    要使用devel用户名登录必须安装option-{version}.npk包，且启用。
 ## 如何授权许可
     进入shell
     运行 keygen
