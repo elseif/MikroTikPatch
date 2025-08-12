@@ -245,9 +245,9 @@ jobs:
             echo "No .npk files found in iso, downloading..."
             URL="https://download.mikrotik.com/routeros/$LATEST_VERSION/all_packages-${{ matrix.arch }}-$LATEST_VERSION.zip"
             TMP_ZIP="./all_packages.zip"
-            wget -O "$TMP_ZIP" "$URL"
-            unzip -o "$TMP_ZIP" -d ./new_iso
-            rm -f "$TMP_ZIP"
+            sudo wget -nv -O "$TMP_ZIP" "$URL"
+            sudo unzip -o "$TMP_ZIP" -d ./new_iso
+            sudo rm -f "$TMP_ZIP"
             NPK_FILES=$(find ./new_iso -type f -name "*.npk")
         fi
         if [ -n "$NPK_FILES" ]; then
