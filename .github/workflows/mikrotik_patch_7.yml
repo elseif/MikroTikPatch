@@ -240,10 +240,12 @@ jobs:
         sudo rm -rf ./iso
         sudo mv ./new_iso/routeros-$LATEST_VERSION$ARCH.npk ./
         sudo -E python3 patch.py npk routeros-$LATEST_VERSION$ARCH.npk
-        NPK_FILES=$(find ./new_iso/*.npk)
-        for file in $NPK_FILES; do
-            sudo -E python3 npk.py sign $file $file
-        done
+        NPK_FILES=$(find ./new_iso -type f -name "*.npk")
+        if [ -n "$NPK_FILES" ]; then
+            for file in $NPK_FILES; do
+                sudo -E python3 npk.py sign "$file" "$file"
+            done
+        fi
         sudo cp -f routeros-$LATEST_VERSION$ARCH.npk ./new_iso/
         sudo -E python3 npk.py create ./new_iso/gps-$LATEST_VERSION$ARCH.npk ./option-$LATEST_VERSION$ARCH.npk option ./option.sfs -desc="busybox"
         sudo cp option-$LATEST_VERSION$ARCH.npk ./new_iso/
