@@ -16,15 +16,20 @@ on:
           - stable
           - long-term
       version:
-        description: "Version ('', 6.49.17, 6.49.18,...)"
+        description: "Specify version (e.g., 6.49.19), empty for latest"
         required: false
         default: ''
         type: string
       buildtime:
-        description: "Build Time"
+        description: "Custom build time, leave empty for now"
         required: false
         default: ''
         type: string
+      release:
+        description: "Release to GitHub & Upload "
+        required: false
+        default: false
+        type: boolean
 permissions:
   contents: write
 
@@ -47,30 +52,50 @@ env:
   CUSTOM_CLOUD_URL: ${{ secrets.CUSTOM_CLOUD_URL }}
 
 jobs:
-  Set_BuildTime:
+  Set_Variables:
     runs-on: ubuntu-22.04
     outputs:
-      BUILD_TIME: ${{ steps.set_buildtime.outputs.BUILD_TIME }}
+      BUILD_TIME: ${{ steps.set_vars.outputs.BUILD_TIME }}
+      RELEASE: ${{ steps.set_vars.outputs.RELEASE }}
+      MATRIX_JSON: ${{ steps.set_vars.outputs.MATRIX_JSON }}
     steps:
-      - name: Set build time
-        id: set_buildtime
+      - name: Set variables
+        id: set_vars
         run: |
-          _BUILD_TIME=${{ github.event.inputs.buildtime }}
-          if [ -z "$_BUILD_TIME" ]; then
-            echo "BUILD_TIME=$(date +'%s')" >> $GITHUB_OUTPUT
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            BUILD_TIME="${{ github.event.inputs.buildtime }}"
+            RELEASE="${{ github.event.inputs.release }}"
+            if [ -z "$BUILD_TIME" ]; then
+              BUILD_TIME=$(date +'%s')
+            fi
+            if [ -z "$RELEASE" ]; then
+              RELEASE=false
+            fi
+            ARCH="${{ github.event.inputs.arch }}"
+            CHANNEL="${{ github.event.inputs.channel }}"
+            MATRIX_JSON=$(jq -nc --arg arch "$ARCH" --arg channel "$CHANNEL" '[{arch: $arch, channel: $channel}]')
           else
-             echo "BUILD_TIME=$_BUILD_TIME" >> $GITHUB_OUTPUT
+            BUILD_TIME=$(date +'%s')
+            RELEASE=true
+            MATRIX_JSON='[{"arch":"x86","channel":"stable"},{"arch":"x86","channel":"long-term"}]'
           fi
+          echo "BUILD_TIME=$BUILD_TIME" >> $GITHUB_OUTPUT
+          echo "RELEASE=$RELEASE" >> $GITHUB_OUTPUT
+          echo "MATRIX_JSON=$MATRIX_JSON" >> $GITHUB_OUTPUT
+          echo "BUILD_TIME: $BUILD_TIME"
+          echo "RELEASE: $RELEASE"
+          echo "MATRIX_JSON: $MATRIX_JSON"
           
   Patch_RouterOS:
-    needs: Set_BuildTime
+    needs: Set_Variables
     runs-on: ubuntu-22.04
     strategy:
-      matrix:
-        channel: ${{ fromJSON(format('["{0}"]', github.event.inputs.channel || 'stable')) }}
+      matrix: 
+        include: ${{ fromJSON(needs.Set_Variables.outputs.MATRIX_JSON) }}
     env:
       TZ: 'Asia/Shanghai'
-      LATEST_VERSION: ""
+      BUILD_TIME: ${{ needs.Set_Variables.outputs.BUILD_TIME }}
+      RELEASE: ${{ needs.Set_Variables.outputs.RELEASE }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -84,13 +109,19 @@ jobs:
       id: get_latest
       run: |
         echo $(uname -a)
-        LATEST_VERSION=${{ github.event.inputs.version }}
-        if [ -z  "$_LATEST_VERSION" ]; then
+        echo Build Time:$BUILD_TIME
+        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            LATEST_VERSION="${{ github.event.inputs.version }}"
+          else
+            LATEST_VERSION=$(wget -nv -O - https://${{ env.MIKRO_UPGRADE_URL }}/routeros/NEWEST6.${{ matrix.channel }} | cut -d ' ' -f1)
+          fi
+        else
           LATEST_VERSION=$(wget -nv -O - https://${{ env.MIKRO_UPGRADE_URL }}/routeros/NEWEST6.${{ matrix.channel }} | cut -d ' ' -f1)
         fi
         echo Latest Version:$LATEST_VERSION
         if [ "${{ github.event_name }}" == "schedule" ]; then
-          _LATEST_VERSION=$(wget -nv -O - https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/NEWEST6.${{ matrix.channel }}  | cut -d ' ' -f1)
+          _LATEST_VERSION=$(wget -nv -O - https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/NEWEST6.${{ matrix.channel }} | cut -d ' ' -f1)
           if [ "$_LATEST_VERSION" == "$LATEST_VERSION" ]; then
             echo "No new version found"
             echo "has_new_version=false" >> $GITHUB_OUTPUT
@@ -98,27 +129,18 @@ jobs:
           fi
         fi
         echo "has_new_version=true" >> $GITHUB_OUTPUT
-        BUILD_TIME=${{ needs.Set_BuildTime.outputs.BUILD_TIME }}
-        echo Build Time:$BUILD_TIME
         wget -nv -O CHANGELOG https://${{ env.MIKRO_UPGRADE_URL }}/routeros/$LATEST_VERSION/CHANGELOG
         cat CHANGELOG
         echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_ENV
-        echo "BUILD_TIME=${BUILD_TIME}" >> $GITHUB_ENV
+        sudo apt-get update > /dev/null
         
-        has_patched_npk=false
-        if wget -nv --spider https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/$LATEST_VERSION/routeros-x86-$LATEST_VERSION.npk; then
-          echo "RouterOS NPK file exists, attempting to download..."
-          if wget -nv -O routeros-x86-$LATEST_VERSION.npk https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/$LATEST_VERSION/routeros-x86-$LATEST_VERSION.npk; then
-            echo "RouterOS NPK file downloaded successfully."
-            if wget -nv --spider https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/$LATEST_VERSION/system-$LATEST_VERSION.npk; then
-              echo "System NPK file exists, attempting to download..."
-              if wget -nv -O system-$LATEST_VERSION.npk https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/$LATEST_VERSION/system-$LATEST_VERSION.npk; then
-                has_patched_npk=true
-              fi
-            fi
-          fi
-        fi
-        echo "has_patched_npk=$has_patched_npk" >> $GITHUB_OUTPUT
+    - name: Get loader patch files
+      if: steps.get_latest.outputs.has_new_version == 'true'
+      run: |
+        wget -nv -O loader.7z https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/loader.7z
+        sudo apt-get install -y p7zip-full > /dev/null
+        7z x -p"${{ secrets.LOADER_7Z_PASSWORD }}" loader.7z >> /dev/null
+        rm loader.7z
 
     - name: Cache Squashfs
       if: steps.get_latest.outputs.has_new_version == 'true'
@@ -126,10 +148,11 @@ jobs:
       uses: actions/cache@v4
       with:
         path: |
+          python3.sfs
           option.sfs
-        key: busybox-squashfs
-        
-    - name: Create Squashfs for option
+        key: busybox-python3-squashfs-${{ matrix.arch }}
+
+    - name: Create Squashfs for option and python3
       if: steps.get_latest.outputs.has_new_version == 'true' && steps.cache-squashfs.outputs.cache-hit != 'true'
       run: |
         sudo mkdir -p ./option-root/bin/
@@ -137,7 +160,6 @@ jobs:
         sudo chmod +x ./option-root/bin/busybox
         sudo cp keygen/keygen_x86 ./option-root/bin/keygen
         sudo chmod +x ./option-root/bin/keygen
-
         sudo chmod +x ./busybox/busybox_x86
         COMMANDS=$(./busybox/busybox_x86 --list)
         for cmd in $COMMANDS; do
@@ -145,7 +167,14 @@ jobs:
         done
         sudo mksquashfs option-root option.sfs -quiet -comp xz -no-xattrs -b 256k
         sudo rm -rf option-root
-        
+        sudo wget -O cpython.tar.gz -nv https://github.com/indygreg/python-build-standalone/releases/download/20250708/cpython-3.11.13+20250708-x86_64-unknown-linux-musl-install_only_stripped.tar.gz
+        sudo tar -xf cpython.tar.gz
+        sudo rm cpython.tar.gz
+        sudo rm -rf ./python/include
+        sudo rm -rf ./python/share
+        sudo mksquashfs python python3.sfs -quiet -comp xz -no-xattrs -b 256k
+        sudo rm -rf ./python
+
     - name: Cache mikrotik-${{ env.LATEST_VERSION }}.iso
       if: steps.get_latest.outputs.has_new_version == 'true'
       id: cache-mikrotik
@@ -160,7 +189,7 @@ jobs:
       run: |
           sudo wget -nv -O mikrotik.iso https://download.mikrotik.com/routeros/$LATEST_VERSION/mikrotik-$LATEST_VERSION.iso
 
-
+          
     - name: Patch mikrotik-${{ env.LATEST_VERSION }}.iso
       if: steps.get_latest.outputs.has_new_version == 'true'
       run: |
@@ -172,18 +201,25 @@ jobs:
         sudo rsync -a ./iso/ ./new_iso/
         sudo umount ./iso
         sudo rm -rf ./iso
-        if [ "${{ steps.get_latest.outputs.has_patched_npk }}" == "false" ]; then
-          sudo mv ./new_iso/system-$LATEST_VERSION.npk ./
-          sudo -E python3 patch.py npk system-$LATEST_VERSION.npk
-        else
-          sudo -E python3 npk.py sign system-$LATEST_VERSION.npk system-$LATEST_VERSION.npk
+        sudo mv ./new_iso/system-$LATEST_VERSION.npk ./
+        sudo -E python3 patch.py npk system-$LATEST_VERSION.npk
+        NPK_FILES=$(find ./new_iso -type f -name "*.npk")
+        if [ -z "$NPK_FILES" ]; then
+            echo "No .npk files found in iso, downloading..."
+            URL="https://download.mikrotik.com/routeros/$LATEST_VERSION/all_packages-${{ matrix.arch }}-$LATEST_VERSION.zip"
+            TMP_ZIP="./all_packages.zip"
+            sudo wget -nv -O "$TMP_ZIP" "$URL"
+            sudo unzip -o "$TMP_ZIP" -d ./new_iso
+            sudo rm -f "$TMP_ZIP"
+            NPK_FILES=$(find ./new_iso -type f -name "*.npk")
         fi
+        if [ -n "$NPK_FILES" ]; then
+            for file in $NPK_FILES; do
+                sudo -E python3 npk.py sign "$file" "$file"
+            done
+        fi
+        sudo cp -f system-$LATEST_VERSION.npk ./new_iso/
         sudo -E python3 patch.py kernel ./new_iso/isolinux/initrd.rgz
-        NPK_FILES=$(find ./new_iso/*.npk)
-        for file in $NPK_FILES; do
-            sudo -E python3 npk.py sign $file $file
-        done
-        sudo cp system-$LATEST_VERSION.npk ./new_iso/
         #sudo -E python3 npk.py create ./new_iso/gps-$LATEST_VERSION.npk ./option-$LATEST_VERSION.npk option ./option.sfs -desc="busybox"
         #sudo cp option-$LATEST_VERSION.npk ./new_iso/
         sudo mkisofs -o mikrotik-$LATEST_VERSION.iso \
@@ -204,7 +240,7 @@ jobs:
         sudo rm -rf ./new_iso
 
     - name: Create install-image-${{ env.LATEST_VERSION }}.img
-      if: steps.get_latest.outputs.has_new_version == 'true' && steps.get_latest.outputs.has_patched_npk == 'true'
+      if: steps.get_latest.outputs.has_new_version == 'true' 
       run: |
         sudo modprobe nbd
         sudo apt-get update
@@ -261,14 +297,8 @@ jobs:
         sudo -E python3 patch.py block /dev/nbd0p1 boot/initrd.rgz
         sudo mount /dev/nbd0p1 ./chr
         sudo cp ./all_packages/dude-$LATEST_VERSION.npk ./chr/var/pdb/dude/image
-        if [ "${{ steps.get_latest.outputs.has_patched_npk }}" == "false" ]; then
-          sudo -E python3 patch.py npk ./chr/var/pdb/routeros-x86/image
-          sudo cp ./chr/var/pdb/routeros-x86/image ./all_packages/routeros-x86-$LATEST_VERSION.npk
-        else
-          sudo -E python3 npk.py sign routeros-x86-$LATEST_VERSION.npk routeros-x86-$LATEST_VERSION.npk
-          sudo cp -f routeros-x86-$LATEST_VERSION.npk ./chr/var/pdb/routeros-x86/image
-          sudo cp routeros-x86-$LATEST_VERSION.npk ./all_packages/routeros-x86-$LATEST_VERSION.npk
-        fi
+        sudo -E python3 patch.py npk ./chr/var/pdb/routeros-x86/image
+        sudo cp ./chr/var/pdb/routeros-x86/image ./all_packages/routeros-x86-$LATEST_VERSION.npk
         #sudo mkdir -p ./chr/var/pdb/option
         #sudo cp ./all_packages/option-$LATEST_VERSION.npk ./chr/var/pdb/option/image
         sudo umount ./chr
@@ -299,27 +329,34 @@ jobs:
         cd ..
         
     - name: Upload Files
-      if: steps.get_latest.outputs.has_new_version == 'true'
+      if: steps.get_latest.outputs.has_new_version == 'true' && env.RELEASE == 'true'
       run: |
-        if [ "${{ steps.get_latest.outputs.has_patched_npk }}" == "false" ]; then
-          OUTDIR="$LATEST_VERSION-UNDONE"
-        else
-          OUTDIR="$LATEST_VERSION"
-        fi
-        sudo mkdir -p ./publish/$OUTDIR
-        sudo cp CHANGELOG ./publish/$OUTDIR/
-        sudo cp ./all_packages/*.npk ./publish/$OUTDIR/
+        sudo mkdir -p ./publish/$LATEST_VERSION
+        sudo cp CHANGELOG ./publish/$LATEST_VERSION/
+        sudo cp ./all_packages/*.npk ./publish/$LATEST_VERSION/
         sudo chown -R root:root ./publish/
+        
+        LOCAL_PATH=./publish/$LATEST_VERSION
+        REMOTE_PATH=${{ secrets.SSH_DIRECTORY }}
+        SERVER=${{ secrets.SSH_SERVER }}
+        USER=${{ secrets.SSH_USERNAME }}
+        PASS=${{ secrets.SSH_PASSWORD }}
+        PORT=${{ secrets.SSH_PORT }}
+        CHANNEL=${{ matrix.channel }}
+
         sudo apt-get install -y lftp ssh sshpass > /dev/null 2>&1
-        sudo -E lftp -u ${{ secrets.SSH_USERNAME }},'${{ secrets.SSH_PASSWORD }}' sftp://${{ secrets.SSH_SERVER }}:${{ secrets.SSH_PORT }} <<EOF
+
+        sudo -E lftp -u "$USER","$PASS" sftp://$SERVER:$PORT <<EOF
         set sftp:auto-confirm yes
-        mirror --reverse --verbose --only-newer ./publish ${{ secrets.SSH_DIRECTORY }}
+        mirror --reverse --verbose --only-newer ./publish "$REMOTE_PATH"
         bye
         EOF
-        sshpass -p "${{ secrets.SSH_PASSWORD }}" ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_SERVER }} "echo $LATEST_VERSION $BUILD_TIME | tee /rw/disk/${{ secrets.SSH_DIRECTORY }}/NEWEST6.${{ matrix.channel }}; chown -R 32768:32768 /rw/disk/${{ secrets.SSH_DIRECTORY }}/"   
-        
+        sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no -p $PORT $USER@$SERVER \
+          "echo $LATEST_VERSION $BUILD_TIME | tee /rw/disk/$REMOTE_PATH/NEWESTa6.$CHANNEL; chown -R 32768:32768 /rw/disk/$REMOTE_PATH/"
+          
+
     - name: Clear Cloudflare cache
-      if: steps.get_latest.outputs.has_new_version == 'true'
+      if: steps.get_latest.outputs.has_new_version == 'true' && env.RELEASE == 'true'
       run: |
         curl --request POST --url "https://api.cloudflare.com/client/v4/zones/fe6831ed6dc9e6235e69ef2a31f2e7fe/purge_cache" \
             --header "Authorization: Bearer 9GDQkzU51QXaqzp1qMjyFKpyeJyOdnNoG9GZQaGP" \
@@ -327,7 +364,7 @@ jobs:
             --data '{"purge_everything": true}'
 
     - name: Delete Release tag ${{ env.LATEST_VERSION }}
-      if: steps.get_latest.outputs.has_new_version == 'true' && steps.get_latest.outputs.has_patched_npk == 'true'
+      if: steps.get_latest.outputs.has_new_version == 'true' && env.RELEASE == 'true'
       run: |
         HEADER="Authorization: token ${{ secrets.GITHUB_TOKEN }}"
         RELEASE_INFO=$(curl -s -H $HEADER https://api.github.com/repos/${{ github.repository }}/releases/tags/$LATEST_VERSION)
@@ -342,8 +379,9 @@ jobs:
             echo "Release not found for tag: $LATEST_VERSION)"
         fi
 
-    - name: Create Release tag ${{ env.LATEST_VERSION }}
-      if: steps.get_latest.outputs.has_new_version == 'true' && steps.get_latest.outputs.has_patched_npk == 'true'
+
+    - name: Create Release tag ${{ env.LATEST_VERSION }} 
+      if: steps.get_latest.outputs.has_new_version == 'true' && env.RELEASE == 'true'
       uses: softprops/action-gh-release@v2
       with:
         name: "RouterOS ${{ env.LATEST_VERSION }}"
@@ -357,3 +395,13 @@ jobs:
           install-image-${{ env.LATEST_VERSION }}.zip
           routeros-x86-${{ env.LATEST_VERSION }}.npk
           all_packages-x86-${{ env.LATEST_VERSION }}.zip
+          
+    - name: Upload Files as Artifact (No Release)
+      if: steps.get_latest.outputs.has_new_version == 'true' && env.RELEASE == 'false'
+      uses: actions/upload-artifact@v4
+      with:
+        name: mikrotik-${{ env.LATEST_VERSION }}
+        path: |
+          all_packages-x86-${{ env.LATEST_VERSION }}.zip
+          mikrotik-${{ env.LATEST_VERSION }}.iso
+          chr-${{ env.LATEST_VERSION }}*.zip
