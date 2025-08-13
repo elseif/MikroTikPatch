@@ -16,8 +16,8 @@
 
 支持:在线更新、在线授权、云备份、DDNS
 
-![Cloud Status](https://img.shields.io/website?url=https%3A%2F%2Fwww.mikrotik.ltd&up_message=online&down_message=offline&label=Cloud%20Status&color=blue)
-[![VPS Status](https://img.shields.io/badge/dynamic/regex?url=https://vncr.dartnode.net/api2/json/nodes&search=\{[^{}]*%22node%22:%22n12%22[^{}]*%22status%22:%22([^%22]*)%22[^{}]*\}&replace=$1&label=VPS%20Status&color=blue)](https://vncr.dartnode.net/api2/json/nodes)
+![Cloud Status](https://img.shields.io/endpoint?url=https://upgrade.mikrotik.ltd/status?type=cloud)
+[![VPS Status](https://img.shields.io/endpoint?url=https://upgrade.mikrotik.ltd/status?type=dartnode)
 
 ![](image/install.png)
 ![](image/routeros.png)
