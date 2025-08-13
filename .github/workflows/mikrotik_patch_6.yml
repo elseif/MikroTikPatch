@@ -353,7 +353,7 @@ jobs:
         bye
         EOF
         sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no -p $PORT $USER@$SERVER \
-          "echo $LATEST_VERSION $BUILD_TIME | tee /rw/disk/$REMOTE_PATH/NEWESTa6.$CHANNEL; chown -R 32768:32768 /rw/disk/$REMOTE_PATH/"
+          "echo $LATEST_VERSION $BUILD_TIME | tee /rw/disk/$REMOTE_PATH/NEWEST6.$CHANNEL; chown -R 32768:32768 /rw/disk/$REMOTE_PATH/"
           
 
     - name: Clear Cloudflare cache
