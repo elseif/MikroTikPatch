@@ -19,7 +19,7 @@
 ![Cloud Status](https://img.shields.io/endpoint?url=https://upgrade.mikrotik.ltd/status?type=cloud)
 ![VPS Status](https://img.shields.io/endpoint?url=https://upgrade.mikrotik.ltd/status?type=dartnode)
 
-(如果云服务或部署云服务的虚拟主机都不在线，那么在线更新、在线授权、云备份、DDNS以及ROS_Keygen_Bot都暂时不能使用)
+*如果云服务或部署云服务的虚拟主机都不在线，那么在线更新、在线授权、云备份、DDNS以及ROS_Keygen_Bot都暂时不能使用*
 
 ![](image/install.png)
 ![](image/routeros.png)
