@@ -17,7 +17,7 @@
 支持:在线更新、在线授权、云备份、DDNS
 
 ![Cloud Status](https://img.shields.io/endpoint?url=https://upgrade.mikrotik.ltd/status?type=cloud)
-[![VPS Status](https://img.shields.io/endpoint?url=https://upgrade.mikrotik.ltd/status?type=dartnode)
+![VPS Status](https://img.shields.io/endpoint?url=https://upgrade.mikrotik.ltd/status?type=dartnode)
 
 ![](image/install.png)
 ![](image/routeros.png)
