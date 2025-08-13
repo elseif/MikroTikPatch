@@ -1,6 +1,6 @@
 [![Patch Mikrotik RouterOS 6.x](https://github.com/elseif/MikroTikPatch/actions/workflows/mikrotik_patch_6.yml/badge.svg)](https://github.com/elseif/MikroTikPatch/actions/workflows/mikrotik_patch_6.yml)
 [![Patch Mikrotik RouterOS 7.x](https://github.com/elseif/MikroTikPatch/actions/workflows/mikrotik_patch_7.yml/badge.svg)](https://github.com/elseif/MikroTikPatch/actions/workflows/mikrotik_patch_7.yml)
-[![Cloud Status](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fvncr.dartnode.net%2Fapi2%2Fjson%2Fnodes&search=%5C%7B%5B%5E%7B%7D%5D*%22node%22%3A%22n12%22%5B%5E%7B%7D%5D*%22status%22%3A%22(%5B%5E%22%5D*)%22%5B%5E%7B%7D%5D*%5C%7D&replace=$1&label=Cloud Status&color=blue)](https://vncr.dartnode.net/api2/json/nodes)
+[![Cloud Status](https://img.shields.io/badge/dynamic/regex?url=https://vncr.dartnode.net/api2/json/nodes&search=\{[^{}]*%22node%22:%22n12%22[^{}]*%22status%22:%22([^%22]*)%22[^{}]*\}&replace=$1&label=Cloud%20Status&color=blue)](https://vncr.dartnode.net/api2/json/nodes)
 
 
 # MikroTik RouterOS Patch  [[English](README_EN.md)]
