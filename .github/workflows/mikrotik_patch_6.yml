@@ -21,7 +21,7 @@ on:
         default: ''
         type: string
       buildtime:
-        description: "Custom build time, leave empty for now"
+        description: "Custom build time, leave empty for now,when set specify version"
         required: false
         default: ''
         type: string
@@ -109,16 +109,16 @@ jobs:
       id: get_latest
       run: |
         echo $(uname -a)
-        echo Build Time:$BUILD_TIME
         if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
           if [ -n "${{ github.event.inputs.version }}" ]; then
             LATEST_VERSION="${{ github.event.inputs.version }}"
           else
-            LATEST_VERSION=$(wget -nv -O - https://${{ env.MIKRO_UPGRADE_URL }}/routeros/NEWEST6.${{ matrix.channel }} | cut -d ' ' -f1)
+            read LATEST_VERSION BUILD_TIME <<< "$(wget -nv -O - "https://${{ env.MIKRO_UPGRADE_URL }}/routeros/NEWEST6.${{ matrix.channel }}")"
           fi
         else
-          LATEST_VERSION=$(wget -nv -O - https://${{ env.MIKRO_UPGRADE_URL }}/routeros/NEWEST6.${{ matrix.channel }} | cut -d ' ' -f1)
+          read LATEST_VERSION BUILD_TIME <<< "$(wget -nv -O - "https://${{ env.MIKRO_UPGRADE_URL }}/routeros/NEWEST6.${{ matrix.channel }}")"
         fi
+        echo Build Time:$BUILD_TIME
         echo Latest Version:$LATEST_VERSION
         if [ "${{ github.event_name }}" == "schedule" ]; then
           _LATEST_VERSION=$(wget -nv -O - https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/NEWEST6.${{ matrix.channel }} | cut -d ' ' -f1)
@@ -132,6 +132,7 @@ jobs:
         wget -nv -O CHANGELOG https://${{ env.MIKRO_UPGRADE_URL }}/routeros/$LATEST_VERSION/CHANGELOG
         cat CHANGELOG
         echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_ENV
+        echo "BUILD_TIME=${BUILD_TIME}" >> $GITHUB_ENV
         sudo apt-get update > /dev/null
         
     - name: Get loader patch files
