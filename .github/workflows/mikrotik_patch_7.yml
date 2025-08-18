@@ -359,7 +359,7 @@ jobs:
           sudo mkdir -p ./chr/routeros/{var/pdb/{system,option},boot,rw/disk}
           sudo cp ./all_packages/option-$LATEST_VERSION$ARCH.npk ./chr/routeros/var/pdb/option/image
           sudo cp ./all_packages/routeros-$LATEST_VERSION$ARCH.npk ./chr/routeros/var/pdb/system/image
-          echo -e '#!/bin/sh\n# This script will be executed *before* RouterOS *loader* start.\n# You can put your own initialization stuff in here\n' > ./chr/routeros/rw/disk/rc.local
+          echo -e '#!/bin/sh\n# This script will be executed *before* RouterOS *loader* start.\n# You can put your own initialization stuff in here\n' | sudo tee ./chr/routeros/rw/disk/rc.local
           sudo umount /dev/nbd1p2
           sudo qemu-nbd -d /dev/nbd1
           sudo rm -rf ./chr
