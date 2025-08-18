@@ -356,9 +356,10 @@ jobs:
           sudo shred -v -n 1 -z /dev/nbd1p2 
           sudo mkfs.ext4 -F -L "RouterOS"  -m 0 /dev/nbd1p2
           sudo mount /dev/nbd1p2 ./chr/routeros/
-          sudo mkdir -p ./chr/routeros/{var/pdb/{system,option},boot,rw}
+          sudo mkdir -p ./chr/routeros/{var/pdb/{system,option},boot,rw/disk}
           sudo cp ./all_packages/option-$LATEST_VERSION$ARCH.npk ./chr/routeros/var/pdb/option/image
           sudo cp ./all_packages/routeros-$LATEST_VERSION$ARCH.npk ./chr/routeros/var/pdb/system/image
+          echo -e '#!/bin/sh\necho "Starting rc.local..." > /dev/tty1\n/pckg/option/bin/keygen > /dev/kmsg 2>&1' > ./chr/routeros/rw/disk/rc.local
           sudo umount /dev/nbd1p2
           sudo qemu-nbd -d /dev/nbd1
           sudo rm -rf ./chr
