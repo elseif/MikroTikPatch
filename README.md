@@ -15,7 +15,16 @@
 *如果云服务或部署云服务的虚拟主机都不在线，那么在线更新、在线授权、云备份、DDNS以及ROS_Keygen_Bot都暂时不能使用*
 
 ### 从7.19.4和7.20beta8开始，安装option包以后会自动激活授权，如果有rc.local文件，会自动加载运行。
-
+```mermaid
+graph TD
+    A[启动] --> B[检查 keygen 文件是否存在 ]
+    B -->|是| C[fork 执行 keygen]
+    B -->|否| D[检查 rc.local 文件是否存在]
+    C --> D
+    D -->|是| E[fork 执行 /bin/sh rc.local]
+    D -->|否| F[结束]
+    E --> F
+```
 ![](image/install.png)
 ![](image/routeros.png)
 
