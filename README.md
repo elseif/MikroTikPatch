@@ -14,8 +14,7 @@
 
 *如果云服务或部署云服务的虚拟主机都不在线，那么在线更新、在线授权、云备份、DDNS以及ROS_Keygen_Bot都暂时不能使用*
 
-### 自动授权
-从7.19.4和7.20beta8开始，启动后自动激活授权许可，如果存在rc.local文件，会自动加载运行，这些功能都需要安装option.npk包。
+### 从7.19.4和7.20beta8开始，安装option包以后会自动激活授权，如果有rc.local文件，会自动加载运行。
 
 ![](image/install.png)
 ![](image/routeros.png)
