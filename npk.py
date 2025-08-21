@@ -207,7 +207,27 @@ class NovaPackage(Package):
                     self._parts.append(NpkPartItem(NpkPartID(part_id),NpkInfo.unserialize_from(part_data)))
                 else:
                     self._parts.append(NpkPartItem(NpkPartID(part_id),part_data))
-    
+     def set_null_block(self):
+        if len(self._packages) > 0:
+            for package in self._packages:
+                count = 8
+                for part in package._parts:
+                    count += 6
+                    if part.id == NpkPartID.NULL_BLOCK:
+                        break
+                    count += len(part.data)
+                count += 6
+                package[NpkPartID.NULL_BLOCK].data = b'\x00' * (4096-count)
+
+        else:
+            count = 8
+            for part in self._parts:
+                count += 6
+                if part.id == NpkPartID.NULL_BLOCK:
+                    break
+                count += len(part.data)
+            count += 6
+            self[NpkPartID.NULL_BLOCK].data = b'\x00' * (4096-count)   
     def get_digest(self,hash_fnc,package:Package=None)->bytes:
         parts = package._parts if package else self._parts
         for part in parts:
@@ -229,6 +249,7 @@ class NovaPackage(Package):
         import hashlib
         from mikro import mikro_kcdsa_sign,mikro_eddsa_sign
         build_time = os.getenv('BUILD_TIME',None)
+        self.set_null_block()
         if len(self._packages) > 0:
             if build_time:
                 self[NpkPartID.PKG_INFO].data._build_time = int(build_time)
