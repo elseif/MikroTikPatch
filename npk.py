@@ -208,14 +208,26 @@ class NovaPackage(Package):
                 else:
                     self._parts.append(NpkPartItem(NpkPartID(part_id),part_data))
     def set_null_block(self):
-        has_squashfs = False
-        for part in self._parts:
-            if part.id == NpkPartID.SQUASHFS:
-                has_squashfs = True
-                break
-        if not has_squashfs:
-            return
+        def rebuild_squashfs(data):
+            with open('squashfs.sfs', 'wb') as f:
+                f.write(data)
+            os.system('unsquashfs -d squashfs-root squashfs.sfs')
+            os.system('rm squashfs.sfs')
+            os.system('mksquashfs squashfs-root squashfs.sfs -comp xz -no-xattrs -b 256k')
+            os.system('rm -rf squashfs-root')
+            with open('squashfs.sfs', 'rb') as f:
+                return f.read()
+
         if len(self._packages) > 0:
+            has_squashfs = False
+            for package in self._packages:
+                for part in package._parts:
+                    if part.id == NpkPartID.SQUASHFS:
+                        part.data = rebuild_squashfs(part.data)
+                        has_squashfs = True
+
+            if not has_squashfs:
+                return
             for package in self._packages:
                 count = 8
                 for part in package._parts:
@@ -224,9 +236,17 @@ class NovaPackage(Package):
                         break
                     count += len(part.data)
                 count += 6
-                package[NpkPartID.NULL_BLOCK].data = b'\x00' * (4096-count)
+                pad_len = (4096 - (count % 4096)) % 4096
+                package[NpkPartID.NULL_BLOCK].data = b'\x00' * pad_len
 
         else:
+            has_squashfs = False
+            for part in self._parts:
+                if part.id == NpkPartID.SQUASHFS:
+                    part.data = rebuild_squashfs(part.data)
+                    has_squashfs = True
+            if not has_squashfs:
+                return
             count = 8
             for part in self._parts:
                 count += 6
@@ -234,7 +254,8 @@ class NovaPackage(Package):
                     break
                 count += len(part.data)
             count += 6
-            self[NpkPartID.NULL_BLOCK].data = b'\x00' * (4096-count)   
+            pad_len = (4096 - (count % 4096)) % 4096
+            self[NpkPartID.NULL_BLOCK].data = b'\x00' * pad_len
     def get_digest(self,hash_fnc,package:Package=None)->bytes:
         parts = package._parts if package else self._parts
         for part in parts:
