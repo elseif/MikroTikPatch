@@ -208,6 +208,13 @@ class NovaPackage(Package):
                 else:
                     self._parts.append(NpkPartItem(NpkPartID(part_id),part_data))
      def set_null_block(self):
+        has_squashfs = False
+        for part in self._parts:
+            if part.id == NpkPartID.SQUASHFS:
+                has_squashfs = True
+                break
+        if not has_squashfs:
+            return
         if len(self._packages) > 0:
             for package in self._packages:
                 count = 8
