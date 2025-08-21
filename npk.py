@@ -207,7 +207,7 @@ class NovaPackage(Package):
                     self._parts.append(NpkPartItem(NpkPartID(part_id),NpkInfo.unserialize_from(part_data)))
                 else:
                     self._parts.append(NpkPartItem(NpkPartID(part_id),part_data))
-     def set_null_block(self):
+    def set_null_block(self):
         has_squashfs = False
         for part in self._parts:
             if part.id == NpkPartID.SQUASHFS:
