@@ -33,10 +33,11 @@ if LOOP=$(losetup -Pf --show chr.img 2>/dev/null); then
     MNT=/tmp/chr
     mkdir -p $MNT
     if mount ${LOOP}p2 $MNT 2>/dev/null; then
-        cat <<EOF > $MNT/rw/autorun.scr
+        cat <<EOF | tee $MNT/rw/autorun.scr
 /ip address add address=$ADDRESS interface=ether1
 /ip route add gateway=$GATEWAY
 EOF
+        echo "autorun.scr file created."
         umount $MNT
     else
         echo "Failed to mount partition 2, skipping autorun.scr creation."
