@@ -1,5 +1,5 @@
-curl -# -L  https://github.com/elseif/MikroTikPatch/releases/download/7.19.3/chr-7.19.3-legacy-bios.img.zip -o /tmp/chr.img.zip  && cd /tmp && \
-gunzip -c chr.img.zip > chr.img  && \
+curl -# -L  https://github.com/elseif/MikroTikPatch/releases/download/7.19.4/chr-7.19.4-legacy-bios.img.zip -o /tmp/chr.img.zip  && cd /tmp && \
+unzip -p chr.img.zip > chr.img && \
 STORAGE=`lsblk | grep disk | cut -d ' ' -f 1 | head -n 1` && \
 echo STORAGE is $STORAGE && \
 ETH=`ip route show default | sed -n 's/.* dev \([^\ ]*\) .*/\1/p'` && \
@@ -8,8 +8,18 @@ ADDRESS=`ip addr show $ETH | grep global | cut -d' ' -f 6 | head -n 1` && \
 echo ADDRESS is $ADDRESS && \
 GATEWAY=`ip route list | grep default | cut -d' ' -f 3` && \
 echo GATEWAY is $GATEWAY && \
-sleep 5 && \
-dd if=chr.img of=/dev/$STORAGE bs=4M oflag=sync && \
+LOOP=`losetup -Pf --show chr.img` && \
+sleep 3 && \
+MNT=/mnt/chr && \
+mkdir -p $MNT && \
+mount ${LOOP}p2 $MNT && \
+cat <<EOF | tee $MNT/rw/autorun.scr
+/ip address add address=$ADDRESS interface=ether1
+/ip route add gateway=$GATEWAY
+EOF
+umount $MNT && \
+losetup -d $LOOP && \
+dd if=chr.img of=/dev/$STORAGE bs=4M oflag=sync status=progress && \
 echo "Ok, reboot" && \
 echo 1 > /proc/sys/kernel/sysrq && \
 echo b > /proc/sysrq-trigger
