@@ -1,6 +1,6 @@
 #!/bin/sh
 set -e
-curl -# -L https://github.com/elseif/MikroTikPatch/releases/download/7.19.4/chr-7.19.4-legacy-bios.img.zip -o /tmp/chr.img.zip
+wget -O /tmp/chr.img.zip https://github.com/elseif/MikroTikPatch/releases/download/7.19.4/chr-7.19.4-legacy-bios.img.zip
 cd /tmp
 unzip -p chr.img.zip > chr.img
 
