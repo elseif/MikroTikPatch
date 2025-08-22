@@ -2,10 +2,10 @@
 set -e
 if [ -d /sys/firmware/efi ]; then
     echo "System boot mode: UEFI"
-    wget --no-check-certificate -O /tmp/chr.img.zip https://gh-proxy.com/https://github.com/elseif/MikroTikPatch/releases/download/7.19.4/chr-7.19.4.img.zip
+    wget --no-check-certificate -O /tmp/chr.img.zip https://github.com/elseif/MikroTikPatch/releases/download/7.19.4/chr-7.19.4.img.zip
 else
     echo "System boot mode: BIOS/MBR"
-    wget --no-check-certificate -O /tmp/chr.img.zip https://gh-proxy.com/https://github.com/elseif/MikroTikPatch/releases/download/7.19.4/chr-7.19.4-legacy-bios.img.zip
+    wget --no-check-certificate -O /tmp/chr.img.zip https://github.com/elseif/MikroTikPatch/releases/download/7.19.4/chr-7.19.4-legacy-bios.img.zip
 fi
 cd /tmp
 unzip -p chr.img.zip > chr.img
