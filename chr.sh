@@ -27,21 +27,22 @@ echo "ADDRESS is $ADDRESS"
 GATEWAY=$(ip route list | grep default | cut -d' ' -f 3)
 echo "GATEWAY is $GATEWAY"
 
-#LOOP=$(losetup -Pf --show chr.img)
-#echo "LOOP device is $LOOP"
-sleep 3
-
-#MNT=/mnt/chr
-#mkdir -p $MNT
-#mount ${LOOP}p2 $MNT
-
-#cat <<EOF | tee $MNT/rw/autorun.scr
-#/ip address add address=$ADDRESS interface=ether1
-#/ip route add gateway=$GATEWAY
-#EOF
-
-#umount $MNT
-#losetup -d $LOOP
+if LOOP=$(losetup -Pf --show chr.img 2>/dev/null); then
+    echo "LOOP device is $LOOP"
+    sleep 3
+    MNT=/tmp/chr
+    mkdir -p $MNT
+    if mount ${LOOP}p2 $MNT 2>/dev/null; then
+        cat <<EOF > $MNT/rw/autorun.scr
+/ip address add address=$ADDRESS interface=ether1
+/ip route add gateway=$GATEWAY
+EOF
+        umount $MNT
+    else
+        echo "Failed to mount partition 2, skipping autorun.scr creation."
+    fi
+    losetup -d $LOOP
+fi
 
 echo "WARNING: All data on /dev/$STORAGE will be lost!"
 read -p "Do you want to continue? [Y/n]: " confirm
