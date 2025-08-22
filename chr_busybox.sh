@@ -41,7 +41,7 @@ echo "WARNING: All data on /dev/$STORAGE will be lost!"
 read -p "Do you want to continue? [Y/n]: " confirm
 [ "$confirm" = "n" ] && echo "Operation aborted." && exit 1
 
-dd if=chr.img of=/dev/$STORAGE bs=4M oflag=sync status=progress
+dd if=chr.img of=/dev/$STORAGE bs=4M conv=fsync
 echo "Ok, rebooting..."
 echo 1 > /proc/sys/kernel/sysrq
 echo b > /proc/sysrq-trigger
