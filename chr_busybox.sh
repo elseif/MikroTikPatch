@@ -12,7 +12,7 @@ STORAGE=$(for d in /sys/block/*; do
 done)
 echo "STORAGE is $STORAGE"
 
-ETH=$(ip route show default | sed -n 's/.* dev \([^\ ]*\) .*/\1/p')
+ETH=$(ip route show default | grep '^default' | sed -n 's/.* dev \([^\ ]*\) .*/\1/p')
 echo "ETH is $ETH"
 
 ADDRESS=$(ip addr show $ETH | grep global | cut -d' ' -f 6 | head -n 1)
