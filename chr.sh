@@ -50,5 +50,6 @@ read -p "Do you want to continue? [Y/n]: " confirm
 
 dd if=chr.img of=/dev/$STORAGE bs=4M conv=fsync
 echo "Ok, rebooting..."
-echo 1 > /proc/sys/kernel/sysrq
-echo b > /proc/sysrq-trigger
+echo 1 > /proc/sys/kernel/sysrq 2>/dev/null || true
+echo b > /proc/sysrq-trigger 2>/dev/null || true
+reboot -f
