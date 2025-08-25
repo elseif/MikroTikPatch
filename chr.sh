@@ -67,7 +67,8 @@ EOF
 fi
 
 echo "WARNING: All data on /dev/$STORAGE will be lost!"
-read -p "Do you want to continue? [Y/n]: " confirm
+echo -n "Do you want to continue? [Y/n]: "
+read confirm
 [ "$confirm" = "n" ] && echo "Operation aborted." && exit 1
 
 dd if=chr.img of=/dev/$STORAGE bs=4M conv=fsync
