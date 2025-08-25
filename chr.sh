@@ -1,6 +1,7 @@
 #!/bin/sh
 set -e
-LATEST_VERSION="7.19.4"
+LATEST_VERSION="${1:-7.19.4}"
+echo "VERSION: $LATEST_VERSION"
 ARCH=$(uname -m)
 case $ARCH in
     x86_64|i386|i486|i586|i686)
