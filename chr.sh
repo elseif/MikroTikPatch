@@ -72,6 +72,7 @@ read confirm
 [ "$confirm" = "n" ] && echo "Operation aborted." && exit 1
 
 dd if=chr.img of=/dev/$STORAGE bs=4M conv=fsync
+sync || true
 echo "Ok, rebooting..."
 echo 1 > /proc/sys/kernel/sysrq 2>/dev/null || true
 echo b > /proc/sysrq-trigger 2>/dev/null || true
