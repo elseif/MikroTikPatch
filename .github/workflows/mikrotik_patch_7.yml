@@ -479,8 +479,8 @@ jobs:
               -e "s|{POPULATED_SIZE}|$POPULATED_SIZE|g" \
               -e "s|{FIRMWARE_TYPE}|$FIRMWARE_TYPE|g" |sudo tee $OVF
           {
-              echo "SHA1($(basename "$VMDK"))= $(sha1sum "$VMDK" | awk '{print $1}')"
-              echo "SHA1($(basename "$OVF"))= $(sha1sum "$OVF" | awk '{print $1}')"
+              echo "SHA256($(basename "$VMDK"))= $(sha256sum "$VMDK" | awk '{print $1}')"
+              echo "SHA256($(basename "$OVF"))= $(sha256sum "$OVF" | awk '{print $1}')"
           } | sudo tee "$MF"  
           sudo tar -cvf "$OVA" "$OVF" "$VMDK" "$MF"
           sudo rm $VMDK
@@ -545,8 +545,8 @@ jobs:
             -e "s|{POPULATED_SIZE}|$POPULATED_SIZE|g" \
             -e "s|{FIRMWARE_TYPE}|$FIRMWARE_TYPE|g" |sudo tee $OVF
         {
-            echo "SHA1($(basename "$VMDK"))= $(sha1sum "$VMDK" | awk '{print $1}')"
-            echo "SHA1($(basename "$OVF"))= $(sha1sum "$OVF" | awk '{print $1}')"
+            echo "SHA256($(basename "$VMDK"))= $(sha256sum "$VMDK" | awk '{print $1}')"
+            echo "SHA256($(basename "$OVF"))= $(sha256sum "$OVF" | awk '{print $1}')"
         } | sudo tee "$MF"  
         sudo tar -cvf "$OVA" "$OVF" "$VMDK" "$MF"
         sudo rm $VMDK
