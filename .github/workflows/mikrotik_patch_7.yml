@@ -463,7 +463,7 @@ jobs:
           sudo qemu-img convert -f raw -O vhdx chr-$LATEST_VERSION$ARCH-legacy-bios.img chr-$LATEST_VERSION$ARCH-legacy-bios.vhdx
           sudo qemu-img convert -f raw -O vdi chr-$LATEST_VERSION$ARCH-legacy-bios.img chr-$LATEST_VERSION$ARCH-legacy-bios.vdi
           
-          sudo qemu-img convert -f raw -O vmdk -o subformat=streamOptimized chr-$LATEST_VERSION$ARCH-legacy-bios.img $LATEST_VERSION$ARCH-legacy-bios-disk1.vmdk
+          sudo qemu-img convert -f raw -O vmdk -o subformat=streamOptimized chr-$LATEST_VERSION$ARCH-legacy-bios.img chr-$LATEST_VERSION$ARCH-legacy-bios-disk1.vmdk
           VMDK=chr-$LATEST_VERSION$ARCH-legacy-bios-disk1.vmdk
           OVF=chr-$LATEST_VERSION$ARCH-legacy-bios.ovf
           OVA=chr-$LATEST_VERSION$ARCH-legacy-bios.ova
