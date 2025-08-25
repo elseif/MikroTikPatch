@@ -23,11 +23,6 @@ case $ARCH in
         exit 1
         ;;
 esac
-echo "FILE: $(basename $IMG_URL)"
-wget --no-check-certificate -O /tmp/chr.img.zip "$IMG_URL"
-cd /tmp
-unzip -p chr.img.zip > chr.img
-
 STORAGE=$(for d in /sys/block/*; do
     case $(basename $d) in
         loop*|ram*|sr*) continue ;;
@@ -45,6 +40,19 @@ DNS=$(grep '^nameserver' /etc/resolv.conf | awk '{print $2}' | head -n 1)
 [ -z "$DNS" ] && DNS="8.8.8.8"  
 echo "DNS: $DNS"
 
+
+echo "WARNING: All data on /dev/$STORAGE will be lost!"
+read -p "Do you want to continue? [Y/n]: " confirm < /dev/tty
+confirm=${confirm:-Y}
+if [[ "$confirm" =~ ^[Nn]$ ]]; then
+    echo "Operation aborted."
+    exit 1
+fi
+
+echo "FILE: $(basename $IMG_URL)"
+wget --no-check-certificate -O /tmp/chr.img.zip "$IMG_URL"
+cd /tmp
+unzip -p chr.img.zip > chr.img
 if LOOP=$(losetup -Pf --show chr.img 2>/dev/null); then
     sleep 3
     MNT=/tmp/chr
@@ -61,14 +69,6 @@ EOF
         echo "Failed to mount partition 2, skipping autorun.scr creation."
     fi
     losetup -d $LOOP
-fi
-
-echo "WARNING: All data on /dev/$STORAGE will be lost!"
-read -p "Do you want to continue? [Y/n]: " confirm < /dev/tty
-confirm=${confirm:-Y}
-if [[ "$confirm" =~ ^[Nn]$ ]]; then
-    echo "Operation aborted."
-    exit 1
 fi
 
 dd if=chr.img of=/dev/$STORAGE bs=4M conv=fsync
