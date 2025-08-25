@@ -10,7 +10,7 @@ case $ARCH in
             echo "BOOT MODE: UEFI"
             IMG_URL="https://github.com/elseif/MikroTikPatch/releases/download/$LATEST_VERSION/chr-$LATEST_VERSION.img.zip"
         else
-            echo "BOOT MOD: BIOS/MBR"
+            echo "BOOT MODE: BIOS/MBR"
             IMG_URL="https://github.com/elseif/MikroTikPatch/releases/download/$LATEST_VERSION/chr-$LATEST_VERSION-legacy-bios.img.zip"
         fi
         ;; 
