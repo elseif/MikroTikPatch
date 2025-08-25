@@ -23,6 +23,7 @@ case $ARCH in
         exit 1
         ;;
 esac
+echo "FILE: $(basename $IMG_URL)"
 wget --no-check-certificate -O /tmp/chr.img.zip "$IMG_URL"
 cd /tmp
 unzip -p chr.img.zip > chr.img
