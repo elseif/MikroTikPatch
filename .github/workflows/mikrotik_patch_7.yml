@@ -469,7 +469,7 @@ jobs:
           MF=${{ env.LATEST_VERSION }}-legacy-bios.mf
           OVA=${{ env.LATEST_VERSION }}-legacy-bios.ova
           FILE_SIZE=$(stat -c %s "$VMDK")
-          VIRTUAL_SIZE=$(qemu-img info --output=json "$VMDK" | grep '"virtual-size":' | awk '{print $2}' | tr -d ',')
+          VIRTUAL_SIZE=$(qemu-img info --output=json "$VMDK" | jq '.["virtual-size"]' | head -n 1)
           CAPACITY_MB=$((VIRTUAL_SIZE / 1024 / 1024))
           POPULATED_SIZE=$FILE_SIZE
           FIRMWARE_TYPE="bios" 
@@ -535,7 +535,7 @@ jobs:
         MF=${{ env.LATEST_VERSION }}.mf
         OVA=${{ env.LATEST_VERSION }}.ova
         FILE_SIZE=$(stat -c %s "$VMDK")
-        VIRTUAL_SIZE=$(qemu-img info --output=json "$VMDK" | grep '"virtual-size":' | awk '{print $2}' | tr -d ',')
+        VIRTUAL_SIZE=$(qemu-img info --output=json "$VMDK" | jq '.["virtual-size"]' | head -n 1)
         CAPACITY_MB=$((VIRTUAL_SIZE / 1024 / 1024))
         POPULATED_SIZE=$FILE_SIZE
         FIRMWARE_TYPE="efi" 
