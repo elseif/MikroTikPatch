@@ -5,7 +5,7 @@ echo "VERSION: $LATEST_VERSION"
 ARCH=$(uname -m)
 case $ARCH in
     x86_64|i386|i486|i586|i686)
-         echo "ARCH: $ARCH"
+        echo "ARCH: $ARCH"
         if [ -d /sys/firmware/efi ]; then
             echo "BOOT MODE: UEFI"
             IMG_URL="https://github.com/elseif/MikroTikPatch/releases/download/$LATEST_VERSION/chr-$LATEST_VERSION.img.zip"
