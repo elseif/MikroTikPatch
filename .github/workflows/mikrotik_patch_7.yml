@@ -351,7 +351,6 @@ jobs:
                 <vssd:InstanceID>0</vssd:InstanceID>
                 <vssd:VirtualSystemIdentifier>MikroTik_RouterOS_CHR</vssd:VirtualSystemIdentifier>
                 <vssd:VirtualSystemType>vmx-10</vssd:VirtualSystemType>
-                <vmw:Config ovf:required="false" vmw:key="firmware" vmw:value="{FIRMWARE_TYPE}"/>
               </System>
               <Item>
                 <rasd:AllocationUnits>hertz * 10^6</rasd:AllocationUnits>
@@ -409,6 +408,7 @@ jobs:
                 <rasd:ResourceSubType>vmware.vmci</rasd:ResourceSubType>
                 <rasd:ResourceType>1</rasd:ResourceType>
               </Item>
+              <vmw:Config ovf:required="false" vmw:key="firmware" vmw:value="{FIRMWARE_TYPE}"/>
             </VirtualHardwareSection>
             <AnnotationSection ovf:required="false">
               <Info>A human-readable annotation</Info>
@@ -466,7 +466,6 @@ jobs:
           sudo qemu-img convert -f raw -O vmdk -o subformat=streamOptimized chr-$LATEST_VERSION$ARCH-legacy-bios.img $LATEST_VERSION$ARCH-legacy-bios-disk1.vmdk
           VMDK=chr-$LATEST_VERSION$ARCH-legacy-bios-disk1.vmdk
           OVF=chr-$LATEST_VERSION$ARCH-legacy-bios.ovf
-          MF=chr-$LATEST_VERSION$ARCH-legacy-bios.mf
           OVA=chr-$LATEST_VERSION$ARCH-legacy-bios.ova
           FILE_SIZE=$(stat -c %s "$VMDK")
           VIRTUAL_SIZE=$(qemu-img info --output=json "$VMDK" | jq '.["virtual-size"]' | head -n 1)
@@ -478,14 +477,9 @@ jobs:
               -e "s|{CAPACITY_MB}|$CAPACITY_MB|g" \
               -e "s|{POPULATED_SIZE}|$POPULATED_SIZE|g" \
               -e "s|{FIRMWARE_TYPE}|$FIRMWARE_TYPE|g" |sudo tee $OVF
-          {
-              echo "SHA256($(basename "$VMDK"))= $(sha256sum "$VMDK" | awk '{print $1}')"
-              echo "SHA256($(basename "$OVF"))= $(sha256sum "$OVF" | awk '{print $1}')"
-          } | sudo tee "$MF"  
-          sudo tar -cvf "$OVA" "$OVF" "$VMDK" "$MF"
+          sudo tar -cvf "$OVA" "$OVF" "$VMDK"
           sudo rm $VMDK
           sudo rm $OVF
-          sudo rm $MF
           sudo zip $OVA.zip $OVA
           sudo rm $OVA
           
@@ -532,7 +526,6 @@ jobs:
         sudo qemu-img convert -f raw -O vmdk -o subformat=streamOptimized chr-$LATEST_VERSION$ARCH.img chr-$LATEST_VERSION$ARCH-disk1.vmdk
         VMDK=chr-$LATEST_VERSION$ARCH-disk1.vmdk
         OVF=chr-$LATEST_VERSION$ARCH.ovf
-        MF=chr-$LATEST_VERSION$ARCH.mf
         OVA=chr-$LATEST_VERSION$ARCH.ova
         FILE_SIZE=$(stat -c %s "$VMDK")
         VIRTUAL_SIZE=$(qemu-img info --output=json "$VMDK" | jq '.["virtual-size"]' | head -n 1)
@@ -544,14 +537,9 @@ jobs:
             -e "s|{CAPACITY_MB}|$CAPACITY_MB|g" \
             -e "s|{POPULATED_SIZE}|$POPULATED_SIZE|g" \
             -e "s|{FIRMWARE_TYPE}|$FIRMWARE_TYPE|g" |sudo tee $OVF
-        {
-            echo "SHA256($(basename "$VMDK"))= $(sha256sum "$VMDK" | awk '{print $1}')"
-            echo "SHA256($(basename "$OVF"))= $(sha256sum "$OVF" | awk '{print $1}')"
-        } | sudo tee "$MF"  
-        sudo tar -cvf "$OVA" "$OVF" "$VMDK" "$MF"
+        sudo tar -cvf "$OVA" "$OVF" "$VMDK"
         sudo rm $VMDK
         sudo rm $OVF
-        sudo rm $MF
         sudo zip $OVA.zip $OVA
         sudo rm $OVA
 
