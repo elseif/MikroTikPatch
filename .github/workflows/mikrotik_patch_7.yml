@@ -463,11 +463,11 @@ jobs:
           sudo qemu-img convert -f raw -O vhdx chr-$LATEST_VERSION$ARCH-legacy-bios.img chr-$LATEST_VERSION$ARCH-legacy-bios.vhdx
           sudo qemu-img convert -f raw -O vdi chr-$LATEST_VERSION$ARCH-legacy-bios.img chr-$LATEST_VERSION$ARCH-legacy-bios.vdi
           
-          sudo qemu-img convert -f raw -O vmdk -o subformat=streamOptimized chr-$LATEST_VERSION$ARCH-legacy-bios.img chr-$LATEST_VERSION$ARCH-legacy-bios-disk1.vmdk
+          sudo qemu-img convert -f raw -O vmdk -o subformat=streamOptimized chr-$LATEST_VERSION$ARCH-legacy-bios.img $LATEST_VERSION$ARCH-legacy-bios-disk1.vmdk
           VMDK=chr-$LATEST_VERSION$ARCH-legacy-bios-disk1.vmdk
-          OVF=${{ env.LATEST_VERSION }}-legacy-bios.ovf
-          MF=${{ env.LATEST_VERSION }}-legacy-bios.mf
-          OVA=${{ env.LATEST_VERSION }}-legacy-bios.ova
+          OVF=chr-$LATEST_VERSION$ARCH-legacy-bios.ovf
+          MF=chr-$LATEST_VERSION$ARCH-legacy-bios.mf
+          OVA=chr-$LATEST_VERSION$ARCH-legacy-bios.ova
           FILE_SIZE=$(stat -c %s "$VMDK")
           VIRTUAL_SIZE=$(qemu-img info --output=json "$VMDK" | jq '.["virtual-size"]' | head -n 1)
           CAPACITY_MB=$((VIRTUAL_SIZE / 1024 / 1024))
@@ -486,7 +486,7 @@ jobs:
           sudo rm $VMDK
           sudo rm $OVF
           sudo rm $MF
-          sudo zip chr-$LATEST_VERSION$ARCH-legacy-bios.ova.zip $OVA
+          sudo zip $OVA.zip $OVA
           sudo rm $OVA
           
           sudo zip chr-$LATEST_VERSION$ARCH-legacy-bios.qcow2.zip chr-$LATEST_VERSION$ARCH-legacy-bios.qcow2
@@ -531,9 +531,9 @@ jobs:
 
         sudo qemu-img convert -f raw -O vmdk -o subformat=streamOptimized chr-$LATEST_VERSION$ARCH.img chr-$LATEST_VERSION$ARCH-disk1.vmdk
         VMDK=chr-$LATEST_VERSION$ARCH-disk1.vmdk
-        OVF=${{ env.LATEST_VERSION }}.ovf
-        MF=${{ env.LATEST_VERSION }}.mf
-        OVA=${{ env.LATEST_VERSION }}.ova
+        OVF=chr-$LATEST_VERSION$ARCH.ovf
+        MF=chr-$LATEST_VERSION$ARCH.mf
+        OVA=chr-$LATEST_VERSION$ARCH.ova
         FILE_SIZE=$(stat -c %s "$VMDK")
         VIRTUAL_SIZE=$(qemu-img info --output=json "$VMDK" | jq '.["virtual-size"]' | head -n 1)
         CAPACITY_MB=$((VIRTUAL_SIZE / 1024 / 1024))
@@ -552,7 +552,7 @@ jobs:
         sudo rm $VMDK
         sudo rm $OVF
         sudo rm $MF
-        sudo zip chr-$LATEST_VERSION$ARCH.ova.zip $OVA
+        sudo zip $OVA.zip $OVA
         sudo rm $OVA
 
         sudo zip chr-$LATEST_VERSION$ARCH.qcow2.zip chr-$LATEST_VERSION$ARCH.qcow2
