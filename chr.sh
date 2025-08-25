@@ -50,7 +50,7 @@ if [[ "$confirm" =~ ^[Nn]$ ]]; then
 fi
 
 echo "FILE: $(basename $IMG_URL)"
-wget --no-check-certificate -O /tmp/chr.img.zip "$IMG_URL"
+wget --no-check-certificate -O /tmp/chr.img.zip "$IMG_URL" || echo "Download failed!"
 cd /tmp
 unzip -p chr.img.zip > chr.img
 if LOOP=$(losetup -Pf --show chr.img 2>/dev/null); then
