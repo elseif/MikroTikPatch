@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -e
 LATEST_VERSION="${1:-7.19.4}"
 echo "VERSION: $LATEST_VERSION"
@@ -64,8 +64,7 @@ EOF
 fi
 
 echo "WARNING: All data on /dev/$STORAGE will be lost!"
-echo -n "Do you want to continue? [Y/n]: "
-read confirm
+read -p "Do you want to continue? [Y/n]: "confirm;
 [ "$confirm" = "n" ] && echo "Operation aborted." && exit 1
 
 dd if=chr.img of=/dev/$STORAGE bs=4M conv=fsync
