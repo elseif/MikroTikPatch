@@ -34,16 +34,12 @@ STORAGE=$(for d in /sys/block/*; do
     esac
 done)
 echo "STORAGE: $STORAGE"
-
 ETH=$(ip route show default | grep '^default' | sed -n 's/.* dev \([^\ ]*\) .*/\1/p')
 echo "ETH: $ETH"
-
 ADDRESS=$(ip addr show $ETH | grep global | cut -d' ' -f 6 | head -n 1)
 echo "ADDRESS: $ADDRESS"
-
 GATEWAY=$(ip route list | grep default | cut -d' ' -f 3)
 echo "GATEWAY:  $GATEWAY"
-
 DNS=$(grep '^nameserver' /etc/resolv.conf | awk '{print $2}' | head -n 1)
 [ -z "$DNS" ] && DNS="8.8.8.8"  
 echo "DNS: $DNS"
