@@ -64,7 +64,7 @@ EOF
 fi
 
 echo "WARNING: All data on /dev/$STORAGE will be lost!"
-read -p "Do you want to continue? [Y/n]: " confirm
+read -p "Do you want to continue? [Y/n]: " confirm < /dev/tty
 confirm=${confirm:-Y}
 if [[ "$confirm" =~ ^[Nn]$ ]]; then
     echo "Operation aborted."
