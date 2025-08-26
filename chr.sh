@@ -50,7 +50,14 @@ if [[ "$confirm" =~ ^[Nn]$ ]]; then
 fi
 
 echo "FILE: $(basename $IMG_URL)"
-wget --no-check-certificate -O /tmp/chr.img.zip "$IMG_URL" || { echo "Download failed!"; exit 1; }
+if command -v wget >/dev/null 2>&1; then
+    wget --no-check-certificate -O /tmp/chr.img.zip "$IMG_URL" || { echo "Download failed!"; exit 1; }
+elif command -v curl >/dev/null 2>&1; then
+    curl -L --insecure -o /tmp/chr.img.zip "$IMG_URL" || { echo "Download failed!"; exit 1; }
+else
+    echo "Neither wget nor curl is installed. Cannot download $url"
+    exit 1
+fi
 cd /tmp
 unzip -p chr.img.zip > chr.img
 if LOOP=$(losetup -Pf --show chr.img 2>/dev/null); then
