@@ -9,8 +9,8 @@
 
 支持:在线更新、在线授权、云备份、DDNS
 
-![Cloud Status](https://img.shields.io/endpoint?url=https://upgrade.mikrotik.ltd/status/cloud)
-![VPS Status](https://img.shields.io/endpoint?url=https://upgrade.mikrotik.ltd/status/dartnode)
+![Cloud Status](https://img.shields.io/endpoint?url=https://mikrotik.ltd/status/cloud)
+![VPS Status](https://img.shields.io/endpoint?url=https://mikrotik.ltd/status/dartnode)
 
 *如果云服务或部署云服务的虚拟主机都不在线，那么在线更新、在线授权、云备份、DDNS以及ROS_Keygen_Bot都暂时不能使用*
 
