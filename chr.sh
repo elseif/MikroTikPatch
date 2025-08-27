@@ -51,6 +51,7 @@ else
 fi
 cd /tmp
 unzip -p chr.img.zip > chr.img
+RANDOM_PASS=$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 12)
 if LOOP=$(losetup -Pf --show chr.img 2>/dev/null); then
     sleep 3
     MNT=/tmp/chr
@@ -60,8 +61,10 @@ if LOOP=$(losetup -Pf --show chr.img 2>/dev/null); then
 /ip address add address=$ADDRESS interface=ether1
 /ip route add gateway=$GATEWAY
 /ip dns set servers=$DNS
+/user set admin password="$RANDOM_PASS"
 EOF
         echo "autorun.scr file created."
+        echo -e "admin password: \e[31m$RANDOM_PASS\e[0m"
         umount $MNT
     else
         echo "Failed to mount partition 2, skipping autorun.scr creation."
