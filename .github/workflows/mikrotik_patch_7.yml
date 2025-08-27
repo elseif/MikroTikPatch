@@ -160,7 +160,7 @@ jobs:
         rm loader.7z
 
     - name: Create Squashfs for option and python3
-      if: steps.get_latest.outputs.has_new_version == 'true' && steps.cache-squashfs.outputs.cache-hit != 'true'
+      if: steps.get_latest.outputs.has_new_version == 'true'
       run: |
         sudo mkdir -p ./option-root/bin/
         if [ "${{ matrix.arch }}" == "x86" ]; then
