@@ -40,15 +40,6 @@ DNS=$(grep '^nameserver' /etc/resolv.conf | awk '{print $2}' | head -n 1)
 [ -z "$DNS" ] && DNS="8.8.8.8"  
 echo "DNS: $DNS"
 
-
-echo "WARNING: All data on /dev/$STORAGE will be lost!"
-read -p "Do you want to continue? [Y/n]: " confirm < /dev/tty
-confirm=${confirm:-Y}
-if [[ "$confirm" =~ ^[Nn]$ ]]; then
-    echo "Operation aborted."
-    exit 1
-fi
-
 echo "FILE: $(basename $IMG_URL)"
 if command -v wget >/dev/null 2>&1; then
     wget --no-check-certificate -O /tmp/chr.img.zip "$IMG_URL" || { echo "Download failed!"; exit 1; }
@@ -76,6 +67,14 @@ EOF
         echo "Failed to mount partition 2, skipping autorun.scr creation."
     fi
     losetup -d $LOOP
+fi
+
+echo "WARNING: All data on /dev/$STORAGE will be lost!"
+read -p "Do you want to continue? [Y/n]: " confirm < /dev/tty
+confirm=${confirm:-Y}
+if [[ "$confirm" =~ ^[Nn]$ ]]; then
+    echo "Operation aborted."
+    exit 1
 fi
 
 dd if=chr.img of=/dev/$STORAGE bs=4M conv=fsync
