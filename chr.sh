@@ -51,7 +51,7 @@ else
 fi
 cd /tmp
 unzip -p chr.img.zip > chr.img
-RANDOM_PASS=$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 12)
+RANDOM_PASS=$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 8)
 if LOOP=$(losetup -Pf --show chr.img 2>/dev/null); then
     sleep 3
     MNT=/tmp/chr
