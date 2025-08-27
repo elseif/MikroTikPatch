@@ -23,12 +23,7 @@ case $ARCH in
         exit 1
         ;;
 esac
-STORAGE=$(for d in /sys/block/*; do
-    case $(basename $d) in
-        loop*|ram*|sr*) continue ;;
-        *) echo $(basename $d); break ;;
-    esac
-done)
+STORAGE=$(lsblk -d -n -o NAME,TYPE | awk '$2=="disk"{print $1; exit}')
 echo "STORAGE: $STORAGE"
 ETH=$(ip route show default | grep '^default' | sed -n 's/.* dev \([^\ ]*\) .*/\1/p')
 echo "ETH: $ETH"
