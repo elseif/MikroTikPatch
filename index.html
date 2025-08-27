@@ -702,7 +702,7 @@
             });
             document.getElementById("clear-cache").onclick = e => {
                 const links = document.querySelectorAll("a[href^='https://gh-proxy.com/https://github.com/elseif/MikroTikPatch/']");
-                document.getElementById("urls-list").innerText = Array.from(links).map(a => a.href).join("\n");
+                document.getElementById("urls-list").innerText = Array.from(links).map(a => a.href).filter(href => !href.includes(".yml")).join("\n");
                 document.getElementById("urls-pannel").style.display = "block";
                 
             };
