@@ -652,7 +652,7 @@
                                         ${download.versions.map(v => {
 											if(d.type === "changlog"){
 	                                            const url = "https://download.mikrotik.com/routeros/v.version/CHANGELOG"
-	                                            return `<a href="${url}" class="download-btn" title="${d.title}" target="_blank"><i class="fa fa-download"></i></a>`;
+	                                            return `<td><a href="${url}" class="download-btn" title="${d.title}" target="_blank"><i class="fa fa-download"></i></a><td>`;
 											}else{
 	                                            const files = fileNames(v.version,g.arch,d.type);
 	                                            if (files && files.length > 0) {
