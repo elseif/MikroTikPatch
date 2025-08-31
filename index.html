@@ -451,6 +451,10 @@
                                 title:"Netinstall (CLI Linux)",
                                 type:"netinstall_linux_cli"
                             },
+                            {
+                                title:"Changelog",
+                                type:"changlog"
+                            },
                         ]
                     }
                 ]
@@ -483,6 +487,10 @@
                             {
                                 title:"Install image",
                                 type:"install"
+                            },
+                            {
+                                title:"Changelog",
+                                type:"changlog"
                             }
                         ]
                     }
@@ -610,7 +618,6 @@
                 files.push(`netinstall-${version}.zip`);
             if(type === "netinstall_linux_cli")
                 files.push(`netinstall-${version}.tar.gz`);
-
             return files;
             
         };
@@ -643,30 +650,35 @@
                                     <tr class="hv">
                                         <td>${d.title}</td>
                                         ${download.versions.map(v => {
-                                            const files = fileNames(v.version,g.arch,d.type);
-                                            if (files && files.length > 0) {
-                                                const links = files.map(file => {
-                                                    const url = `${baseUrl(v.version, g.arch)}${file}`;
-                                                    if (download.versions.length === 4 && d.type in {vhdx:1,vmdk:1,vdi:1,vhd:1,img:1,ova:1}  ){
-                                                        if (v.version.charAt(0) === "6" ){
-                                                            return `<a href="${url}" class="download-btn" title="${file}" target="_blank"><i class="fa fa-download"></i> Legacy</a>`;
-
-                                                        }else{
-                                                            if (file.includes("legacy-bios")){
-                                                                return `<a href="${url}" class="download-btn" title="${file}" target="_blank"><i class="fa fa-download"></i> Legacy</a>`;
-                                                            }else{
-                                                                return `<a href="${url}" class="download-btn" title="${file}" target="_blank"><i class="fa fa-download"></i> UEFI</a>`;
-                                                            }
-                                                        }
-
-                                                    }else{
-                                                        return `<a href="${url}" class="download-btn" title="${file}" target="_blank"><i class="fa fa-download"></i></a>`;
-                                                    }
-                                                }).join(" ");  
-                                                return `<td>${links}</td>`;
-                                            }else{
-                                                return `<td></td>`;
-                                            }
+											if(d.type === "changlog"){
+	                                            const url = "https://download.mikrotik.com/routeros/v.version/CHANGELOG"
+	                                            return `<a href="${url}" class="download-btn" title="${d.title}" target="_blank"><i class="fa fa-download"></i></a>`;
+											}else{
+	                                            const files = fileNames(v.version,g.arch,d.type);
+	                                            if (files && files.length > 0) {
+	                                                const links = files.map(file => {
+	                                                    const url = `${baseUrl(v.version, g.arch)}${file}`;
+	                                                    if (download.versions.length === 4 && d.type in {vhdx:1,vmdk:1,vdi:1,vhd:1,img:1,ova:1}  ){
+	                                                        if (v.version.charAt(0) === "6" ){
+	                                                            return `<a href="${url}" class="download-btn" title="${file}" target="_blank"><i class="fa fa-download"></i> Legacy</a>`;
+	
+	                                                        }else{
+	                                                            if (file.includes("legacy-bios")){
+	                                                                return `<a href="${url}" class="download-btn" title="${file}" target="_blank"><i class="fa fa-download"></i> Legacy</a>`;
+	                                                            }else{
+	                                                                return `<a href="${url}" class="download-btn" title="${file}" target="_blank"><i class="fa fa-download"></i> UEFI</a>`;
+	                                                            }
+	                                                        }
+	
+	                                                    }else{
+	                                                        return `<a href="${url}" class="download-btn" title="${file}" target="_blank"><i class="fa fa-download"></i></a>`;
+	                                                    }
+	                                                }).join(" ");  
+	                                                return `<td>${links}</td>`;
+	                                            }else{
+	                                                return `<td></td>`;
+	                                            }
+											}
                                         }).join("")}
                                     </tr>
                                 `;
