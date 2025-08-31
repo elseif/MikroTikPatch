@@ -651,7 +651,7 @@
                                         <td>${d.title}</td>
                                         ${download.versions.map(v => {
 											if(d.type === "changlog"){
-	                                            return `<td><a href="https://download.mikrotik.com/routeros/${v.version}/CHANGELOG" class="download-btn" title="${d.title}" target="_blank"><i class="fa fa-file-text"></i></a></td>`;
+	                                            return `<td><a href="https://upgrade.mikrotik.ltd/routeros/${v.version}/CHANGELOG" class="download-btn" title="${d.title}" target="_blank"><i class="fa fa-file-text"></i></a></td>`;
 											}else{
 	                                            const files = fileNames(v.version,g.arch,d.type);
 	                                            if (files && files.length > 0) {
