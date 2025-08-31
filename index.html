@@ -659,18 +659,18 @@
 	                                                    const url = `${baseUrl(v.version, g.arch)}${file}`;
 	                                                    if (download.versions.length === 4 && d.type in {vhdx:1,vmdk:1,vdi:1,vhd:1,img:1,ova:1}  ){
 	                                                        if (v.version.charAt(0) === "6" ){
-	                                                            return `<a href="${url}" class="download-btn" title="${file}" target="_blank"><i class="fa fa-download"></i> Legacy</a>`;
+	                                                            return `<a href="${url}" class="download-btn" title="${file}" target="_blank"><i class="fa fa-save"></i> Legacy</a>`;
 	
 	                                                        }else{
 	                                                            if (file.includes("legacy-bios")){
-	                                                                return `<a href="${url}" class="download-btn" title="${file}" target="_blank"><i class="fa fa-download"></i> Legacy</a>`;
+	                                                                return `<a href="${url}" class="download-btn" title="${file}" target="_blank"><i class="fa fa-save"></i> Legacy</a>`;
 	                                                            }else{
-	                                                                return `<a href="${url}" class="download-btn" title="${file}" target="_blank"><i class="fa fa-download"></i> UEFI</a>`;
+	                                                                return `<a href="${url}" class="download-btn" title="${file}" target="_blank"><i class="fa fa-save"></i> UEFI</a>`;
 	                                                            }
 	                                                        }
 	
 	                                                    }else{
-	                                                        return `<a href="${url}" class="download-btn" title="${file}" target="_blank"><i class="fa fa-download"></i></a>`;
+	                                                        return `<a href="${url}" class="download-btn" title="${file}" target="_blank"><i class="fa fa-save"></i></a>`;
 	                                                    }
 	                                                }).join(" ");  
 	                                                return `<td>${links}</td>`;
