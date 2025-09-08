@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="en" >
 <head>
@@ -360,266 +361,270 @@
 </head>
 <body>
     <script>
-        function fetch_latest_versions(url, defaultValue) {
+
+        async function fetch_latest_versions(url, defaultValue, timeout = 3000) {
             try {
-                const xhr = new XMLHttpRequest();
-                xhr.open("GET", url, false); 
-                xhr.send(null);
-                if (xhr.status === 200) {
-                    return xhr.responseText.split(" ")[0];
+                const controller = new AbortController();
+                const id = setTimeout(() => controller.abort(), timeout);
+
+                const res = await fetch(url, { signal: controller.signal });
+                clearTimeout(id);
+
+                if(res.ok){
+                    const text = await res.text();
+                    return text.split(" ")[0];
                 }
-            } catch (e) {
-                console.warn("fetch 失败:", e);
+            } catch(e) {
+                console.warn("fetch failed or timeout:", e);
             }
             return defaultValue;
         }
-        const routeros7_stable = fetch_latest_versions("https://upgrade.mikrotik.ltd/routeros/NEWESTa7.stable", "7.19.4");
-        const routeros7_testing = fetch_latest_versions("https://upgrade.mikrotik.ltd/routeros/NEWESTa7.testing", "7.20beta9");
-        const routeros6_longterm = fetch_latest_versions("https://upgrade.mikrotik.ltd/routeros/NEWEST6.long-term", "6.49.18");
-        const routeros6_stable = fetch_latest_versions("https://upgrade.mikrotik.ltd/routeros/NEWEST6.stable", "6.49.19");
 
+        async function init() {
+            const routeros7_stable = await fetch_latest_versions("https://upgrade.mikrotik.ltd/routeros/NEWESTa7.stable", "7.19.4");
+            const routeros7_testing = await fetch_latest_versions("https://upgrade.mikrotik.ltd/routeros/NEWESTa7.testing", "7.20beta9");
+            const routeros6_longterm = await fetch_latest_versions("https://upgrade.mikrotik.ltd/routeros/NEWEST6.long-term", "6.49.18");
+            const routeros6_stable = await fetch_latest_versions("https://upgrade.mikrotik.ltd/routeros/NEWEST6.stable", "6.49.19");
 
+            const downloads =[
+                {
+                    title:"RouterOS v7",
+                    versions:[
+                        {
+                            title:"Stable",
+                            version:routeros7_stable,
+                        },
+                        {
+                            title:"Testing",
+                            version:routeros7_testing,
+                        }
+                    ],
+                    groups: [
+                        {
+                            title:"ARM64 / AMPERE",
+                            arch:"arm64",
+                            downloads:[
+                                {
+                                    title:"Main package",
+                                    type:"main"
+                                },
+                                {
+                                    title:"Extra packages",
+                                    type:"extra"
+                                },
+                                {
+                                    title:"ISO image for AMPERE",
+                                    type:"iso"
+                                }
+                            ]
+                        },
+                        {
+                            title:"X86",
+                            arch:"x86",
+                            downloads:[
+                                {
+                                    title:"Main package",
+                                    type:"main"
+                                },
+                                {
+                                    title:"Extra packages",
+                                    type:"extra"
+                                },
+                                {
+                                    title:"CD Image",
+                                    type:"iso"
+                                },
+                                {
+                                    title:"Install image",
+                                    type:"install"
+                                }
+                            ]
+                        },
+                        {
+                            title:"GENERAL",
+                            arch:"general",
+                            downloads:[
+                                {
+                                    title:"Netinstall (Windows)",
+                                    type:"netinstall_windows"
+                                },
+                                {
+                                    title:"Netinstall (CLI Linux)",
+                                    type:"netinstall_linux_cli"
+                                },
+                                {
+                                    title:"Changelog",
+                                    type:"changlog"
+                                },
+                            ]
+                        }
+                    ]
+                },
+                {
+                    title:"RouterOS v6",
+                    versions:[
+                        {
+                            title:"Long-Term",
+                            version:routeros6_longterm,
+                        },
+                        {
+                            title:"Stable",
+                            version:routeros6_stable,
+                        }
+                    ],
+                    groups: [
+                        {
+                            title:"X86",
+                            arch:"x86",
+                            downloads:[
+                                {
+                                    title:"Extra packages",
+                                    type:"extra"
+                                },
+                                {
+                                    title:"CD Image",
+                                    type:"iso"
+                                },
+                                {
+                                    title:"Install image",
+                                    type:"install"
+                                },
+                                {
+                                    title:"Changelog",
+                                    type:"changlog"
+                                }
+                            ]
+                        }
 
+                    ]
+                },
+                {
+                    title:"Cloud Hosted Router",
+                    versions:[
+                        {
+                            title:"Long-Term",
+                            version:routeros6_longterm,
+                        },
+                        {
+                            title:"Stable",
+                            version:routeros6_stable,
+                        },
+                        {
+                            title:"Stable",
+                            version:routeros7_stable,
+                        },
+                        {
+                            title:"Testing",
+                            version:routeros7_testing,
+                        }
+                    ],
+                    groups:[
+                        {
+                            title:"X86",
+                            arch:"x86",
+                            downloads:[
+                                {
+                                    title:"Main package",
+                                    type:"main"
+                                },
+                                {
+                                    title:"Extra packages",
+                                    type:"extra"
+                                },
+                                {
+                                    title:"VHDX image",
+                                    type:"vhdx"
+                                },
+                                {
+                                    title:"VMDK image",
+                                    type:"vmdk"
+                                },
+                                {
+                                    title:"VDI image",
+                                    type:"vdi"
+                                },
+                                {
+                                    title:"VirtualPC image",
+                                    type:"vhd"
+                                },
+                                {
+                                    title:"Raw disk image",
+                                    type:"img"
+                                },
+                                {
+                                    title:"OVA template	",
+                                    type:"ova"
+                                }
+                            ],
+                        },
+                        {
+                            title:"ARM64 / AMPERE",
+                            arch:"arm64",
+                            downloads:[
+                                {
+                                    title:"Main package",
+                                    type:"main"
+                                },
+                                {
+                                    title:"Extra packages",
+                                    type:"extra"
+                                },
+                                {
+                                    title:"VHDX image",
+                                    type:"vhdx"
+                                },
+                                {
+                                    title:"VMDK image",
+                                    type:"vmdk"
+                                },
+                                {
+                                    title:"VDI image",
+                                    type:"vdi"
+                                },
+                                {
+                                    title:"VirtualPC image",
+                                    type:"vhd"
+                                },
+                                {
+                                    title:"Raw disk image",
+                                    type:"img"
+                                }
+                            ],
+                        }
+                    ]
 
-        const downloads =[
-            {
-                title:"RouterOS v7",
-                versions:[
-                    {
-                        title:"Stable",
-                        version:routeros7_stable,
-                    },
-                    {
-                        title:"Testing",
-                        version:routeros7_testing,
-                    }
-                ],
-                groups: [
-                    {
-                        title:"ARM64 / AMPERE",
-                        arch:"arm64",
-                        downloads:[
-                            {
-                                title:"Main package",
-                                type:"main"
-                            },
-                            {
-                                title:"Extra packages",
-                                type:"extra"
-                            },
-                            {
-                                title:"ISO image for AMPERE",
-                                type:"iso"
-                            }
-                        ]
-                    },
-                    {
-                        title:"X86",
-                        arch:"x86",
-                        downloads:[
-                            {
-                                title:"Main package",
-                                type:"main"
-                            },
-                            {
-                                title:"Extra packages",
-                                type:"extra"
-                            },
-                            {
-                                title:"CD Image",
-                                type:"iso"
-                            },
-                            {
-                                title:"Install image",
-                                type:"install"
-                            }
-                        ]
-                    },
-                    {
-                        title:"GENERAL",
-                        arch:"general",
-                        downloads:[
-                            {
-                                title:"Netinstall (Windows)",
-                                type:"netinstall_windows"
-                            },
-                            {
-                                title:"Netinstall (CLI Linux)",
-                                type:"netinstall_linux_cli"
-                            },
-                            {
-                                title:"Changelog",
-                                type:"changlog"
-                            },
-                        ]
-                    }
-                ]
-            },
-            {
-                title:"RouterOS v6",
-                versions:[
-                    {
-                        title:"Long-Term",
-                        version:routeros6_longterm,
-                    },
-                    {
-                        title:"Stable",
-                        version:routeros6_stable,
-                    }
-                ],
-                groups: [
-                    {
-                        title:"X86",
-                        arch:"x86",
-                        downloads:[
-                            {
-                                title:"Extra packages",
-                                type:"extra"
-                            },
-                            {
-                                title:"CD Image",
-                                type:"iso"
-                            },
-                            {
-                                title:"Install image",
-                                type:"install"
-                            },
-                            {
-                                title:"Changelog",
-                                type:"changlog"
-                            }
-                        ]
-                    }
+                },
+            ]
 
-                ]
-            },
-            {
-                title:"Cloud Hosted Router",
-                versions:[
-                    {
-                        title:"Long-Term",
-                        version:routeros6_longterm,
-                    },
-                    {
-                        title:"Stable",
-                        version:routeros6_stable,
-                    },
-                    {
-                        title:"Stable",
-                        version:routeros7_stable,
-                    },
-                    {
-                        title:"Testing",
-                        version:routeros7_testing,
-                    }
-                ],
-                groups:[
-                    {
-                        title:"X86",
-                        arch:"x86",
-                        downloads:[
-                            {
-                                title:"Main package",
-                                type:"main"
-                            },
-                            {
-                                title:"Extra packages",
-                                type:"extra"
-                            },
-                            {
-                                title:"VHDX image",
-                                type:"vhdx"
-                            },
-                            {
-                                title:"VMDK image",
-                                type:"vmdk"
-                            },
-                            {
-                                title:"VDI image",
-                                type:"vdi"
-                            },
-                            {
-                                title:"VirtualPC image",
-                                type:"vhd"
-                            },
-                            {
-                                title:"Raw disk image",
-                                type:"img"
-                            },
-                            {
-                                title:"OVA template	",
-                                type:"ova"
-                            }
-                        ],
-                    },
-                    {
-                        title:"ARM64 / AMPERE",
-                        arch:"arm64",
-                        downloads:[
-                            {
-                                title:"Main package",
-                                type:"main"
-                            },
-                            {
-                                title:"Extra packages",
-                                type:"extra"
-                            },
-                            {
-                                title:"VHDX image",
-                                type:"vhdx"
-                            },
-                            {
-                                title:"VMDK image",
-                                type:"vmdk"
-                            },
-                            {
-                                title:"VDI image",
-                                type:"vdi"
-                            },
-                            {
-                                title:"VirtualPC image",
-                                type:"vhd"
-                            },
-                            {
-                                title:"Raw disk image",
-                                type:"img"
-                            }
-                        ],
-                    }
-                ]
+            const fileNames = (version,arch,type) => {
+                const files = [];
+                if(version.charAt(0) === "6" && arch != "x86") return files;
+                if(type === "main" && version.charAt(0) === "7" )
+                    files.push(`routeros-${version}${arch === "x86" ? "" : "-"+arch}.npk`);
+                if(type === "iso")
+                    files.push(`mikrotik-${version}${arch === "x86" ? "" : "-"+arch}.iso`);
+                if(type === "extra")
+                    files.push(`all_packages-${arch}-${version}.zip`);
+                if(type === "install")
+                    files.push(`install-image-${version}${arch === "x86" ? "" : "-"+arch}.zip`);
+                if(type in {vhdx:1, vmdk:1, vdi:1, vhd:1, img:1}){
+                    files.push(`chr-${version}${arch === "x86" ? "" : "-"+arch}.${type}.zip`);
+                    if(arch === "x86" && version.charAt(0) != "6" ) files.push(`chr-${version}-legacy-bios.${type}.zip`);
+                }
+                if(type === "ova" && version.charAt(0) != "6"){
+                    files.push(`chr-${version}${arch === "x86" ? "" : "-"+arch}.${type}.zip`);
+                    if(arch === "x86" ) files.push(`chr-${version}-legacy-bios.${type}.zip`);
+                }   
+                if(type === "netinstall_windows")
+                    files.push(`netinstall-${version}.zip`);
+                if(type === "netinstall_linux_cli")
+                    files.push(`netinstall-${version}.tar.gz`);
+                return files;
+                
+            };
+    
+            const baseUrl = (version,arch) => `${localStorage.getItem("gh-proxy-enabled") === "true" ? "https://gh-proxy.com/":""}https://github.com/elseif/MikroTikPatch/releases/download/${version}${arch === "x86" ? "":arch === "general"? "": "-"+arch}/`;
 
-            },
-        ]
-
-        const fileNames = (version,arch,type) => {
-            const files = [];
-            if(version.charAt(0) === "6" && arch != "x86") return files;
-            if(type === "main" && version.charAt(0) === "7" )
-                files.push(`routeros-${version}${arch === "x86" ? "" : "-"+arch}.npk`);
-            if(type === "iso")
-                files.push(`mikrotik-${version}${arch === "x86" ? "" : "-"+arch}.iso`);
-            if(type === "extra")
-                files.push(`all_packages-${arch}-${version}.zip`);
-            if(type === "install")
-                files.push(`install-image-${version}${arch === "x86" ? "" : "-"+arch}.zip`);
-            if(type in {vhdx:1, vmdk:1, vdi:1, vhd:1, img:1}){
-                files.push(`chr-${version}${arch === "x86" ? "" : "-"+arch}.${type}.zip`);
-                if(arch === "x86" && version.charAt(0) != "6" ) files.push(`chr-${version}-legacy-bios.${type}.zip`);
-            }
-            if(type === "ova" && version.charAt(0) != "6"){
-                files.push(`chr-${version}${arch === "x86" ? "" : "-"+arch}.${type}.zip`);
-                if(arch === "x86" ) files.push(`chr-${version}-legacy-bios.${type}.zip`);
-            }   
-            if(type === "netinstall_windows")
-                files.push(`netinstall-${version}.zip`);
-            if(type === "netinstall_linux_cli")
-                files.push(`netinstall-${version}.tar.gz`);
-            return files;
-            
-        };
- 
-        const baseUrl = (version,arch) => `${localStorage.getItem("gh-proxy-enabled") === "true" ? "https://gh-proxy.com/":""}https://github.com/elseif/MikroTikPatch/releases/download/${version}${arch === "x86" ? "":arch === "general"? "": "-"+arch}/`;
-        window.addEventListener('DOMContentLoaded', () => {
             const container = document.getElementById("download-rows");
             downloads.forEach((download, index) => {
                 const wrapper = document.createElement("div");
@@ -646,34 +651,34 @@
                                     <tr class="hv">
                                         <td>${d.title}</td>
                                         ${download.versions.map(v => {
-											if(d.type === "changlog"){
-	                                            return `<td><a href="https://upgrade.mikrotik.ltd/routeros/${v.version}/CHANGELOG" class="download-btn" title="${d.title}" target="_blank"><i class="fa fa-file-text"></i></a></td>`;
-											}else{
-	                                            const files = fileNames(v.version,g.arch,d.type);
-	                                            if (files && files.length > 0) {
-	                                                const links = files.map(file => {
-	                                                    const url = `${baseUrl(v.version, g.arch)}${file}`;
-	                                                    if (download.versions.length === 4 && d.type in {vhdx:1,vmdk:1,vdi:1,vhd:1,img:1,ova:1}  ){
-	                                                        if (v.version.charAt(0) === "6" ){
-	                                                            return `<a href="${url}" class="download-btn" title="${file}" target="_blank"><i class="fa fa-save"></i> Legacy</a>`;
-	
-	                                                        }else{
-	                                                            if (file.includes("legacy-bios")){
-	                                                                return `<a href="${url}" class="download-btn" title="${file}" target="_blank"><i class="fa fa-save"></i> Legacy</a>`;
-	                                                            }else{
-	                                                                return `<a href="${url}" class="download-btn" title="${file}" target="_blank"><i class="fa fa-save"></i> UEFI</a>`;
-	                                                            }
-	                                                        }
-	
-	                                                    }else{
-	                                                        return `<a href="${url}" class="download-btn" title="${file}" target="_blank"><i class="fa fa-save"></i></a>`;
-	                                                    }
-	                                                }).join(" ");  
-	                                                return `<td>${links}</td>`;
-	                                            }else{
-	                                                return `<td></td>`;
-	                                            }
-											}
+                                            if(d.type === "changlog"){
+                                                return `<td><a href="https://upgrade.mikrotik.ltd/routeros/${v.version}/CHANGELOG" class="download-btn" title="${d.title}" target="_blank"><i class="fa fa-file-text"></i></a></td>`;
+                                            }else{
+                                                const files = fileNames(v.version,g.arch,d.type);
+                                                if (files && files.length > 0) {
+                                                    const links = files.map(file => {
+                                                        const url = `${baseUrl(v.version, g.arch)}${file}`;
+                                                        if (download.versions.length === 4 && d.type in {vhdx:1,vmdk:1,vdi:1,vhd:1,img:1,ova:1}  ){
+                                                            if (v.version.charAt(0) === "6" ){
+                                                                return `<a href="${url}" class="download-btn" title="${file}" target="_blank"><i class="fa fa-save"></i> Legacy</a>`;
+    
+                                                            }else{
+                                                                if (file.includes("legacy-bios")){
+                                                                    return `<a href="${url}" class="download-btn" title="${file}" target="_blank"><i class="fa fa-save"></i> Legacy</a>`;
+                                                                }else{
+                                                                    return `<a href="${url}" class="download-btn" title="${file}" target="_blank"><i class="fa fa-save"></i> UEFI</a>`;
+                                                                }
+                                                            }
+    
+                                                        }else{
+                                                            return `<a href="${url}" class="download-btn" title="${file}" target="_blank"><i class="fa fa-save"></i></a>`;
+                                                        }
+                                                    }).join(" ");  
+                                                    return `<td>${links}</td>`;
+                                                }else{
+                                                    return `<td></td>`;
+                                                }
+                                            }
                                         }).join("")}
                                     </tr>
                                 `;
@@ -740,7 +745,7 @@
                         link.href = link.href.replace(/^https:\/\/github\.com\//, "https://gh-proxy.com/https://github.com/");
                     });
                     document.getElementById("clear-cache").style.display = "inline-block";
-     
+    
                 } else {
                     localStorage.setItem("gh-proxy-enabled", "false");
                     const links = document.querySelectorAll("a[href^='https://gh-proxy.com/https://github.com/elseif/MikroTikPatch/']");
@@ -854,7 +859,6 @@
             });
             initLanguage();
 
-
             const themeBtn = document.getElementById("theme-toggle");
             const currentTheme = localStorage.getItem("theme");
 
@@ -873,8 +877,8 @@
                     localStorage.setItem("theme","light");
                 }
             });
-    
-        });
+        }
+        window.addEventListener("DOMContentLoaded", init);
     </script>
     <script async defer src="https://buttons.github.io/buttons.js"></script>
     <div class="wrapper">
