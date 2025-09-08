@@ -357,12 +357,31 @@
         #command .url { color: #569cd6; }
         #command .version { color: #4ec9b0; font-weight: bold; }
         #command pre:hover {background-color: #2c2c2c;}
+        .loading {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-style: italic;
+            color: gray;
+            background: rgba(255,255,255,0.9);
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+        .loading i {
+            margin-right: 10px;
+            animation: fa-spin 1s linear infinite;
+        }
     </style>
 </head>
 <body>
     <script>
 
         async function fetch_latest_versions(url, defaultValue, timeout = 3000) {
+
             try {
                 const controller = new AbortController();
                 const id = setTimeout(() => controller.abort(), timeout);
@@ -381,10 +400,62 @@
         }
 
         async function init() {
+            const i18n = {
+                en: {
+                    language: "Language:",
+                    infoLabel1:`If you are already running <b>patched</b> RouterOS, upgrading to the latest version can be done by clicking on <b>"Check For Updates"</b>
+                    in <b>QuickSet or System > Packages</b>
+                    menu in WebFig or WinBox.`,
+                    infoLabel2:`For more information about <b>install and upgrade</b> see the <a href="https://help.mikrotik.com/docs/" target="_blank">Documentation</a><br>
+                    For more information about <b>patch</b> see the <a href="https://github.com/elseif/MikroTikPatch" target="_blank">MikroTikPatch</a>`,
+                    installCmdLabel:"<b>Install Command</b>",
+                    proxyLabel:"Use a proxy service to accelerate access to GitHub files",
+                    clearCache:"Clear Cache",
+                    copyUrlsClearCache:"Copy URLs to Clear Cache",
+                    loading:"Loading...",
+                },
+                zh: {
+                    language: "语言:",
+                    infoLabel1:`如果你已经在运行<b>Patch</b>过的RouterOS，可以通过WebFig或WinBox中的<b>QuickSet或System > Packages</b>菜单点击<b>"Check For Updates"</b>来升级到最新版本。`,
+                    infoLabel2:`有关<b>安装和升级</b>的更多信息，请参阅<a href="https://help.mikrotik.com/docs/" target="_blank">文档</a><br>有关<b>Patch</b>的更多信息，请参阅<a href="https://github.com/elseif/MikroTikPatch" target="_blank">MikroTikPatch</a>`,
+                    installCmdLabel:"<b>安装命令</b>",
+                    proxyLabel:"使用代理服务加速访问GitHub文件",
+                    clearCache:"清除缓存",
+                    copyUrlsClearCache:"复制链接以清除缓存",
+                    loading:"加载中...",
+
+                }
+            };
+            function setLanguage(lang) {
+                document.querySelectorAll("[data-i18n]").forEach(el => {
+                    const key = el.getAttribute("data-i18n");
+                    if (i18n[lang] && i18n[lang][key]) {
+                        el.innerHTML = i18n[lang][key];
+                    }
+                });
+                localStorage.setItem("lang", lang);
+            }
+            function initLanguage() {
+                let savedLang = localStorage.getItem("lang");
+                if (!savedLang) {
+                    savedLang = navigator.language.startsWith("zh") ? "zh" : "en";
+                }
+                document.getElementById("lang-switcher").value = savedLang;
+                setLanguage(savedLang);
+            }
+            document.getElementById("lang-switcher").addEventListener("change", e => {
+            setLanguage(e.target.value);
+            });
+            initLanguage();
+
+
+            const loading = document.getElementById("loading");
+            loading.style.display = "inline"; 
             const routeros7_stable = await fetch_latest_versions("https://upgrade.mikrotik.ltd/routeros/NEWESTa7.stable", "7.19.4");
             const routeros7_testing = await fetch_latest_versions("https://upgrade.mikrotik.ltd/routeros/NEWESTa7.testing", "7.20beta9");
             const routeros6_longterm = await fetch_latest_versions("https://upgrade.mikrotik.ltd/routeros/NEWEST6.long-term", "6.49.18");
             const routeros6_stable = await fetch_latest_versions("https://upgrade.mikrotik.ltd/routeros/NEWEST6.stable", "6.49.19");
+            loading.style.display = "none";
 
             const downloads =[
                 {
@@ -814,50 +885,7 @@
             });
 
 
-            const i18n = {
-                en: {
-                    language: "Language:",
-                    infoLabel1:`If you are already running <b>patched</b> RouterOS, upgrading to the latest version can be done by clicking on <b>"Check For Updates"</b>
-                    in <b>QuickSet or System > Packages</b>
-                    menu in WebFig or WinBox.`,
-                    infoLabel2:`For more information about <b>install and upgrade</b> see the <a href="https://help.mikrotik.com/docs/" target="_blank">Documentation</a><br>
-                    For more information about <b>patch</b> see the <a href="https://github.com/elseif/MikroTikPatch" target="_blank">MikroTikPatch</a>`,
-                    installCmdLabel:"<b>Install Command</b>",
-                    proxyLabel:"Use a proxy service to accelerate access to GitHub files",
-                    clearCache:"Clear Cache",
-                    copyUrlsClearCache:"Copy URLs to Clear Cache",
-                },
-                zh: {
-                    language: "语言:",
-                    infoLabel1:`如果你已经在运行<b>Patch</b>过的RouterOS，可以通过WebFig或WinBox中的<b>QuickSet或System > Packages</b>菜单点击<b>"Check For Updates"</b>来升级到最新版本。`,
-                    infoLabel2:`有关<b>安装和升级</b>的更多信息，请参阅<a href="https://help.mikrotik.com/docs/" target="_blank">文档</a><br>有关<b>Patch</b>的更多信息，请参阅<a href="https://github.com/elseif/MikroTikPatch" target="_blank">MikroTikPatch</a>`,
-                    installCmdLabel:"<b>安装命令</b>",
-                    proxyLabel:"使用代理服务加速访问GitHub文件",
-                    clearCache:"清除缓存",
-                    copyUrlsClearCache:"复制链接以清除缓存",
-                }
-            };
-            function setLanguage(lang) {
-                document.querySelectorAll("[data-i18n]").forEach(el => {
-                    const key = el.getAttribute("data-i18n");
-                    if (i18n[lang] && i18n[lang][key]) {
-                        el.innerHTML = i18n[lang][key];
-                    }
-                });
-                localStorage.setItem("lang", lang);
-            }
-            function initLanguage() {
-                let savedLang = localStorage.getItem("lang");
-                if (!savedLang) {
-                    savedLang = navigator.language.startsWith("zh") ? "zh" : "en";
-                }
-                document.getElementById("lang-switcher").value = savedLang;
-                setLanguage(savedLang);
-            }
-            document.getElementById("lang-switcher").addEventListener("change", e => {
-            setLanguage(e.target.value);
-            });
-            initLanguage();
+
 
             const themeBtn = document.getElementById("theme-toggle");
             const currentTheme = localStorage.getItem("theme");
@@ -931,7 +959,9 @@
                 </div>
             </div>
         </div>
-        <div class="row" id="download-rows" style="margin-top: 2vh;"></div>
+        <div class="row" id="download-rows" style="margin-top: 2vh;">
+            <div class="loading" id="loading"><i class="fa fa-spinner"></i><span data-i18n="loading"></span></div>
+        </div>
 
         <div class="row">
             <ul style="display: flex; align-items: center; justify-content: center; gap: 20px; list-style: none; padding: 0; margin: 0; ">
