@@ -63,7 +63,6 @@ graph TD
 ### 感谢赞助
 [ZMTO](https://console.zmto.com)
 
-[![Powered by DartNode](https://dartnode.com/branding/DN-Open-Source-sm.png)](https://dartnode.com?aff=SnazzyLobster067	 "Powered by DartNode - Free VPS for Open Source")
 
 
 
