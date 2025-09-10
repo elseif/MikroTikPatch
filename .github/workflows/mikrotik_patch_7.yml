@@ -675,6 +675,7 @@ jobs:
         sudo tar -czvf netinstall-$LATEST_VERSION.tar.gz ./netinstall-cli
 
     - name: Setup AWS CLI (for R2)
+      if: steps.get_latest.outputs.has_new_version == 'true' && env.RELEASE == 'true'
       uses: aws-actions/configure-aws-credentials@v5
       with:
         aws-access-key-id: ${{ secrets.R2_ACCESS_KEY_ID }}
@@ -683,6 +684,7 @@ jobs:
         role-session-name: GitHubActionsR2
 
     - name: Upload to R2 Bucket
+      if: steps.get_latest.outputs.has_new_version == 'true' && env.RELEASE == 'true'
       run: |
         sudo mkdir -p ./publish/$LATEST_VERSION
         sudo cp CHANGELOG ./publish/$LATEST_VERSION/
