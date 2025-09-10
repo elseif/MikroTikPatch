@@ -681,7 +681,6 @@ jobs:
         aws-access-key-id: ${{ secrets.R2_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.R2_SECRET_ACCESS_KEY }}
         aws-region: auto
-        role-session-name: GitHubActionsR2
 
     - name: Upload to R2 Bucket
       if: steps.get_latest.outputs.has_new_version == 'true' && env.RELEASE == 'true'
