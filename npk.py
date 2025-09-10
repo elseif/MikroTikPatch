@@ -209,6 +209,8 @@ class NovaPackage(Package):
                     self._parts.append(NpkPartItem(NpkPartID(part_id),part_data))
     def set_null_block(self):
         def rebuild_squashfs(data):
+            if len(part.data) < 4 or part.data[:4] != b'hsqs':
+                return part.data
             with open('squashfs.sfs', 'wb') as f:
                 f.write(data)
             os.system('unsquashfs -d squashfs-root squashfs.sfs')
