@@ -703,38 +703,38 @@ jobs:
             --header "Content-Type:application/json" \
             --data '{"purge_everything": true}'
 
-    - name: Delete Release tag ${{ env.LATEST_VERSION }} ${{ env.ARCH }}
-      if: steps.get_latest.outputs.has_new_version == 'true' && env.RELEASE == 'true'
-      run: |
-        HEADER="Authorization: token ${{ secrets.GITHUB_TOKEN }}"
-        RELEASE_INFO=$(curl -s -H "$HEADER" https://api.github.com/repos/${{ github.repository }}/releases/tags/$LATEST_VERSION$ARCH)
-        RELEASE_ID=$(echo $RELEASE_INFO | jq -r '.id')
-        echo "Release ID: $RELEASE_ID"
-        if [ "$RELEASE_ID" != "null" ]; then
-            curl -X DELETE -H "$HEADER" https://api.github.com/repos/${{ github.repository }}/git/refs/tags/$LATEST_VERSION$ARCH
-            echo "Tag $LATEST_VERSION$ARCH deleted successfully."
-            curl -X DELETE -H "$HEADER" https://api.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID
-            echo "Release with tag $LATEST_VERSION$ARCH deleted successfully."
-        else
-            echo "Release not found for tag: $LATEST_VERSION)"
-        fi
+    # - name: Delete Release tag ${{ env.LATEST_VERSION }} ${{ env.ARCH }}
+    #   if: steps.get_latest.outputs.has_new_version == 'true' && env.RELEASE == 'true'
+    #   run: |
+    #     HEADER="Authorization: token ${{ secrets.GITHUB_TOKEN }}"
+    #     RELEASE_INFO=$(curl -s -H "$HEADER" https://api.github.com/repos/${{ github.repository }}/releases/tags/$LATEST_VERSION$ARCH)
+    #     RELEASE_ID=$(echo $RELEASE_INFO | jq -r '.id')
+    #     echo "Release ID: $RELEASE_ID"
+    #     if [ "$RELEASE_ID" != "null" ]; then
+    #         curl -X DELETE -H "$HEADER" https://api.github.com/repos/${{ github.repository }}/git/refs/tags/$LATEST_VERSION$ARCH
+    #         echo "Tag $LATEST_VERSION$ARCH deleted successfully."
+    #         curl -X DELETE -H "$HEADER" https://api.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID
+    #         echo "Release with tag $LATEST_VERSION$ARCH deleted successfully."
+    #     else
+    #         echo "Release not found for tag: $LATEST_VERSION)"
+    #     fi
 
-    - name: Create Release tag ${{ env.LATEST_VERSION }} ${{ env.ARCH }}
-      if: steps.get_latest.outputs.has_new_version == 'true' && env.RELEASE == 'true'
-      uses: softprops/action-gh-release@v2
-      with:
-        name: "RouterOS ${{ env.LATEST_VERSION }} ${{ env.ARCH }}"
-        body_path: "CHANGELOG"
-        tag_name: ${{ env.LATEST_VERSION }}${{ env.ARCH }}
-        make_latest:  ${{ matrix.channel == 'stable'}} && ${{ matrix.arch == 'x86'}}
-        prerelease:  ${{ matrix.channel == 'testing' }}
-        files: |
-          mikrotik-${{ env.LATEST_VERSION }}${{ env.ARCH }}.iso
-          chr-${{ env.LATEST_VERSION }}*.zip
-          netinstall-${{ env.LATEST_VERSION }}.*
-          install-image-${{ env.LATEST_VERSION }}.zip
-          routeros-${{ env.LATEST_VERSION }}${{ env.ARCH }}.npk
-          all_packages-*-${{ env.LATEST_VERSION }}.zip
+    # - name: Create Release tag ${{ env.LATEST_VERSION }} ${{ env.ARCH }}
+    #   if: steps.get_latest.outputs.has_new_version == 'true' && env.RELEASE == 'true'
+    #   uses: softprops/action-gh-release@v2
+    #   with:
+    #     name: "RouterOS ${{ env.LATEST_VERSION }} ${{ env.ARCH }}"
+    #     body_path: "CHANGELOG"
+    #     tag_name: ${{ env.LATEST_VERSION }}${{ env.ARCH }}
+    #     make_latest:  ${{ matrix.channel == 'stable'}} && ${{ matrix.arch == 'x86'}}
+    #     prerelease:  ${{ matrix.channel == 'testing' }}
+    #     files: |
+    #       mikrotik-${{ env.LATEST_VERSION }}${{ env.ARCH }}.iso
+    #       chr-${{ env.LATEST_VERSION }}*.zip
+    #       netinstall-${{ env.LATEST_VERSION }}.*
+    #       install-image-${{ env.LATEST_VERSION }}.zip
+    #       routeros-${{ env.LATEST_VERSION }}${{ env.ARCH }}.npk
+    #       all_packages-*-${{ env.LATEST_VERSION }}.zip
           
     - name: Upload Files as Artifact (No Release)
       if: steps.get_latest.outputs.has_new_version == 'true' && env.RELEASE == 'false'
