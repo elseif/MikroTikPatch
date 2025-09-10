@@ -684,7 +684,7 @@ jobs:
         # sudo cp chr-${{ env.LATEST_VERSION }}*.zip ./publish/$LATEST_VERSION/ 2>/dev/null || true
         # sudo cp netinstall-${{ env.LATEST_VERSION }}.* ./publish/$LATEST_VERSION/ 2>/dev/null || true
         # sudo cp install-image-${{ env.LATEST_VERSION }}.zip ./publish/$LATEST_VERSION/ 2>/dev/null || true
-        echo $LATEST_VERSION $BUILD_TIME | sudo tee ./publish/NEWESTa7.$CHANNEL
+        echo $LATEST_VERSION $BUILD_TIME | sudo tee ./publish/NEWESTa7.${{ matrix.channel }}
           
     - name: Upload to R2 Bucket
       if: steps.get_latest.outputs.has_new_version == 'true' && env.RELEASE == 'true'
