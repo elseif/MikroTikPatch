@@ -143,18 +143,9 @@ jobs:
         7z x -p"${{ secrets.LOADER_7Z_PASSWORD }}" loader.7z >> /dev/null
         rm loader.7z
 
-    - name: Cache Squashfs
-      if: steps.get_latest.outputs.has_new_version == 'true'
-      id: cache-squashfs
-      uses: actions/cache@v4
-      with:
-        path: |
-          python3.sfs
-          option.sfs
-        key: busybox-python3-squashfs-${{ matrix.arch }}
 
     - name: Create Squashfs for option and python3
-      if: steps.get_latest.outputs.has_new_version == 'true' && steps.cache-squashfs.outputs.cache-hit != 'true'
+      if: steps.get_latest.outputs.has_new_version == 'true'
       run: |
         sudo mkdir -p ./option-root/bin/
         sudo cp busybox/busybox_x86 ./option-root/bin/busybox
@@ -221,8 +212,8 @@ jobs:
         fi
         sudo cp -f system-$LATEST_VERSION.npk ./new_iso/
         sudo -E python3 patch.py kernel ./new_iso/isolinux/initrd.rgz
-        #sudo -E python3 npk.py create ./new_iso/gps-$LATEST_VERSION.npk ./option-$LATEST_VERSION.npk option ./option.sfs -desc="busybox"
-        #sudo cp option-$LATEST_VERSION.npk ./new_iso/
+        sudo -E python3 npk.py create ./new_iso/gps-$LATEST_VERSION.npk ./option-$LATEST_VERSION.npk option ./option.sfs -desc="busybox"
+        sudo cp option-$LATEST_VERSION.npk ./new_iso/
         sudo mkisofs -o mikrotik-$LATEST_VERSION.iso \
                     -V "MikroTik $LATEST_VERSION" \
                     -sysid "" -preparer "MiKroTiK" \
@@ -300,8 +291,8 @@ jobs:
         sudo cp ./all_packages/dude-$LATEST_VERSION.npk ./chr/var/pdb/dude/image
         sudo -E python3 patch.py npk ./chr/var/pdb/routeros-x86/image
         sudo cp ./chr/var/pdb/routeros-x86/image ./all_packages/routeros-x86-$LATEST_VERSION.npk
-        #sudo mkdir -p ./chr/var/pdb/option
-        #sudo cp ./all_packages/option-$LATEST_VERSION.npk ./chr/var/pdb/option/image
+        sudo mkdir -p ./chr/var/pdb/option
+        sudo cp ./all_packages/option-$LATEST_VERSION.npk ./chr/var/pdb/option/image
         sudo umount ./chr
         sudo qemu-nbd -d /dev/nbd0
         sudo rm -rf ./chr
@@ -328,33 +319,32 @@ jobs:
         cd ./all_packages
         sudo zip ../all_packages-x86-$LATEST_VERSION.zip *.npk
         cd ..
-        
-    - name: Upload Files
+
+    - name: Prepare for Upload
       if: steps.get_latest.outputs.has_new_version == 'true' && env.RELEASE == 'true'
       run: |
         sudo mkdir -p ./publish/$LATEST_VERSION
         sudo cp CHANGELOG ./publish/$LATEST_VERSION/
         sudo cp ./all_packages/*.npk ./publish/$LATEST_VERSION/
-        sudo chown -R root:root ./publish/
-        
-        LOCAL_PATH=./publish/$LATEST_VERSION
-        REMOTE_PATH=${{ secrets.SSH_DIRECTORY }}
-        SERVER=${{ secrets.SSH_SERVER }}
-        USER=${{ secrets.SSH_USERNAME }}
-        PASS=${{ secrets.SSH_PASSWORD }}
-        PORT=${{ secrets.SSH_PORT }}
-        CHANNEL=${{ matrix.channel }}
-
-        sudo apt-get install -y lftp ssh sshpass > /dev/null 2>&1
-
-        sudo -E lftp -u "$USER","$PASS" sftp://$SERVER:$PORT <<EOF
-        set sftp:auto-confirm yes
-        mirror --reverse --verbose --only-newer ./publish "$REMOTE_PATH"
-        bye
-        EOF
-        sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no -p $PORT $USER@$SERVER \
-          "echo $LATEST_VERSION $BUILD_TIME | tee /rw/disk/$REMOTE_PATH/NEWEST6.$CHANNEL; chown -R 32768:32768 /rw/disk/$REMOTE_PATH/"
+        # sudo cp mikrotik-${{ env.LATEST_VERSION }}${{ env.ARCH }}.iso ./publish/$LATEST_VERSION/ 2>/dev/null || true
+        # sudo cp chr-${{ env.LATEST_VERSION }}*.zip ./publish/$LATEST_VERSION/ 2>/dev/null || true
+        # sudo cp netinstall-${{ env.LATEST_VERSION }}.* ./publish/$LATEST_VERSION/ 2>/dev/null || true
+        # sudo cp install-image-${{ env.LATEST_VERSION }}.zip ./publish/$LATEST_VERSION/ 2>/dev/null || true
+        echo $LATEST_VERSION $BUILD_TIME | sudo tee ./publish/NEWEST6.${{ matrix.channel }}
           
+    - name: Upload to R2 Bucket
+      if: steps.get_latest.outputs.has_new_version == 'true' && env.RELEASE == 'true'
+      uses: ryand56/r2-upload-action@latest
+      with:
+        r2-account-id: ${{ secrets.R2_ACCOUNT_ID }}
+        r2-access-key-id: ${{ secrets.R2_ACCESS_KEY_ID }}
+        r2-secret-access-key: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        r2-bucket: ${{ secrets.R2_BUCKET }}
+        source-dir: ./publish
+        destination-dir: ./routeros
+        keep-file-fresh: true
+        output-file-url: false
+        
 
     - name: Clear Cloudflare cache
       if: steps.get_latest.outputs.has_new_version == 'true' && env.RELEASE == 'true'
@@ -367,6 +357,7 @@ jobs:
     - name: Delete Release tag ${{ env.LATEST_VERSION }}
       if: steps.get_latest.outputs.has_new_version == 'true' && env.RELEASE == 'true'
       run: |
+        sed -i "1i Build Time:$BUILD_TIME" CHANGELOG
         HEADER="Authorization: token ${{ secrets.GITHUB_TOKEN }}"
         RELEASE_INFO=$(curl -s -H $HEADER https://api.github.com/repos/${{ github.repository }}/releases/tags/$LATEST_VERSION)
         RELEASE_ID=$(echo $RELEASE_INFO | jq -r '.id')
