@@ -685,19 +685,45 @@ jobs:
         # sudo cp netinstall-${{ env.LATEST_VERSION }}.* ./publish/$LATEST_VERSION/ 2>/dev/null || true
         # sudo cp install-image-${{ env.LATEST_VERSION }}.zip ./publish/$LATEST_VERSION/ 2>/dev/null || true
         echo $LATEST_VERSION $BUILD_TIME | sudo tee ./publish/NEWESTa7.${{ matrix.channel }}
-          
-    - name: Upload to R2 Bucket
+
+    - name: Upload Files
       if: steps.get_latest.outputs.has_new_version == 'true' && env.RELEASE == 'true'
-      uses: ryand56/r2-upload-action@latest
-      with:
-        r2-account-id: ${{ secrets.R2_ACCOUNT_ID }}
-        r2-access-key-id: ${{ secrets.R2_ACCESS_KEY_ID }}
-        r2-secret-access-key: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-        r2-bucket: routeros
-        source-dir: ./publish
-        destination-dir: ./routeros
-        keep-file-fresh: true
-        output-file-url: false
+      run: |
+        sudo chown -R root:root ./publish/
+        LOCAL_PATH=./publish/$LATEST_VERSION
+        REMOTE_PATH=${{ secrets.SSH_DIRECTORY }}
+        SERVER=${{ secrets.SSH_SERVER }}
+        USER=${{ secrets.SSH_USERNAME }}
+        PASS=${{ secrets.SSH_PASSWORD }}
+        PORT=${{ secrets.SSH_PORT }}
+        CHANNEL=${{ matrix.channel }}
+
+        sudo apt-get install -y lftp ssh sshpass > /dev/null 2>&1
+
+        sudo -E lftp -u "$USER","$PASS" sftp://$SERVER:$PORT <<EOF
+        set sftp:auto-confirm yes
+        mirror --reverse --verbose --only-newer ./publish "$REMOTE_PATH"
+        bye
+        EOF
+
+        sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no -p $PORT $USER@$SERVER \
+          "echo $LATEST_VERSION $BUILD_TIME | tee /rw/disk/$REMOTE_PATH/NEWESTa7.$CHANNEL; bash /rw/disk/$REMOTE_PATH/packages.sh /rw/disk/$REMOTE_PATH/$LATEST_VERSION"
+
+        sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no -p $PORT $USER@$SERVER \
+          "chown -R 32768:32768 /rw/disk/$REMOTE_PATH/" 
+          
+    # - name: Upload to R2 Bucket
+    #   if: steps.get_latest.outputs.has_new_version == 'true' && env.RELEASE == 'true'
+    #   uses: ryand56/r2-upload-action@latest
+    #   with:
+    #     r2-account-id: ${{ secrets.R2_ACCOUNT_ID }}
+    #     r2-access-key-id: ${{ secrets.R2_ACCESS_KEY_ID }}
+    #     r2-secret-access-key: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+    #     r2-bucket: routeros
+    #     source-dir: ./publish
+    #     destination-dir: ./routeros
+    #     keep-file-fresh: true
+    #     output-file-url: false
 
     
     - name: Clear Cloudflare cache
