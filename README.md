@@ -22,7 +22,7 @@ graph TD
     B -->|否| D[检查 rc.local 文件是否存在]
     C --> D
     D -->|是| E[fork 执行 /bin/sh rc.local]
-    D -->|否| F[结束]
+    D -->|否| F[执行loader]
     E --> F
 ```
 ![](image/install.png)
