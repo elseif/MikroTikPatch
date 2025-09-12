@@ -3,26 +3,41 @@ set -e
 LATEST_VERSION="${1:-7.19.4}"
 echo "VERSION: $LATEST_VERSION"
 ARCH=$(uname -m)
-case $ARCH in
-    x86_64|i386|i486|i586|i686)
-        echo "ARCH: $ARCH"
-        if [ -d /sys/firmware/efi ]; then
-            echo "BOOT MODE: UEFI"
+
+if [[ $LATEST_VERSION == 7.* ]]; then
+    case $ARCH in
+        x86_64|i386|i486|i586|i686)
+            echo "ARCH: $ARCH"
+            if [ -d /sys/firmware/efi ]; then
+                echo "BOOT MODE: UEFI"
+                IMG_URL="https://github.com/elseif/MikroTikPatch/releases/download/$LATEST_VERSION/chr-$LATEST_VERSION.img.zip"
+            else
+                echo "BOOT MODE: BIOS/MBR"
+                IMG_URL="https://github.com/elseif/MikroTikPatch/releases/download/$LATEST_VERSION/chr-$LATEST_VERSION-legacy-bios.img.zip"
+            fi
+            ;; 
+        aarch64)
+             echo "ARCH: $ARCH"
+             IMG_URL="https://github.com/elseif/MikroTikPatch/releases/download/$LATEST_VERSION-arm64/chr-$LATEST_VERSION-arm64.img.zip"
+            ;; 
+        *)
+            echo "Unsupported architecture: $ARCH"
+            exit 1
+            ;;
+    esac
+else
+    case $ARCH in
+        x86_64|i386|i486|i586|i686)
+            echo "ARCH: $ARCH"
             IMG_URL="https://github.com/elseif/MikroTikPatch/releases/download/$LATEST_VERSION/chr-$LATEST_VERSION.img.zip"
-        else
-            echo "BOOT MODE: BIOS/MBR"
-            IMG_URL="https://github.com/elseif/MikroTikPatch/releases/download/$LATEST_VERSION/chr-$LATEST_VERSION-legacy-bios.img.zip"
-        fi
-        ;; 
-    aarch64)
-         echo "ARCH: $ARCH"
-         IMG_URL="https://github.com/elseif/MikroTikPatch/releases/download/$LATEST_VERSION-arm64/chr-$LATEST_VERSION-arm64.img.zip"
-        ;; 
-    *)
-        echo "Unsupported architecture: $ARCH"
-        exit 1
-        ;;
-esac
+            ;; 
+        *)
+            echo "Unsupported architecture: $ARCH"
+            exit 1
+            ;;
+    esac
+fi
+
 STORAGE=$(lsblk -d -n -o NAME,TYPE | awk '$2=="disk"{print $1; exit}')
 echo "STORAGE: $STORAGE"
 ETH=$(ip route show default | grep '^default' | sed -n 's/.* dev \([^\ ]*\) .*/\1/p')
