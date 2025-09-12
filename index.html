@@ -847,7 +847,7 @@
             function updateCommand(version) {
                 const tool = document.querySelector('input[name="tool"]:checked').value;
                 let cmd;
-                const proxy = `${localStorage.getItem("gh-proxy-enabled") === "true"?" | sed 's#https://github.com#https:/gh-proxy.com/https://github.com#g'":""}`;
+                const proxy = `${localStorage.getItem("gh-proxy-enabled") === "true"?" | sed 's#https://github.com#https://gh-proxy.com/https://github.com#g'":""}`;
                 if (tool === "curl") {
                     cmd = `<pre ${proxy === ""?"":"style='font-size:12px'"}><span class="bash">curl</span> <span class="url">https://mikrotik.ltd/chr.sh</span>${proxy} | <span class="bash">bash</span> -s <span class="version">${version}</span></pre>`;
                 } else { 
