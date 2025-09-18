@@ -328,6 +328,11 @@ def patch_squashfs(path,key_dict):
                 if _file =='loader':
                     patch_loader(file)
                     continue
+                if _file =='BOOTX64.EFI':
+                    data = open(file,'rb').read()
+                    data = patch_kernel(data)
+                    open(file,'wb').write(data)
+                    continue
                 data = open(file,'rb').read()
                 for old_public_key,new_public_key in key_dict.items():
                     _data = replace_key(old_public_key,new_public_key,data,file)
