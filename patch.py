@@ -329,8 +329,9 @@ def patch_squashfs(path,key_dict):
                     patch_loader(file)
                     continue
                 if _file =='BOOTX64.EFI':
+                    print(f'patch {file} ...')
                     data = open(file,'rb').read()
-                    data = patch_kernel(data)
+                    data = patch_kernel(data,key_dict)
                     open(file,'wb').write(data)
                     continue
                 data = open(file,'rb').read()
