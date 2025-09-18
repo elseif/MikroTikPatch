@@ -218,20 +218,20 @@ class NovaPackage(Package):
             os.system('rm -rf squashfs-root')
             with open('squashfs.sfs', 'rb') as f:
                 return f.read()
-        def get_size(package,size=8):
+        def get_size(package,size):
             for part in package._parts:
                 size += 6
                 size += len(part.data)
             return size
            
-        def set_null(package,offset=None):
+        def set_null(package,offset):
             has_squashfs = False
             for part in package._parts:
                 if part.id == NpkPartID.SQUASHFS and len(part.data) >= 4 and  part.data[:4] in [b'hsqs',b'sqsh']:
                     part.data = rebuild_squashfs(part.data)
                     has_squashfs = True
             if has_squashfs:
-                count = offset or 8
+                count = offset
                 for part in package._parts:
                     count += 6
                     if part.id == NpkPartID.NULL_BLOCK:
@@ -241,8 +241,8 @@ class NovaPackage(Package):
                 pad_len = (4096 - (count % 4096)) % 4096
                 package[NpkPartID.NULL_BLOCK].data = b'\x00' * pad_len
 
-        set_null(self)
-        offset = get_size(self)
+        set_null(self,8)
+        offset = get_size(self,8)
         for package in self._packages:
             set_null(package,offset)
             offset += get_size(package,0)
