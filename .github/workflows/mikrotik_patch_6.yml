@@ -293,6 +293,7 @@ jobs:
         sudo cp ./chr/var/pdb/routeros-x86/image ./all_packages/routeros-x86-$LATEST_VERSION.npk
         sudo mkdir -p ./chr/var/pdb/option
         sudo cp ./all_packages/option-$LATEST_VERSION.npk ./chr/var/pdb/option/image
+        echo -e '#!/bin/sh\n# This script will be executed *before* RouterOS *loader* start.\n# You can put your own initialization stuff in here\n' | sudo tee ./chr/rw/disk/rc.local
         sudo umount ./chr
         sudo qemu-nbd -d /dev/nbd0
         sudo rm -rf ./chr
