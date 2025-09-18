@@ -474,7 +474,11 @@
                                                 const url = `${baseUrl(v.version, g.arch)}${file}`;
                                                 let label = "Download";
                                                 if (download.title === "Cloud Hosted Router" && file.includes('chr')) {
-                                                    label = file.includes("legacy-bios") ? "Legacy" : "UEFI";
+                                                    if (v.version.charAt(0) === "6" ){
+                                                        label = "Legacy";
+                                                    } else {
+                                                        label = file.includes("legacy-bios") ? "Legacy" : "UEFI";
+                                                    }
                                                 }
                                                 return `<a href="${url}" class="inline-flex items-center gap-1.5 text-blue-500 dark:text-blue-400 hover:underline" title="${file}" target="_blank"><span class="iconify" data-icon="${ICONS.download}"></span> ${label}</a>`;
                                             }).join("<br>");
