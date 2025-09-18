@@ -1,440 +1,329 @@
-
 <!doctype html>
-<html lang="en" >
+<html lang="en" class="scroll-smooth">
 <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MikroTik RouterOS Patched Versions</title>
-    <link href="https://unpkg.com/font-awesome/css/font-awesome.min.css" rel="stylesheet">
-    <link href="https://unpkg.com/firacode/distr/fira_code.css" rel="stylesheet">
-    <style>
+    
+    
+    <script src="https://cdn.tailwindcss.com"></script>
 
-    body,html {
-        height: 100%;
-        font-size: 100%
-    }
-    *,:after,:before {box-sizing: border-box}
+    
+    <script src="https://code.iconify.design/3/3.1.1/iconify.min.js"></script>
 
-    body {
-        background: #F7F7F7;
-        color: #757575;
-        margin: 0;
-        font-family: arial,sans-serif;
-        line-height: 1.5;
-    }
-    .wrapper { background:white; }
-    table { background: #fff; }
-    table thead, table tfoot { background: #f5f5f5; }
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.loli.net">
+    <link rel="preconnect" href="https://gstatic.loli.net" crossorigin>
+    <link id="webfont-css" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code&display=swap" rel="stylesheet">
+    <script>
+        (function(){
+            var linkEl = document.getElementById('webfont-css');
+            if (!linkEl) return;
+            var mirrorHref = 'https://fonts.loli.net/css2?family=Inter:wght@400;500;600;700&family=Fira+Code&display=swap';
+            function isLoaded(name){
+                if (!('fonts' in document)) return false;
+                try { return document.fonts.check('1em "' + name + '"'); } catch (e) { return false; }
+            }
+            function switchToMirror(){
+                if (linkEl.href !== mirrorHref) { linkEl.href = mirrorHref; }
+            }
+            if (!('fonts' in document)) { switchToMirror(); return; }
+            var decided = false;
+            var timer = setTimeout(function(){
+                if (!decided && (!isLoaded('Inter') || !isLoaded('Fira Code'))) {
+                    decided = true; switchToMirror();
+                }
+            }, 2500);
+            document.fonts.ready.then(function(){
+                if (!decided && (!isLoaded('Inter') || !isLoaded('Fira Code'))) {
+                    decided = true; switchToMirror();
+                } else {
+                    decided = true; clearTimeout(timer);
+                }
+            });
+        })();
+    </script>
 
-    /* --- DARK THEME --- */
-    body.dark {
-        background: #1e1e1e;
-        color: #ddd;
-    }
-    body.dark .wrapper {
-        background: #2a2a2a;
-    }
-    body.dark h1,h2,h3,h4,h5,h6 {
-        color: #f0f0f0;
-    }
-    body.dark a { color:#4ea3ff; }
-    body.dark a:hover { color:#81c8ff; }
-    body.dark table {
-        background: #2a2a2a;
-        border-color: #444;
-    }
-    body.dark table thead, body.dark table tfoot {
-        background: #333;
-    }
-    body.dark table tr td, 
-    body.dark table tr th {
-        color: #ddd;
-    }
-    body.dark .downloadTable tbody tr:hover {
-        background-color: #333 !important;
-    }
-    body.dark .downloadTable thead tr {
-        background-color: #444 !important;
-    }
-    body.dark .downloadTable thead th {
-        color: #eee !important;
-    }
-    body.dark #command pre {
-        background: #111;
-        color: #eaeaea;
-    }
-
-    /* دکمه تغییر تم */
-    #theme-toggle {
-        position: fixed;
-        top: 60px;
-        right: 15px;
-        background: #0992c9;
-        color: #fff;
-        border: none;
-        padding: 8px 14px;
-        cursor: pointer;
-        border-radius: 6px;
-        font-size: 14px;
-        z-index: 2000;
-    }
-    #theme-toggle:hover {
-        background: #0775a1;
-    }
-	
-        body,html {
-            height: 100%;
-            font-size: 100%
-        }
-        *,:after,:before {
-            -webkit-box-sizing: border-box;
-            -moz-box-sizing: border-box;
-            box-sizing: border-box
-        }
+    
+    <style type="text/tailwindcss">
         body {
-            background: #F7F7F7;
-            color: #757575;
-            padding-top:80px;
-            font-family:arial,sans-serif;
-            padding: 0;
-            margin: 0;
-            font-style: normal;
-            line-height: 1.5;
-            cursor: auto;
-            opacity:1;
+            font-family: 'Inter', sans-serif;
+            background-image: radial-gradient(circle at top, #dde3ee 0%, #f1f5f9 60%);
         }
-        a {-webkit-transition: all 200ms ease-in-out;transition: all 200ms ease-in-out; color:#4984AE;text-decoration: none;}
-        a:hover{color: #2F5B7B}
-        h1,h2,h3,h4,h5,h6{font-family:'Open Sans',sans-serif;font-weight:normal;margin-bottom:18px;margin-top:26px;color:#626262;}
-        h1 {font-weight: 300}
-        h2{font-size:1.875rem}
-        h3{font-size:1.5rem}
-        .text-center{text-align:center}
-
-        .button {
-            border-style: solid;
-            border-width: 0;
-            cursor: pointer;
-            line-height: normal;
-            margin: 0 0 1.25rem;
-            position: relative;
-            text-align: center;
-            border-radius: 0;
-            display: inline-block;
-            font-size: 1rem;
-            background-color: #0992c9;
-            border-color: #0775a1;
-            color: #fff;
-            transition: background-color .3s ease-out;
-            padding: 1rem 2rem 1.0625rem
+        html.dark body {
+            background-image: radial-gradient(circle at top, #1e293b 0%, #0f172a 60%);
         }
-
-        .button:focus,.button:hover,button:focus,button:hover {
-            background-color: #0775a1;
-            color: #fff
+        #command pre, #command code {
+            font-family: 'Fira Code', monospace;
         }
-        .button.secondary,button.secondary {
-            background-color: #e7e7e7;
-            border-color: #b9b9b9;
-            color: #333
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
         }
-        .button.secondary:focus,.button.secondary:hover,button.secondary:focus,button.secondary:hover {
-            background-color: #b9b9b9;
-            color: #333
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
         }
-
-        .wrapper{background:white;max-width:1600px;margin:auto;overflow:auto;padding-top:25px; padding-bottom: 35px;position: relative;}
-        .row {
-            max-width: 62.5rem;
-            margin: 0 auto
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 10px;
         }
-        .row.collapse>.column,.row.collapse>.columns {
-            padding-left: 0;
-            padding-right: 0
+        html.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #475569;
         }
-
-        .row.collapse .row {
-            margin-left: 0;
-            margin-right: 0
+        #version-buttons button.active {
+            @apply bg-blue-600 text-white shadow-md;
         }
-
-        .row .row {
-            width: auto;
-            max-width: none;
-            margin: 0 -.9375rem
+        summary::-webkit-details-marker {
+          display: none;
         }
-
-        .row .row.collapse {
-            width: auto;
-            margin: 0;
-            max-width: none
+        .content-card {
+            @apply transition-all duration-700;
         }
-
-        .column,.columns {
-            padding-left: .9375rem;
-            padding-right: .9375rem;
-            width: 100%;
-            float: left
-        }
-        [class*=column]+[class*=column]:last-child {float: right}
-        [class*=column]+[class*=column].end { float: left}
-        hr {
-            border: solid #ddd;
-            border-width: 1px 0 0;
-            margin: 1.25rem 0 1.1875rem;
-            height: 0
-        }
-        b,strong { font-weight: 700}
-        small {font-size: 60%}
-        table {
-            background: #fff;
-            margin-bottom: 1.25rem;
-            border: 1px solid #ddd;
-            table-layout: auto
-        }
-        table caption {
-            background: 0 0;
-            color: #222;
-            font-size: 1rem;
-            font-weight: 700
-        }
-        table tfoot,table thead {
-            background: #f5f5f5;
-        }
-        table tfoot tr td,table tfoot tr th,table thead tr td,table thead tr th {
-            padding: .5rem .625rem .625rem;
-            font-size: .875rem;
-            font-weight: 700;
-            color: #222
-        }
-        table tr td,table tr th {
-            padding: .5625rem .625rem;
-            font-size: .875rem;
-            color: #222;
-            text-align: left;
-        }
-        table tr.alt,table tr.even,table tr:nth-of-type(even) {
-            background: #f9f9f9
-        }
-        table tbody tr td,table tbody tr th,table tfoot tr td,table tfoot tr th,table thead tr th,table tr td {
-            display: table-cell;
-            line-height: 1.125rem;
-        }
-        .table{width:100%;border:0;border-collapse:collapse;}
-        .table tr:nth-of-type(even){background-color:transparent;}
-        .table td{padding:4px 10px 4px 0;color:#757575}
-        .table thead {background:transparent;}
-        .table thead th{padding:4px 10px 4px 0;color:#747474}
-        .downloadTable, .fullWidth{width:100%;}
-        .downloadTable tbody tr{border-bottom:1px solid #e3e3e3}
-        .downloadTable tbody tr:hover{background-color:#f7f7f7}
-        .downloadTable td{padding:6px 10px}
-        .downloadTable tbody tr.ht td{background-color:#888;border-bottom:0;}
-        .downloadTable tbody tr td.boldy{font-weight:bold;color:#ddd}
-        .downloadTable tbody tr:last-child{border-bottom:0;}
-        .downloadTable thead tr{background-color:#4caf50;}
-        .downloadTable thead th{color:white;padding:12px 5px}
-        .downloadTable tbody tr:first-child td:first-child{font-weight:bold;width:230px;}
-        .downloadTable tbody tr.hv td:not(:first-child){min-width:150px;}
-        .downloadTable td {padding: 0 4px; }
-        .downloadTable tr td:first-child {padding: 6px 10px;}
-        .download-btn, .changelog-btn, .checksums-btn { padding: 10px; color: grey;font-size: 1.2em;}
-        .download-btn:hover {color: #007bff;}
-        .downloadTable tr:hover .checksum-btn {
-            visibility: visible;
-        }
-        .download_version_row:hover{
-            background: #f0f3f7;
-            cursor: pointer;
-        }
-        .small-1 {
-            width: 8.33333%
-        }
-        .small-11 {
-            width: 91.66667%
-        }
-        .filter-blue {
-        filter: invert(39%) sepia(88%) saturate(5000%) hue-rotate(190deg) brightness(95%) contrast(90%);
-        }
-        .table-wrapper { position: relative; }
-        thead { position: relative; }
-        .collapse-btn {
-            position: absolute;
-            top: 50%;
-            right: 8px;
-            transform: translateY(-50%);
-            background: #fff;
-            border: 1px solid #ccc;
-            border-radius: 2px;
-            padding: 2px 6px;
-            cursor: pointer;
-            font-size: 0.85em;
-            line-height: 1;
-        }
-
-        .collapse-btn:hover {
-            background: gray;
-        }
-        .github-corner svg {clip-path: polygon(0 0, 100% 0, 100% 100%);}
-        .github-corner:hover .octo-arm {animation: octocat-wave 560ms ease-in-out;}
-        @keyframes octocat-wave {
-            0% { transform: rotate(0deg);}
-            20% {transform: rotate(-25deg);}
-            40% {transform: rotate(10deg);}
-            60% {transform: rotate(-25deg);}
-            80% {transform: rotate(10deg);}
-            100% {transform: rotate(0deg);}
-        }
-        @media (max-width: 500px) {
-            .github-corner:hover .octo-arm {animation: none;}
-            .github-corner .octo-arm {animation: octocat-wave 560ms ease-in-out;}
-        }
-        .reveal-modal {
-            display: none;
-            position: fixed;
-            z-index: 1005;
-            width: 60%;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            margin:  auto;
-            background-color: #fff;
-            padding: 1.875rem;
-            border: 1px solid #666;
-            box-shadow: 0 0 10px rgba(0,0,0,.4)
-        }
-        .reveal-modal .close-reveal-modal {
-            font-size: 2.5rem;
-            line-height: 1;
-            position: absolute;
-            top: .625rem;
-            right: 1.375rem;
-            color: #aaa;
-            font-weight: 700;
-            cursor: pointer
-        }
-        #version-buttons {margin-bottom: 12px;}
-        #version-buttons button {
-            background-color: #b9b9b9;
-            color: #fff;
-            border: none;
-            padding: 6px 12px;
-            margin-left: 6px;
-            border-radius: 1px;
-            cursor: pointer;
-        }
-        #version-buttons button:hover {background-color: #555;}
-        #version-buttons button.active {background-color: #4caf50;}
-        #command-container {
-            position: relative;
-            margin-top: 12px;
-        }
-        #copy-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background-color: #4caf50;
-            color: white;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 12px;
-            z-index: 10;
-        }
-        #copy-btn i {margin-right: 6px;}
-        #copy-btn:hover {background-color: #45a049;}
-        #command pre {
-            font-family: 'Fira Code', monospace !important;
-            font-size: 13px;
-            line-height: 1.5;
-            background-color: #1e1e1e;
-            color: #d4d4d4;
-            padding: 12px;
-            border-radius: 3px;
-            overflow-x: auto;
-        }
-        #command .bash { color: #c586c0; font-weight: bold; }
-        #command .url { color: #569cd6; }
-        #command .version { color: #4ec9b0; font-weight: bold; }
-        #command pre:hover {background-color: #2c2c2c;}
-        .loading {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-style: italic;
-            color: gray;
-            background: rgba(255,255,255,0.9);
-            padding: 15px 25px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.2);
-            z-index: 1000;
-        }
-        .loading i {
-            margin-right: 10px;
-            animation: fa-spin 1s linear infinite;
+        .loading .content-card {
+            @apply opacity-0 translate-y-4;
         }
     </style>
-</head>
-<body>
     <script>
-
-        async function fetch_latest_versions(url, defaultValue, timeout = 3000) {
-
-            try {
-                const controller = new AbortController();
-                const id = setTimeout(() => controller.abort(), timeout);
-
-                const res = await fetch(url, { signal: controller.signal });
-                clearTimeout(id);
-
-                if(res.ok){
-                    const text = await res.text();
-                    return text.split(" ")[0];
-                }
-            } catch(e) {
-                console.warn("fetch failed or timeout:", e);
-            }
-            return defaultValue;
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    },
+                },
+            },
         }
+    </script>
+</head>
+<body class="bg-slate-100 dark:bg-gray-900 text-slate-700 dark:text-slate-300 transition-colors duration-300 loading">
 
-        async function init() {
+    
+    <a href="https://github.com/elseif/MikroTikPatch" class="github-corner fixed top-0 right-0 z-50" aria-label="View source on GitHub" target="_blank">
+        <svg width="80" height="80" viewBox="0 0 250 250" class="fill-slate-800 dark:fill-slate-50" style="position: absolute; top: 0; border: 0; right: 0;">
+            <path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path>
+            <path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm text-slate-50 dark:text-gray-900"></path>
+            <path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.6,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body text-slate-50 dark:text-gray-900"></path>
+        </svg>
+    </a>
+
+    <div class="container mx-auto max-w-7xl px-4 py-8 md:py-16">
+        
+        
+        <header class="text-center mb-12 content-card" style="transition-delay: 100ms;">
+            <h1 class="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-sky-400 dark:from-blue-400 dark:to-sky-300 mb-3">MikroTik RouterOS</h1>
+            <p class="text-xl md:text-2xl text-slate-600 dark:text-slate-400">Patched Versions</p>
+            
+            <div class="mt-6 flex justify-center items-center gap-4 flex-wrap">
+                <a href="https://github.com/elseif/MikroTikPatch/actions/workflows/mikrotik_patch_6.yml" target="_blank"><img src="https://mikrotik.ltd/badge/mikrotik_patch_6.yml" alt="Patch Mikrotik RouterOS 6.x"></a>
+                <a href="https://github.com/elseif/MikroTikPatch/actions/workflows/mikrotik_patch_7.yml" target="_blank"><img src="https://mikrotik.ltd/badge/mikrotik_patch_7.yml" alt="Patch Mikrotik RouterOS 7.x"></a>
+                <img src="https://img.shields.io/endpoint?logo=icloud&url=https://mikrotik.ltd/status/cloud" alt="Cloud Status">
+                <img src="https://img.shields.io/endpoint?logo=googlecloudstorage&url=https://mikrotik.ltd/status/dartnode" alt="VPS Status">
+            </div>
+             <div class="mt-4 flex justify-center items-center gap-2">
+                <script async defer src="https://buttons.github.io/buttons.js"></script>
+                <a class="github-button" href="https://github.com/elseif/MikroTikPatch" data-icon="octicon-star" data-size="large" data-show-count="true" aria-label="Star elseif/MikroTikPatch on GitHub">Star</a>
+                <a class="github-button" href="https://github.com/elseif/MikroTikPatch/fork" data-icon="octicon-repo-forked" data-size="large" data-show-count="true" aria-label="Fork elseif/MikroTikPatch on GitHub">Fork</a>
+            </div>
+        </header>
+
+        
+        <main class="space-y-12">
+
+            
+            <div class="bg-white/60 dark:bg-gray-800/60 rounded-2xl shadow-lg p-6 md:p-8 ring-1 ring-black/5 backdrop-blur-xl content-card" style="transition-delay: 200ms;">
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div>
+                         <h2 class="text-lg font-semibold text-slate-800 dark:text-white mb-4 flex items-center"><span class="iconify mr-2 text-blue-500" data-icon="ph:info-bold"></span><span data-i18n="quickInformation"></span></h2>
+                         <div class="space-y-3 text-sm">
+                             <p data-i18n="infoLabel1"></p>
+                             <p data-i18n="infoLabel2"></p>
+                         </div>
+                    </div>
+                    <div class="border-t md:border-t-0 md:border-l border-slate-200 dark:border-gray-700 pt-6 md:pt-0 md:pl-8">
+                        <h2 class="text-lg font-semibold text-slate-800 dark:text-white mb-4 flex items-center"><span class="iconify mr-2 text-blue-500" data-icon="ph:gear-six-bold"></span><span data-i18n="settings"></span></h2>
+                        <div class="space-y-4">
+                            
+                            <div class="flex items-center justify-between">
+                                <label for="theme-toggle-btn" class="font-medium" data-i18n="theme"></label>
+                                <button id="theme-toggle-btn" class="p-2 rounded-full text-slate-500 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-white dark:focus:ring-offset-gray-900">
+                                    <span class="sr-only">Toggle theme</span>
+                                    <span class="iconify text-xl sun-icon" data-icon="ph:sun-bold"></span>
+                                    <span class="iconify text-xl moon-icon" data-icon="ph:moon-bold"></span>
+                                </button>
+                            </div>
+                            
+                            <div class="flex items-center justify-between">
+                                <label for="lang-switcher" data-i18n="language" class="font-medium"></label>
+                                <select id="lang-switcher" class="bg-slate-100 dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded-md p-1.5 text-sm focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="en">English</option>
+                                    <option value="zh">中文</option>
+                                </select>
+                            </div>
+                            
+                            <div class="flex items-center justify-between">
+                                <label for="gh-proxy" data-i18n="proxyLabel" class="font-medium text-sm"></label>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                  <input type="checkbox" id="gh-proxy" name="gh-proxy" class="sr-only peer">
+                                  <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                </label>
+                            </div>
+                            
+                             <div>
+                                <button data-i18n="clearCache" id="clear-cache" class="w-full text-sm font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            
+            <div class="bg-white/60 dark:bg-gray-800/60 rounded-2xl shadow-lg ring-1 ring-black/5 backdrop-blur-xl overflow-hidden content-card" style="transition-delay: 300ms;">
+                <div class="p-6 md:p-8">
+                    <h2 class="text-lg font-semibold text-slate-800 dark:text-white mb-4 flex items-center" data-i18n="installCmdLabel"><span class="iconify mr-2 text-blue-500" data-icon="ph:terminal-window-bold"></span></h2>
+                    <div class="flex flex-wrap items-center gap-2 mb-4">
+                        <div id="version-buttons" class="flex flex-wrap items-center gap-2 p-1 bg-slate-100 dark:bg-gray-700/50 rounded-lg">
+                            
+                        </div>
+                        <div class="flex items-center gap-2 p-1 bg-slate-100 dark:bg-gray-700/50 rounded-lg">
+                             <label class="flex items-center px-2 cursor-pointer">
+                                 <input type="radio" name="tool" value="curl" checked class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                                 <span class="ml-2 text-sm font-medium">curl</span>
+                             </label>
+                              <label class="flex items-center px-2 cursor-pointer">
+                                 <input type="radio" name="tool" value="wget" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                                 <span class="ml-2 text-sm font-medium">wget</span>
+                             </label>
+                        </div>
+                    </div>
+                </div>
+                <div id="command-container" class="relative bg-slate-900 dark:bg-black/50 p-4 text-sm">
+                    <button id="copy-btn" class="absolute top-3 right-3 p-1.5 bg-slate-700 hover:bg-slate-600 rounded-md text-slate-300 hover:text-white transition-colors">
+                        <span class="sr-only">Copy command</span>
+                        <span class="iconify text-lg copy-icon" data-icon="ph:copy-bold"></span>
+                        <span class="iconify text-lg check-icon hidden" data-icon="ph:check-bold"></span>
+                    </button>
+                    <div id="command"></div>
+                </div>
+            </div>
+
+            
+            <div id="download-rows" class="space-y-8 content-card" style="transition-delay: 400ms;">
+                
+                <div class="loading-overlay fixed inset-0 bg-slate-100/80 dark:bg-gray-900/80 flex flex-col items-center justify-center z-50" id="loading">
+                    <span class="iconify text-4xl text-blue-600 animate-spin" data-icon="ph:spinner-gap-bold"></span>
+                    <span data-i18n="loading" class="mt-4 text-lg font-medium"></span>
+                </div>
+            </div>
+        </main>
+        
+        
+        <footer class="mt-16 pt-8 border-t border-slate-200 dark:border-gray-700/50 text-center text-sm text-slate-500 dark:text-slate-400">
+             <div class="flex justify-center items-center gap-6">
+                 <a href="https://t.me/mikrotikpatch" target="_blank" title="Telegram" class="text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                     <span class="iconify text-3xl" data-icon="ph:telegram-logo-bold"></span>
+                 </a>
+                 <a href="https://github.com/elseif/MikroTikPatch" target="_blank" title="GitHub" class="text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                     <span class="iconify text-3xl" data-icon="ph:github-logo-bold"></span>
+                 </a>
+             </div>
+        </footer>
+    </div>
+
+    
+    <div id="urls-pannel" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden" tabindex="-1">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col transform transition-all opacity-0 scale-95" id="modal-content">
+            <header class="p-4 border-b border-slate-200 dark:border-gray-700 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-slate-800 dark:text-white" data-i18n="copyUrlsClearCache"></h3>
+                <button id="urls-close" class="p-1 rounded-full text-slate-400 hover:bg-slate-100 dark:hover:bg-gray-700">
+                     <span class="sr-only">Close modal</span>
+                     <span class="iconify text-2xl" data-icon="ph:x-bold"></span>
+                </button>
+            </header>
+            <div id="urls-list" class="p-6 text-sm text-slate-600 dark:text-slate-400 overflow-y-auto custom-scrollbar flex-grow bg-slate-50 dark:bg-gray-900/50 rounded-b-xl whitespace-pre-wrap break-all"></div>
+            <footer class="p-4 border-t border-slate-200 dark:border-gray-700">
+                 <button id="copy-to-clear-cache" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-white dark:focus:ring-offset-gray-800 flex items-center justify-center gap-2" data-i18n="copyUrlsClearCache" href="#"></button> 
+            </footer>
+        </div>
+    </div>
+
+
+    <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+        
+            const ICONS = {
+                download: 'ph:download-simple-bold',
+                changelog: 'ph:newspaper-clipping-bold',
+                trash: 'ph:trash-bold',
+                copyAndOpen: 'ph:copy-simple-bold'
+            };
+            
+            async function fetch_latest_versions(url, defaultValue, timeout = 3000) {
+                try {
+                    const controller = new AbortController();
+                    const id = setTimeout(() => controller.abort(), timeout);
+                    const res = await fetch(url, { signal: controller.signal });
+                    clearTimeout(id);
+                    if (res.ok) {
+                        const text = await res.text();
+                        return text.split(" ")[0];
+                    }
+                } catch (e) {
+                    console.warn("fetch failed or timeout:", e);
+                }
+                return defaultValue;
+            }
+
             const i18n = {
                 en: {
-                    language: "Language:",
-                    infoLabel1:`If you are already running <b>patched</b> RouterOS, upgrading to the latest version can be done by clicking on <b>"Check For Updates"</b>
-                    in <b>QuickSet or System > Packages</b>
-                    menu in WebFig or WinBox.`,
-                    infoLabel2:`For more information about <b>install and upgrade</b> see the <a href="https://help.mikrotik.com/docs/" target="_blank">Documentation</a><br>
-                    For more information about <b>patch</b> see the <a href="https://github.com/elseif/MikroTikPatch" target="_blank">MikroTikPatch</a>`,
-                    installCmdLabel:"<b>Install Command</b>",
-                    proxyLabel:"Use a proxy service to accelerate access to GitHub files",
-                    clearCache:"Clear Cache",
-                    copyUrlsClearCache:"Copy URLs to Clear Cache",
-                    loading:"Loading...",
+                    language: "Language",
+                    infoLabel1:`If you are already running <b>patched</b> RouterOS, upgrading to the latest version can be done by clicking on <b>"Check For Updates"</b> in <b>QuickSet or System > Packages</b> menu in WebFig or WinBox.`,
+                    infoLabel2:`For more information about <b>install and upgrade</b> see the <a href="https://help.mikrotik.com/docs/" target="_blank" class="text-blue-500 dark:text-blue-400 hover:underline">Documentation</a>. For more information about <b>patch</b> see the <a href="https://github.com/elseif/MikroTikPatch" target="_blank" class="text-blue-500 dark:text-blue-400 hover:underline">MikroTikPatch</a>.`,
+                    installCmdLabel:"Install Command",
+                    proxyLabel:"Enable GitHub Proxy Accelerator",
+                    clearCache:"Clear gh-proxy Cache",
+                    copyUrlsClearCache:"Copy URLs & Open Clear Cache Page",
+                    loading:"Loading latest versions...",
+                    quickInformation:"Quick Information",
+                    settings:"Settings",
+                    theme:"Theme",
                 },
                 zh: {
-                    language: "语言:",
+                    language: "语言",
                     infoLabel1:`如果你已经在运行<b>Patch</b>过的RouterOS，可以通过WebFig或WinBox中的<b>QuickSet或System > Packages</b>菜单点击<b>"Check For Updates"</b>来升级到最新版本。`,
-                    infoLabel2:`有关<b>安装和升级</b>的更多信息，请参阅<a href="https://help.mikrotik.com/docs/" target="_blank">文档</a><br>有关<b>Patch</b>的更多信息，请参阅<a href="https://github.com/elseif/MikroTikPatch" target="_blank">MikroTikPatch</a>`,
-                    installCmdLabel:"<b>安装命令</b>",
-                    proxyLabel:"使用代理服务加速访问GitHub文件",
-                    clearCache:"清除缓存",
-                    copyUrlsClearCache:"复制链接以清除缓存",
-                    loading:"加载中...",
-
+                    infoLabel2:`有关<b>安装和升级</b>的更多信息，请参阅<a href="https://help.mikrotik.com/docs/" target="_blank" class="text-blue-500 dark:text-blue-400 hover:underline">文档</a><br>有关<b>Patch</b>的更多信息，请参阅<a href="https://github.com/elseif/MikroTikPatch" target="_blank" class="text-blue-500 dark:text-blue-400 hover:underline">MikroTikPatch</a>`,
+                    installCmdLabel:"安装命令",
+                    proxyLabel:"启用GitHub代理加速",
+                    clearCache:"清除gh-proxy缓存",
+                    copyUrlsClearCache:"复制链接并打开缓存清除页面",
+                    loading:"正在加载最新版本...",
+                    quickInformation:"快速信息",
+                    settings:"设置",
+                    theme:"主题",
                 }
             };
+
             function setLanguage(lang) {
                 document.querySelectorAll("[data-i18n]").forEach(el => {
                     const key = el.getAttribute("data-i18n");
                     if (i18n[lang] && i18n[lang][key]) {
-                        el.innerHTML = i18n[lang][key];
+                        if (key === 'clearCache') {
+                           el.innerHTML = `<span class="iconify" data-icon="${ICONS.trash}"></span> ${i18n[lang][key]}`;
+                        } else if (key === 'copyUrlsClearCache' && el.id === 'copy-to-clear-cache') {
+                           el.innerHTML = `<span class="iconify" data-icon="${ICONS.copyAndOpen}"></span> ${i18n[lang][key]}`;
+                        } else if (key === 'installCmdLabel') {
+                           el.innerHTML = `<span class="iconify mr-2 text-blue-500" data-icon="ph:terminal-window-bold"></span>${i18n[lang][key]}`;
+                        }
+                        else {
+                           el.innerHTML = i18n[lang][key];
+                        }
                     }
                 });
                 localStorage.setItem("lang", lang);
             }
+
             function initLanguage() {
                 let savedLang = localStorage.getItem("lang");
                 if (!savedLang) {
@@ -443,418 +332,234 @@
                 document.getElementById("lang-switcher").value = savedLang;
                 setLanguage(savedLang);
             }
+            
             document.getElementById("lang-switcher").addEventListener("change", e => {
-            setLanguage(e.target.value);
+                setLanguage(e.target.value);
             });
+
+            const themeBtn = document.getElementById("theme-toggle-btn");
+            const htmlEl = document.documentElement;
+            const sunIcon = themeBtn.querySelector('.sun-icon');
+            const moonIcon = themeBtn.querySelector('.moon-icon');
+
+            function updateThemeUI() {
+                if (htmlEl.classList.contains('dark')) {
+                    sunIcon.classList.remove('hidden');
+                    moonIcon.classList.add('hidden');
+                } else {
+                    sunIcon.classList.add('hidden');
+                    moonIcon.classList.remove('hidden');
+                }
+            }
+            
+            function initializeTheme() {
+                const savedTheme = localStorage.getItem("theme");
+                if (savedTheme) {
+                    htmlEl.classList.toggle("dark", savedTheme === "dark");
+                } else {
+                    htmlEl.classList.toggle("dark", window.matchMedia('(prefers-color-scheme: dark)').matches);
+                }
+                updateThemeUI();
+            }
+
+            themeBtn.addEventListener("click", () => {
+                htmlEl.classList.toggle("dark");
+                localStorage.setItem("theme", htmlEl.classList.contains("dark") ? "dark" : "light");
+                updateThemeUI();
+            });
+
+            initializeTheme();
             initLanguage();
 
-
-            const loading = document.getElementById("loading");
-            loading.style.display = "inline"; 
-            const routeros7_stable = await fetch_latest_versions("https://upgrade.mikrotik.ltd/routeros/NEWESTa7.stable", "7.19.4");
-            const routeros7_testing = await fetch_latest_versions("https://upgrade.mikrotik.ltd/routeros/NEWESTa7.testing", "7.20rc1");
-            const routeros6_longterm = await fetch_latest_versions("https://upgrade.mikrotik.ltd/routeros/NEWEST6.long-term", "6.49.18");
-            const routeros6_stable = await fetch_latest_versions("https://upgrade.mikrotik.ltd/routeros/NEWEST6.stable", "6.49.19");
-            loading.style.display = "none";
+            const loadingOverlay = document.getElementById("loading");
+            const [routeros7_stable, routeros7_testing, routeros6_longterm, routeros6_stable] = await Promise.all([
+                fetch_latest_versions("https://upgrade.mikrotik.ltd/routeros/NEWESTa7.stable", "7.19.4"),
+                fetch_latest_versions("https://upgrade.mikrotik.ltd/routeros/NEWESTa7.testing", "7.20rc1"),
+                fetch_latest_versions("https://upgrade.mikrotik.ltd/routeros/NEWEST6.long-term", "6.49.18"),
+                fetch_latest_versions("https://upgrade.mikrotik.ltd/routeros/NEWEST6.stable", "6.49.19"),
+            ]);
+            loadingOverlay.style.display = "none";
+            document.body.classList.remove('loading');
 
             const downloads =[
                 {
                     title:"RouterOS v7",
-                    versions:[
-                        {
-                            title:"Stable",
-                            version:routeros7_stable,
-                        },
-                        {
-                            title:"Testing",
-                            version:routeros7_testing,
-                        }
-                    ],
+                    versions:[ { title:"Stable", version:routeros7_stable }, { title:"Testing", version:routeros7_testing } ],
                     groups: [
-                        {
-                            title:"ARM64 / AMPERE",
-                            arch:"arm64",
-                            downloads:[
-                                {
-                                    title:"Main package",
-                                    type:"main"
-                                },
-                                {
-                                    title:"Extra packages",
-                                    type:"extra"
-                                },
-                                {
-                                    title:"ISO image for AMPERE",
-                                    type:"iso"
-                                }
-                            ]
-                        },
-                        {
-                            title:"X86",
-                            arch:"x86",
-                            downloads:[
-                                {
-                                    title:"Main package",
-                                    type:"main"
-                                },
-                                {
-                                    title:"Extra packages",
-                                    type:"extra"
-                                },
-                                {
-                                    title:"CD Image",
-                                    type:"iso"
-                                },
-                                {
-                                    title:"Install image",
-                                    type:"install"
-                                }
-                            ]
-                        },
-                        {
-                            title:"GENERAL",
-                            arch:"general",
-                            downloads:[
-                                {
-                                    title:"Netinstall (Windows)",
-                                    type:"netinstall_windows"
-                                },
-                                {
-                                    title:"Netinstall (CLI Linux)",
-                                    type:"netinstall_linux_cli"
-                                },
-                                {
-                                    title:"Changelog",
-                                    type:"changlog"
-                                },
-                            ]
-                        }
+                        { title:"ARM64 / AMPERE", arch:"arm64", downloads:[ { title:"Main package", type:"main" }, { title:"Extra packages", type:"extra" }, { title:"ISO image for AMPERE", type:"iso" } ] },
+                        { title:"X86", arch:"x86", downloads:[ { title:"Main package", type:"main" }, { title:"Extra packages", type:"extra" }, { title:"CD Image", type:"iso" }, { title:"Install image", type:"install" } ] },
+                        { title:"GENERAL", arch:"general", downloads:[ { title:"Netinstall (Windows)", type:"netinstall_windows" }, { title:"Netinstall (CLI Linux)", type:"netinstall_linux_cli" }, { title:"Changelog", type:"changlog" } ] }
                     ]
                 },
                 {
                     title:"RouterOS v6",
-                    versions:[
-                        {
-                            title:"Long-Term",
-                            version:routeros6_longterm,
-                        },
-                        {
-                            title:"Stable",
-                            version:routeros6_stable,
-                        }
-                    ],
+                    versions:[ { title:"Long-Term", version:routeros6_longterm }, { title:"Stable", version:routeros6_stable } ],
                     groups: [
-                        {
-                            title:"X86",
-                            arch:"x86",
-                            downloads:[
-                                {
-                                    title:"Extra packages",
-                                    type:"extra"
-                                },
-                                {
-                                    title:"CD Image",
-                                    type:"iso"
-                                },
-                                {
-                                    title:"Install image",
-                                    type:"install"
-                                },
-                                {
-                                    title:"Changelog",
-                                    type:"changlog"
-                                }
-                            ]
-                        }
-
+                        { title:"X86", arch:"x86", downloads:[ { title:"Extra packages", type:"extra" }, { title:"CD Image", type:"iso" }, { title:"Install image", type:"install" }, { title:"Changelog", type:"changlog" } ] }
                     ]
                 },
                 {
                     title:"Cloud Hosted Router",
-                    versions:[
-                        {
-                            title:"Long-Term",
-                            version:routeros6_longterm,
-                        },
-                        {
-                            title:"Stable",
-                            version:routeros6_stable,
-                        },
-                        {
-                            title:"Stable",
-                            version:routeros7_stable,
-                        },
-                        {
-                            title:"Testing",
-                            version:routeros7_testing,
-                        }
-                    ],
+                    versions:[ { title:"Long-Term", version:routeros6_longterm }, { title:"Stable", version:routeros6_stable }, { title:"Stable", version:routeros7_stable }, { title:"Testing", version:routeros7_testing } ],
                     groups:[
-                        {
-                            title:"X86",
-                            arch:"x86",
-                            downloads:[
-                                {
-                                    title:"Main package",
-                                    type:"main"
-                                },
-                                {
-                                    title:"Extra packages",
-                                    type:"extra"
-                                },
-                                {
-                                    title:"VHDX image",
-                                    type:"vhdx"
-                                },
-                                {
-                                    title:"VMDK image",
-                                    type:"vmdk"
-                                },
-                                {
-                                    title:"VDI image",
-                                    type:"vdi"
-                                },
-                                {
-                                    title:"VirtualPC image",
-                                    type:"vhd"
-                                },
-                                {
-                                    title:"Raw disk image",
-                                    type:"img"
-                                },
-                                {
-                                    title:"OVA template	",
-                                    type:"ova"
-                                }
-                            ],
-                        },
-                        {
-                            title:"ARM64 / AMPERE",
-                            arch:"arm64",
-                            downloads:[
-                                {
-                                    title:"Main package",
-                                    type:"main"
-                                },
-                                {
-                                    title:"Extra packages",
-                                    type:"extra"
-                                },
-                                {
-                                    title:"VHDX image",
-                                    type:"vhdx"
-                                },
-                                {
-                                    title:"VMDK image",
-                                    type:"vmdk"
-                                },
-                                {
-                                    title:"VDI image",
-                                    type:"vdi"
-                                },
-                                {
-                                    title:"VirtualPC image",
-                                    type:"vhd"
-                                },
-                                {
-                                    title:"Raw disk image",
-                                    type:"img"
-                                }
-                            ],
-                        }
+                        { title:"X86", arch:"x86", downloads:[ { title:"Main package", type:"main" }, { title:"Extra packages", type:"extra" }, { title:"VHDX image", type:"vhdx" }, { title:"VMDK image", type:"vmdk" }, { title:"VDI image", type:"vdi" }, { title:"VirtualPC image", type:"vhd" }, { title:"Raw disk image", type:"img" }, { title:"OVA template", type:"ova" } ] },
+                        { title:"ARM64 / AMPERE", arch:"arm64", downloads:[ { title:"Main package", type:"main" }, { title:"Extra packages", type:"extra" }, { title:"VHDX image", type:"vhdx" }, { title:"VMDK image", type:"vmdk" }, { title:"VDI image", type:"vdi" }, { title:"VirtualPC image", type:"vhd" }, { title:"Raw disk image", type:"img" } ] }
                     ]
-
                 },
-            ]
+            ];
 
-            const fileNames = (version,arch,type) => {
+            const fileNames = (version, arch, type) => {
                 const files = [];
-                if(version.charAt(0) === "6" && arch != "x86") return files;
-                if(type === "main" && version.charAt(0) === "7" )
-                    files.push(`routeros-${version}${arch === "x86" ? "" : "-"+arch}.npk`);
-                if(type === "iso")
-                    files.push(`mikrotik-${version}${arch === "x86" ? "" : "-"+arch}.iso`);
-                if(type === "extra")
-                    files.push(`all_packages-${arch}-${version}.zip`);
-                if(type === "install")
-                    files.push(`install-image-${version}${arch === "x86" ? "" : "-"+arch}.zip`);
-                if(type in {vhdx:1, vmdk:1, vdi:1, vhd:1, img:1}){
-                    files.push(`chr-${version}${arch === "x86" ? "" : "-"+arch}.${type}.zip`);
-                    if(arch === "x86" && version.charAt(0) != "6" ) files.push(`chr-${version}-legacy-bios.${type}.zip`);
+                if (version.charAt(0) === "6" && arch !== "x86") return files;
+                if (type === "main" && version.charAt(0) === "7") files.push(`routeros-${version}${arch === "x86" ? "" : "-" + arch}.npk`);
+                if (type === "iso") files.push(`mikrotik-${version}${arch === "x86" ? "" : "-" + arch}.iso`);
+                if (type === "extra") files.push(`all_packages-${arch}-${version}.zip`);
+                if (type === "install") files.push(`install-image-${version}${arch === "x86" ? "" : "-" + arch}.zip`);
+                if (type in { vhdx: 1, vmdk: 1, vdi: 1, vhd: 1, img: 1 }) {
+                    files.push(`chr-${version}${arch === "x86" ? "" : "-" + arch}.${type}.zip`);
+                    if (arch === "x86" && version.charAt(0) !== "6") files.push(`chr-${version}-legacy-bios.${type}.zip`);
                 }
-                if(type === "ova" && version.charAt(0) != "6"){
-                    files.push(`chr-${version}${arch === "x86" ? "" : "-"+arch}.${type}.zip`);
-                    if(arch === "x86" ) files.push(`chr-${version}-legacy-bios.${type}.zip`);
-                }   
-                if(type === "netinstall_windows")
-                    files.push(`netinstall-${version}.zip`);
-                if(type === "netinstall_linux_cli")
-                    files.push(`netinstall-${version}.tar.gz`);
+                if (type === "ova" && version.charAt(0) !== "6") {
+                    files.push(`chr-${version}${arch === "x86" ? "" : "-" + arch}.${type}.zip`);
+                    if (arch === "x86") files.push(`chr-${version}-legacy-bios.${type}.zip`);
+                }
+                if (type === "netinstall_windows") files.push(`netinstall-${version}.zip`);
+                if (type === "netinstall_linux_cli") files.push(`netinstall-${version}.tar.gz`);
                 return files;
-                
             };
-    
-            const baseUrl = (version,arch) => `${localStorage.getItem("gh-proxy-enabled") === "true" ? "https://gh-proxy.com/":""}https://github.com/elseif/MikroTikPatch/releases/download/${version}${arch === "x86" ? "":arch === "general"? "": "-"+arch}/`;
 
+            const baseUrl = (version, arch) => `${localStorage.getItem("gh-proxy-enabled") === "true" ? "https://gh-proxy.com/" : ""}https://github.com/elseif/MikroTikPatch/releases/download/${version}${arch === "x86" || arch === "general" ? "" : "-" + arch}/`;
+            
             const container = document.getElementById("download-rows");
+            container.innerHTML = '';
+
             downloads.forEach((download, index) => {
-                const wrapper = document.createElement("div");
-                wrapper.className = "table-wrapper";
-                const table = document.createElement("table");
-                table.className = "table tablev downloadTable"
-                table.innerHTML = `
-                <thead>
-                    <tr>
-                        <th>${download.title}</th>
-                        ${download.versions.map(v => `<th>${v.version} ${v.title}</th>`).join("")}
-                    </tr>
-                </thead>
-                <tbody>
-                    ${download.groups.map(g => {
-                        return `
-                            <tr class="ht">
-                                <td class="boldy">${g.title}</td>
-                                <td colspan="${download.versions.length}"></td>
-                                
-                            </tr>
-                            ${g.downloads.map(d => {
-                                return `
-                                    <tr class="hv">
-                                        <td>${d.title}</td>
-                                        ${download.versions.map(v => {
-                                            if(d.type === "changlog"){
-                                                return `<td><a href="https://upgrade.mikrotik.ltd/routeros/${v.version}/CHANGELOG" class="download-btn" title="${d.title}" target="_blank"><i class="fa fa-file-text"></i></a></td>`;
-                                            }else{
-                                                const files = fileNames(v.version,g.arch,d.type);
-                                                if (files && files.length > 0) {
-                                                    const links = files.map(file => {
-                                                        const url = `${baseUrl(v.version, g.arch)}${file}`;
-                                                        if (download.versions.length === 4 && d.type in {vhdx:1,vmdk:1,vdi:1,vhd:1,img:1,ova:1}  ){
-                                                            if (v.version.charAt(0) === "6" ){
-                                                                return `<a href="${url}" class="download-btn" title="${file}" target="_blank"><i class="fa fa-save"></i> Legacy</a>`;
-    
-                                                            }else{
-                                                                if (file.includes("legacy-bios")){
-                                                                    return `<a href="${url}" class="download-btn" title="${file}" target="_blank"><i class="fa fa-save"></i> Legacy</a>`;
-                                                                }else{
-                                                                    return `<a href="${url}" class="download-btn" title="${file}" target="_blank"><i class="fa fa-save"></i> UEFI</a>`;
-                                                                }
-                                                            }
-    
-                                                        }else{
-                                                            return `<a href="${url}" class="download-btn" title="${file}" target="_blank"><i class="fa fa-save"></i></a>`;
-                                                        }
-                                                    }).join(" ");  
-                                                    return `<td>${links}</td>`;
-                                                }else{
-                                                    return `<td></td>`;
-                                                }
-                                            }
-                                        }).join("")}
-                                    </tr>
-                                `;
-                            }).join("")}
-                        `;
-                    }).join("")}
+                const accordion = document.createElement("details");
+                accordion.className = "bg-white/60 dark:bg-gray-800/60 rounded-2xl shadow-lg ring-1 ring-black/5 backdrop-blur-xl overflow-hidden group";
+                accordion.open = index === 0;
 
-                </tbody>
-                `
-                const btn = document.createElement("button");
-                btn.className = "collapse-btn";
-                btn.innerHTML = `<i class="fa fa-minus"></i>`;
-                table.querySelector("thead").appendChild(btn);
-                wrapper.appendChild(table);
-                container.appendChild(wrapper);
-                const tbody = table.querySelector("tbody");
-                if (index === 0) {
-                    tbody.style.display = "";
-                    btn.innerHTML = `<i class="fa fa-minus"></i>`;
-                } else {
-                    tbody.style.display = "none";
-                    btn.innerHTML = `<i class="fa fa-plus"></i>`;
-                }
-                btn.onclick = () => {
-                    if (tbody.style.display === "none") {
-                    tbody.style.display = "";
-                    btn.innerHTML = `<i class="fa fa-minus"></i>`;
-                    } else {
-                    tbody.style.display = "none";
-                    btn.innerHTML = `<i class="fa fa-plus"></i>`;
-                    }
-                };
-            });
-            document.getElementById("clear-cache").onclick = e => {
-                const links = document.querySelectorAll("a[href^='https://gh-proxy.com/https://github.com/elseif/MikroTikPatch/']");
-                document.getElementById("urls-list").innerText = Array.from(links).map(a => a.href).filter(href => !href.includes(".yml")).join("\n");
-                document.getElementById("urls-pannel").style.display = "block";
+                const summary = document.createElement("summary");
+                summary.className = "p-6 cursor-pointer text-xl font-bold text-slate-800 dark:text-white flex justify-between items-center";
+                summary.innerHTML = `<span>${download.title}</span><span class="iconify text-2xl transition-transform duration-300 group-open:rotate-180" data-icon="ph:caret-down-bold"></span>`;
                 
-            };
-
-            document.getElementById("urls-close").onclick = () => {
-                document.getElementById("urls-pannel").style.display = "none";
-            };
-            document.getElementById("copy-to-clear-cache").onclick = () => {
-                const el = document.getElementById("urls-list");
-                const range = document.createRange();
-                range.selectNodeContents(el);
-                const selection = window.getSelection();
-                selection.removeAllRanges();
-                selection.addRange(range);
-                document.execCommand("copy"); 
-                window.open("https://cache.gh-proxy.com/", "_blank");
-                document.getElementById("urls-pannel").style.display = "none";
-            }
-
-            const ghProxyCheckbox = document.querySelector('input[name="gh-proxy"]');
+                const content = document.createElement("div");
+                content.className = "px-6 pb-6";
+                
+                const table = document.createElement("div");
+                table.className = "overflow-x-auto";
+                table.innerHTML = `
+                    <table class="w-full min-w-max text-sm text-left text-slate-500 dark:text-slate-400">
+                        <thead class="text-xs text-slate-700 dark:text-slate-200 uppercase bg-slate-50/80 dark:bg-gray-700/80">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 rounded-l-lg">Package / Architecture</th>
+                                ${download.versions.map(v => `<th scope="col" class="px-6 py-3 text-center">${v.version}<br><span class="font-normal normal-case">${v.title}</span></th>`).join("")}
+                                <th class="rounded-r-lg"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${download.groups.map(g => `
+                                <tr class="bg-slate-100/80 dark:bg-gray-700/50">
+                                    <th colspan="${download.versions.length + 2}" class="px-6 py-2 text-base font-semibold text-slate-800 dark:text-white">${g.title}</th>
+                                </tr>
+                                ${g.downloads.map(d => `
+                                    <tr class="bg-transparent border-b last:border-b-0 border-slate-200 dark:border-gray-700 hover:bg-slate-50/50 dark:hover:bg-gray-800/50 transition-colors">
+                                        <td class="px-6 py-4 font-medium text-slate-900 dark:text-white whitespace-nowrap">${d.title}</td>
+                                        ${download.versions.map(v => {
+                                            if (d.type === "changlog") {
+                                                return `<td class="px-6 py-4 text-center"><a href="https://upgrade.mikrotik.ltd/routeros/${v.version}/CHANGELOG" class="inline-flex items-center gap-1.5 text-blue-500 dark:text-blue-400 hover:underline" title="Changelog" target="_blank"><span class="iconify" data-icon="${ICONS.changelog}"></span> View</a></td>`;
+                                            }
+                                            const files = fileNames(v.version, g.arch, d.type);
+                                            if (!files || files.length === 0) return `<td class="px-6 py-4"></td>`;
+                                            const links = files.map(file => {
+                                                const url = `${baseUrl(v.version, g.arch)}${file}`;
+                                                let label = "Download";
+                                                if (download.title === "Cloud Hosted Router" && file.includes('chr')) {
+                                                    label = file.includes("legacy-bios") ? "Legacy" : "UEFI";
+                                                }
+                                                return `<a href="${url}" class="inline-flex items-center gap-1.5 text-blue-500 dark:text-blue-400 hover:underline" title="${file}" target="_blank"><span class="iconify" data-icon="${ICONS.download}"></span> ${label}</a>`;
+                                            }).join("<br>");
+                                            return `<td class="px-6 py-4 text-center space-y-2">${links}</td>`;
+                                        }).join("")}
+                                        <td></td>
+                                    </tr>
+                                `).join("")}
+                            `).join("")}
+                        </tbody>
+                    </table>
+                `;
+                
+                content.appendChild(table);
+                accordion.appendChild(summary);
+                accordion.appendChild(content);
+                container.appendChild(accordion);
+            });
+            
+            const ghProxyCheckbox = document.getElementById("gh-proxy");
+            const clearCacheBtn = document.getElementById("clear-cache");
             ghProxyCheckbox.checked = localStorage.getItem("gh-proxy-enabled") === "true";
-            document.getElementById("clear-cache").style.display = ghProxyCheckbox.checked ?"inline-block":"none";
-            ghProxyCheckbox.addEventListener("change", () => {
-                if (ghProxyCheckbox.checked) {
-                    localStorage.setItem("gh-proxy-enabled", "true");
-                    const links = document.querySelectorAll("a[href^='https://github.com/elseif/MikroTikPatch/']");
-                    links.forEach(link => {
-                        link.href = link.href.replace(/^https:\/\/github\.com\//, "https://gh-proxy.com/https://github.com/");
-                    });
-                    document.getElementById("clear-cache").style.display = "inline-block";
-    
-                } else {
-                    localStorage.setItem("gh-proxy-enabled", "false");
-                    const links = document.querySelectorAll("a[href^='https://gh-proxy.com/https://github.com/elseif/MikroTikPatch/']");
-                    links.forEach(link => {
-                        link.href = link.href.replace(/^https:\/\/gh-proxy\.com\//, "");
-                    });
-                    document.getElementById("clear-cache").style.display = "none";
-                }
+            clearCacheBtn.style.display = ghProxyCheckbox.checked ? "block" : "none";
+
+            function updateAllDownloadLinks() {
+                document.querySelectorAll('a[href*="github.com/elseif/MikroTikPatch"]').forEach(link => {
+                    const isProxyEnabled = localStorage.getItem("gh-proxy-enabled") === "true";
+                    const hasProxy = link.href.includes('gh-proxy.com');
+                    if (isProxyEnabled && !hasProxy) {
+                        link.href = link.href.replace("https://github.com/", "https://gh-proxy.com/https://github.com/");
+                    } else if (!isProxyEnabled && hasProxy) {
+                        link.href = link.href.replace("https://gh-proxy.com/", "");
+                    }
+                });
                 const activeBtn = document.querySelector("#version-buttons button.active");
                 if (activeBtn) updateCommand(activeBtn.dataset.version);
+            }
+
+            ghProxyCheckbox.addEventListener("change", () => {
+                localStorage.setItem("gh-proxy-enabled", ghProxyCheckbox.checked ? "true" : "false");
+                clearCacheBtn.style.display = ghProxyCheckbox.checked ? "block" : "none";
+                updateAllDownloadLinks();
+            });
+            
+            const modal = document.getElementById("urls-pannel");
+            const modalContent = document.getElementById("modal-content");
+            clearCacheBtn.addEventListener("click", () => {
+                const links = document.querySelectorAll('a[href^="https://gh-proxy.com/https://github.com/elseif/MikroTikPatch/"]');
+                document.getElementById("urls-list").innerText = Array.from(links).map(a => a.href).filter(href => !href.includes(".yml")).join("\n");
+                modal.classList.remove('hidden');
+                setTimeout(() => { modalContent.classList.add('opacity-100', 'scale-100'); modalContent.classList.remove('opacity-0', 'scale-95'); }, 10);
+            });
+            
+            document.getElementById("urls-close").addEventListener("click", () => {
+                modalContent.classList.remove('opacity-100', 'scale-100');
+                modalContent.classList.add('opacity-0', 'scale-95');
+                setTimeout(() => modal.classList.add('hidden'), 200);
             });
 
+            document.getElementById("copy-to-clear-cache").addEventListener("click", () => {
+                navigator.clipboard.writeText(document.getElementById("urls-list").innerText);
+                window.open("https://cache.gh-proxy.com/", "_blank");
+                document.getElementById("urls-close").click();
+            });
 
-
-            const versionBtns = document.getElementById("version-buttons");
+            const versionBtnsContainer = document.getElementById("version-buttons");
             const commandDiv = document.getElementById("command");
             const copyBtn = document.getElementById("copy-btn");
-            versionBtns.innerHTML = `
-                <span data-i18n="installCmdLabel"></span>
-                <label><input type="radio" name="tool" value="curl" checked>curl</label>
-                <label><input type="radio" name="tool" value="wget">wget</label>
-                <button data-version="${routeros7_stable}">RouterOS v7 Stable</button>
-                <button data-version="${routeros7_testing}">RouterOS v7 Testing</button>
-                <button data-version="${routeros6_longterm}">RouterOS v6 Long-Term</button>
-                <button data-version="${routeros6_stable}">RouterOS v6 Stable</button>
-            `
 
+            versionBtnsContainer.innerHTML = `
+                <button data-version="${routeros7_stable}" class="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-blue-200 dark:hover:bg-gray-600 transition-all">v7 Stable</button>
+                <button data-version="${routeros7_testing}" class="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-blue-200 dark:hover:bg-gray-600 transition-all">v7 Testing</button>
+                <button data-version="${routeros6_longterm}" class="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-blue-200 dark:hover:bg-gray-600 transition-all">v6 Long-Term</button>
+                <button data-version="${routeros6_stable}" class="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-blue-200 dark:hover:bg-gray-600 transition-all">v6 Stable</button>
+            `;
+            
             function updateCommand(version) {
                 const tool = document.querySelector('input[name="tool"]:checked').value;
-                let cmd;
-                const proxy = `${localStorage.getItem("gh-proxy-enabled") === "true"?" | sed 's#https://github.com#https://gh-proxy.com/https://github.com#g'":""}`;
-                if (tool === "curl") {
-                    cmd = `<pre ${proxy === ""?"":"style='font-size:12px'"}><span class="bash">curl</span> <span class="url">https://mikrotik.ltd/chr.sh</span>${proxy} | <span class="bash">bash</span> -s <span class="version">${version}</span></pre>`;
-                } else { 
-                    cmd = `<pre ${proxy === ""?"":"style='font-size:11px'"}><span class="bash">wget</span> -O - <span class="url">https://mikrotik.ltd/chr.sh</span>${proxy}  | <span class="bash">bash</span> -s <span class="version">${version}</span></pre>`;
-                }
+                const proxy = localStorage.getItem("gh-proxy-enabled") === "true" ? " | sed 's#https://github.com#https://gh-proxy.com/https://github.com#g'" : "";
+                const cmd = tool === "curl" 
+                    ? `<pre class="text-slate-300"><code><span class="text-pink-400">curl</span> <span class="text-cyan-400">https://mikrotik.ltd/chr.sh</span>${proxy} | <span class="text-pink-400">bash</span> -s <span class="text-green-400">${version}</span></code></pre>`
+                    : `<pre class="text-slate-300"><code><span class="text-pink-400">wget</span> -O - <span class="text-cyan-400">https://mikrotik.ltd/chr.sh</span>${proxy} | <span class="text-pink-400">bash</span> -s <span class="text-green-400">${version}</span></code></pre>`;
                 commandDiv.innerHTML = cmd;
             }
+
             document.querySelectorAll('input[name="tool"]').forEach(radio => {
                 radio.addEventListener("change", () => {
                     const activeBtn = document.querySelector("#version-buttons button.active");
@@ -864,127 +569,28 @@
 
             const buttons = document.querySelectorAll("#version-buttons button");
             buttons.forEach(btn => {
-                btn.addEventListener("click", () => {
+                btn.addEventListener("click", (e) => {
+                    e.preventDefault();
                     updateCommand(btn.dataset.version);
                     buttons.forEach(b => b.classList.remove("active"));
                     btn.classList.add("active");
                 });
             });
-            updateCommand(buttons[0].dataset.version);
-            buttons[0].classList.add("active");
-
-
+            buttons[0].click();
+            
             copyBtn.addEventListener("click", () => {
-                const code = commandDiv.querySelector("pre").innerText;
+                const code = commandDiv.querySelector("code").innerText;
                 navigator.clipboard.writeText(code).then(() => {
-                    copyBtn.innerHTML = `<i class="fa fa-copy"></i>Copied!`;
-                    setTimeout(() => { copyBtn.innerHTML = `<i class="fa fa-copy"></i>Copy`; }, 1500);
-                }).catch(err => {
-                    console.error("Copy failed:", err);
-                });
+                    copyBtn.querySelector('.copy-icon').classList.add('hidden');
+                    copyBtn.querySelector('.check-icon').classList.remove('hidden');
+                    setTimeout(() => {
+                        copyBtn.querySelector('.copy-icon').classList.remove('hidden');
+                        copyBtn.querySelector('.check-icon').classList.add('hidden');
+                    }, 2000);
+                }).catch(err => console.error("Copy failed:", err));
             });
 
-
-
-
-            const themeBtn = document.getElementById("theme-toggle");
-            const currentTheme = localStorage.getItem("theme");
-
-            if(currentTheme === "dark"){
-                document.body.classList.add("dark");
-                themeBtn.innerHTML = '<i class="fa fa-sun-o"></i> Light';
-            }
-
-            themeBtn.addEventListener("click", ()=>{
-                document.body.classList.toggle("dark");
-                if(document.body.classList.contains("dark")){
-                    themeBtn.innerHTML = '<i class="fa fa-sun-o"></i> Light';
-                    localStorage.setItem("theme","dark");
-                } else {
-                    themeBtn.innerHTML = '<i class="fa fa-moon-o"></i> Dark';
-                    localStorage.setItem("theme","light");
-                }
-            });
-        }
-        window.addEventListener("DOMContentLoaded", init);
+        });
     </script>
-    <script async defer src="https://buttons.github.io/buttons.js"></script>
-    <div class="wrapper">
-        <button id="theme-toggle"><i class="fa fa-moon-o"></i> Dark</button>
-        <a href="https://github.com/elseif/MikroTikPatch" class="github-corner" aria-label="View source on GitHub" target="_blank">
-            <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 250 250" fill="#151513" style="position: absolute; top: 0; right: 0">
-            <path d="M0 0l115 115h15l12 27 108 108V0z" fill="#151513"/>
-            <path class="octo-arm" fill="#fff" d="M128 109c-15-9-9-19-9-19 3-7 2-11 2-11-1-7 3-2 3-2 4 5 2 11 2 11-3 10 5 15 9 16" style="-webkit-transform-origin: 130px 106px; transform-origin: 130px 106px"/>
-            <path class="octo-body" fill="#fff" d="M115 115s4 2 5 0l14-14c3-2 6-3 8-3-8-11-15-24 2-41 5-5 10-7 16-7 1-2 3-7 12-11 0 0 5 3 7 16 4 2 8 5 12 9s7 8 9 12c14 3 17 7 17 7-4 8-9 11-11 11 0 6-2 11-7 16-16 16-30 10-41 2 0 3-1 7-5 11l-12 11c-1 1 1 5 1 5z"/>
-            </svg>
-        </a>
-
-        <div class="row">
-            <div class="text-center">
-                <h1 class="filter-blue" style="margin-top: 20px;"><b>MikroTik RouterOS Patched Versions</b></h1>
-            </div>            
-        </div>
-        <div class="row text-center">
-            <div> 
-                <a href="https://github.com/elseif/MikroTikPatch/actions/workflows/mikrotik_patch_6.yml" target="_blank"><img src="https://mikrotik.ltd/badge/mikrotik_patch_6.yml" alt="Patch Mikrotik RouterOS 6.x"></a>
-                <a href="https://github.com/elseif/MikroTikPatch/actions/workflows/mikrotik_patch_7.yml" target="_blank"><img src="https://mikrotik.ltd/badge/mikrotik_patch_7.yml" alt="Patch Mikrotik RouterOS 7.x"></a>
-            </div>
-            <div>                     
-                <img src="https://img.shields.io/endpoint?logo=icloud&url=https://mikrotik.ltd/status/cloud" alt="Cloud Status">
-                <img src="https://img.shields.io/endpoint?logo=googlecloudstorage&url=https://mikrotik.ltd/status/dartnode" alt="VPS Status">
-            </div>
-            <a class="github-button" href="https://github.com/elseif/MikroTikPatch" data-icon="octicon-star" data-size="large" data-show-count="true" aria-label="Star elseif/MikroTikPatch on GitHub">Star</a>
-            <a class="github-button" href="https://github.com/elseif/MikroTikPatch/fork" data-icon="octicon-repo-forked" data-size="large" data-show-count="true" aria-label="Fork elseif/MikroTikPatch on GitHub">Fork</a>
-
-        </div>
-        <div class="row">
-                <p data-i18n="infoLabel1"></p>
-                <p data-i18n="infoLabel2"></p>
-                <div id="version-buttons"></div >
-                <div id="command-container">
-                    <button id="copy-btn"><i class="fa fa-copy"></i>Copy</button>
-                    <div id="command"></div>
-                </div>
-                <div style="height: 30px;">
-                    <label><input type="checkbox" name="gh-proxy"><span data-i18n="proxyLabel"></span></label>
-                    <a data-i18n="clearCache" id="clear-cache" class="button secondary" style="margin: 0px 10px !important;padding: 6px;font-size: .8125rem;height: 30px;" href="#" title="gh-proxy"></a>
-                </div>
-        </div>
-        <div class="row" style="display: flex; align-items: center; justify-content: center; ">
-            <div id="urls-pannel" class="reveal-modal" style="display: none;" tabindex="0">
-                <a id="urls-close" class="close-reveal-modal" aria-label="Close">×</a>
-                <div id="urls-list" style="margin: 20px; font-size: 16px;overflow:auto;height: 300px;"></div>
-                <div style="display: flex; align-items: center; justify-content: center; ">
-                    <a data-i18n="copyUrlsClearCache" id="copy-to-clear-cache" class="button" style="margin-bottom: 0;padding: 8px;; width:180px;height:30px;font-size: .8125rem;" href="#" title="gh-proxy"></a> 
-                </div>
-            </div>
-        </div>
-        <div class="row" id="download-rows" style="margin-top: 2vh;">
-            <div class="loading" id="loading"><i class="fa fa-spinner"></i><span data-i18n="loading"></span></div>
-        </div>
-
-        <div class="row">
-            <ul style="display: flex; align-items: center; justify-content: center; gap: 20px; list-style: none; padding: 0; margin: 0; ">
-                <li>
-                    <a href="https://t.me/mikrotikpatch" target="_blank" title="Telegram">
-                        <i class="fa fa-telegram fa-2x"></i>
-                    </a>
-                </li>
-                <li>
-                    <a href="https://github.com/elseif/MikroTikPatch" target="_blank" title="GitHub">
-                        <i class="fa fa-github fa-2x"></i>
-                    </a>
-                </li>
-                <li style="display: flex; gap: 6px;">
-                    <span data-i18n="language"></span>
-                    <select id="lang-switcher">
-                        <option value="en">English</option>
-                        <option value="zh">中文</option>
-                    </select>
-                </li>
-            </ul>
-
-        </div>
-    </div>
 </body>
 </html>
