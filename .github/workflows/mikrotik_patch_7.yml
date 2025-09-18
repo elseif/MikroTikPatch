@@ -246,6 +246,16 @@ jobs:
                 sudo -E python3 npk.py sign "$file" "$file"
             done
         fi
+        if [ "$LATEST_VERSION" = "7.12.1" ]; then
+            URL="https://download.mikrotik.com/routeros/$LATEST_VERSION/routeros-${{ matrix.arch }}-$LATEST_VERSION.npk"
+            sudo wget -nv -O "routeros-${{ matrix.arch }}-$LATEST_VERSION.npk" "$URL"
+            sudo -E python3 patch.py npk routeros-${{ matrix.arch }}-$LATEST_VERSION.npk
+            sudo mv "routeros-${{ matrix.arch }}-$LATEST_VERSION.npk" ./new_iso
+            URL="https://download.mikrotik.com/routeros/$LATEST_VERSION/system-$LATEST_VERSION.npk"
+            sudo wget -nv -O "system-$LATEST_VERSION.npk" "$URL"
+            sudo -E python3 patch.py npk system-$LATEST_VERSION.npk
+            sudo mv "system-$LATEST_VERSION.npk" ./new_iso
+        fi
         sudo cp -f routeros-$LATEST_VERSION$ARCH.npk ./new_iso/
         sudo -E python3 npk.py create ./new_iso/gps-$LATEST_VERSION$ARCH.npk ./option-$LATEST_VERSION$ARCH.npk option ./option.sfs -desc="busybox"
         sudo cp option-$LATEST_VERSION$ARCH.npk ./new_iso/
