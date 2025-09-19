@@ -481,8 +481,8 @@
                                                     }
                                                 }
                                                 return `<a href="${url}" class="inline-flex items-center gap-1.5 text-blue-500 dark:text-blue-400 hover:underline" title="${file}" target="_blank"><span class="iconify" data-icon="${ICONS.download}"></span> ${label}</a>`;
-                                            }).join("<br>");
-                                            return `<td class="px-6 py-4 text-center space-y-2">${links}</td>`;
+                                            }).join("");
+                                            return `<td class="px-6 py-4 text-center space-x-4">${links}</td>`;
                                         }).join("")}
                                         <td></td>
                                     </tr>
