@@ -4,38 +4,43 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MikroTik RouterOS Patched Versions</title>
-    
-    
+
+    <!-- Tailwind CSS framework for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
-
-    
+    <!-- Iconify icon library for icons -->
     <script src="https://code.iconify.design/3/3.1.1/iconify.min.js"></script>
-
-    
+    <!-- Google Fonts preconnect for performance optimization -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Mirror fonts for Chinese users (fonts.loli.net) -->
     <link rel="preconnect" href="https://fonts.loli.net">
     <link rel="preconnect" href="https://gstatic.loli.net" crossorigin>
+    <!-- Main font stylesheet with Inter and Fira Code fonts -->
     <link id="webfont-css" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code&display=swap" rel="stylesheet">
+    <!-- Font loading fallback script for Chinese users -->
     <script>
         (function(){
             var linkEl = document.getElementById('webfont-css');
             if (!linkEl) return;
             var mirrorHref = 'https://fonts.loli.net/css2?family=Inter:wght@400;500;600;700&family=Fira+Code&display=swap';
+            // Check if a specific font is loaded
             function isLoaded(name){
                 if (!('fonts' in document)) return false;
                 try { return document.fonts.check('1em "' + name + '"'); } catch (e) { return false; }
             }
+            // Switch to mirror font server if Google Fonts fails
             function switchToMirror(){
                 if (linkEl.href !== mirrorHref) { linkEl.href = mirrorHref; }
             }
             if (!('fonts' in document)) { switchToMirror(); return; }
             var decided = false;
+            // Timeout fallback - switch to mirror after 2.5 seconds if fonts not loaded
             var timer = setTimeout(function(){
                 if (!decided && (!isLoaded('Inter') || !isLoaded('Fira Code'))) {
                     decided = true; switchToMirror();
                 }
             }, 2500);
+            // Check when fonts are ready
             document.fonts.ready.then(function(){
                 if (!decided && (!isLoaded('Inter') || !isLoaded('Fira Code'))) {
                     decided = true; switchToMirror();
@@ -47,17 +52,22 @@
     </script>
 
     
+    <!-- Custom CSS styles using Tailwind CSS -->
     <style type="text/tailwindcss">
+        /* Main body styling with gradient background */
         body {
             font-family: 'Inter', sans-serif;
             background-image: radial-gradient(circle at top, #dde3ee 0%, #f1f5f9 60%);
         }
+        /* Dark mode gradient background */
         html.dark body {
             background-image: radial-gradient(circle at top, #1e293b 0%, #0f172a 60%);
         }
+        /* Monospace font for command code blocks */
         #command pre, #command code {
             font-family: 'Fira Code', monospace;
         }
+        /* Custom scrollbar styling */
         .custom-scrollbar::-webkit-scrollbar {
             width: 8px;
         }
@@ -68,39 +78,46 @@
             background: #94a3b8;
             border-radius: 10px;
         }
+        /* Dark mode scrollbar */
         html.dark .custom-scrollbar::-webkit-scrollbar-thumb {
             background: #475569;
         }
+        /* Active state for version selection buttons */
         #version-buttons button.active {
             @apply bg-blue-600 text-white shadow-md;
         }
+        /* Hide default details marker for custom styling */
         summary::-webkit-details-marker {
           display: none;
         }
+        /* Content card animation classes */
         .content-card {
             @apply transition-all duration-700;
         }
+        /* Loading state animation */
         .loading .content-card {
             @apply opacity-0 translate-y-4;
         }
     </style>
+    <!-- Tailwind CSS configuration -->
     <script>
         tailwind.config = {
-            darkMode: 'class',
+            darkMode: 'class', // Enable class-based dark mode
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        mono: ['Fira Code', 'monospace'],
+                        sans: ['Inter', 'sans-serif'], // Default sans-serif font
+                        mono: ['Fira Code', 'monospace'], // Monospace font for code
                     },
                 },
             },
         }
     </script>
 </head>
+<!-- Main body with dark mode support and loading animation -->
 <body class="bg-slate-100 dark:bg-gray-900 text-slate-700 dark:text-slate-300 transition-colors duration-300 loading">
 
-    
+    <!-- GitHub corner ribbon (top-right corner) -->
     <a href="https://github.com/elseif/MikroTikPatch" class="github-corner fixed top-0 right-0 z-50" aria-label="View source on GitHub" target="_blank">
         <svg width="80" height="80" viewBox="0 0 250 250" class="fill-slate-800 dark:fill-slate-50" style="position: absolute; top: 0; border: 0; right: 0;">
             <path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path>
@@ -109,19 +126,23 @@
         </svg>
     </a>
 
+    <!-- Main container with responsive padding -->
     <div class="container mx-auto max-w-7xl px-4 py-8 md:py-16">
         
-        
+        <!-- Page header section -->
         <header class="text-center mb-12 content-card" style="transition-delay: 100ms;">
+            <!-- Main title with gradient text effect -->
             <h1 class="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-sky-400 dark:from-blue-400 dark:to-sky-300 mb-3">MikroTik RouterOS</h1>
             <p class="text-xl md:text-2xl text-slate-600 dark:text-slate-400">Patched Versions</p>
             
+            <!-- Status badges for build workflows and services -->
             <div class="mt-6 flex justify-center items-center gap-4 flex-wrap">
                 <a href="https://github.com/elseif/MikroTikPatch/actions/workflows/mikrotik_patch_6.yml" target="_blank"><img src="https://mikrotik.ltd/badge/mikrotik_patch_6.yml" alt="Patch Mikrotik RouterOS 6.x"></a>
                 <a href="https://github.com/elseif/MikroTikPatch/actions/workflows/mikrotik_patch_7.yml" target="_blank"><img src="https://mikrotik.ltd/badge/mikrotik_patch_7.yml" alt="Patch Mikrotik RouterOS 7.x"></a>
                 <img src="https://img.shields.io/endpoint?logo=icloud&url=https://mikrotik.ltd/status/cloud" alt="Cloud Status">
                 <img src="https://img.shields.io/endpoint?logo=googlecloudstorage&url=https://mikrotik.ltd/status/dartnode" alt="VPS Status">
             </div>
+            <!-- GitHub social buttons -->
              <div class="mt-4 flex justify-center items-center gap-2">
                 <script async defer src="https://buttons.github.io/buttons.js"></script>
                 <a class="github-button" href="https://github.com/elseif/MikroTikPatch" data-icon="octicon-star" data-size="large" data-show-count="true" aria-label="Star elseif/MikroTikPatch on GitHub">Star</a>
@@ -130,11 +151,13 @@
         </header>
 
         
+        <!-- Main content area -->
         <main class="space-y-12">
 
-            
+            <!-- Information and settings card -->
             <div class="bg-white/60 dark:bg-gray-800/60 rounded-2xl shadow-lg p-6 md:p-8 ring-1 ring-black/5 backdrop-blur-xl content-card" style="transition-delay: 200ms;">
                 <div class="grid md:grid-cols-2 gap-8">
+                    <!-- Quick information section -->
                     <div>
                          <h2 class="text-lg font-semibold text-slate-800 dark:text-white mb-4 flex items-center"><span class="iconify mr-2 text-blue-500" data-icon="ph:info-bold"></span><span data-i18n="quickInformation"></span></h2>
                          <div class="space-y-3 text-sm">
@@ -142,10 +165,12 @@
                              <p data-i18n="infoLabel2"></p>
                          </div>
                     </div>
+                    <!-- Settings section -->
                     <div class="border-t md:border-t-0 md:border-l border-slate-200 dark:border-gray-700 pt-6 md:pt-0 md:pl-8">
                         <h2 class="text-lg font-semibold text-slate-800 dark:text-white mb-4 flex items-center"><span class="iconify mr-2 text-blue-500" data-icon="ph:gear-six-bold"></span><span data-i18n="settings"></span></h2>
                         <div class="space-y-4">
                             
+                            <!-- Theme toggle switch -->
                             <div class="flex items-center justify-between">
                                 <label for="theme-toggle-btn" class="font-medium" data-i18n="theme"></label>
                                 <button id="theme-toggle-btn" class="p-2 rounded-full text-slate-500 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-white dark:focus:ring-offset-gray-900">
@@ -155,6 +180,7 @@
                                 </button>
                             </div>
                             
+                            <!-- Language selector -->
                             <div class="flex items-center justify-between">
                                 <label for="lang-switcher" data-i18n="language" class="font-medium"></label>
                                 <select id="lang-switcher" class="bg-slate-100 dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded-md p-1.5 text-sm focus:ring-blue-500 focus:border-blue-500">
@@ -163,6 +189,7 @@
                                 </select>
                             </div>
                             
+                            <!-- GitHub proxy toggle -->
                             <div class="flex items-center justify-between">
                                 <label for="gh-proxy" data-i18n="proxyLabel" class="font-medium text-sm"></label>
                                 <label class="relative inline-flex items-center cursor-pointer">
@@ -171,6 +198,7 @@
                                 </label>
                             </div>
                             
+                            <!-- Clear cache button -->
                              <div>
                                 <button data-i18n="clearCache" id="clear-cache" class="w-full text-sm font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"></button>
                             </div>
@@ -180,13 +208,17 @@
             </div>
 
             
+            <!-- Install command section -->
             <div class="bg-white/60 dark:bg-gray-800/60 rounded-2xl shadow-lg ring-1 ring-black/5 backdrop-blur-xl overflow-hidden content-card" style="transition-delay: 300ms;">
                 <div class="p-6 md:p-8">
                     <h2 class="text-lg font-semibold text-slate-800 dark:text-white mb-4 flex items-center" data-i18n="installCmdLabel"><span class="iconify mr-2 text-blue-500" data-icon="ph:terminal-window-bold"></span></h2>
+                    <!-- Version and tool selection controls -->
                     <div class="flex flex-wrap items-center gap-2 mb-4">
+                        <!-- Version selection buttons (populated by JavaScript) -->
                         <div id="version-buttons" class="flex flex-wrap items-center gap-2 p-1 bg-slate-100 dark:bg-gray-700/50 rounded-lg">
                             
                         </div>
+                        <!-- Tool selection (curl/wget) -->
                         <div class="flex items-center gap-2 p-1 bg-slate-100 dark:bg-gray-700/50 rounded-lg">
                              <label class="flex items-center px-2 cursor-pointer">
                                  <input type="radio" name="tool" value="curl" checked class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
@@ -199,6 +231,7 @@
                         </div>
                     </div>
                 </div>
+                <!-- Command display area with copy button -->
                 <div id="command-container" class="relative bg-slate-900 dark:bg-black/50 p-4 text-sm">
                     <button id="copy-btn" class="absolute top-3 right-3 p-1.5 bg-slate-700 hover:bg-slate-600 rounded-md text-slate-300 hover:text-white transition-colors">
                         <span class="sr-only">Copy command</span>
@@ -210,8 +243,10 @@
             </div>
 
             
+            <!-- Download sections container (populated by JavaScript) -->
             <div id="download-rows" class="space-y-8 content-card" style="transition-delay: 400ms;">
                 
+                <!-- Loading overlay shown while fetching version data -->
                 <div class="loading-overlay fixed inset-0 bg-slate-100/80 dark:bg-gray-900/80 flex flex-col items-center justify-center z-50" id="loading">
                     <span class="iconify text-4xl text-blue-600 animate-spin" data-icon="ph:spinner-gap-bold"></span>
                     <span data-i18n="loading" class="mt-4 text-lg font-medium"></span>
@@ -220,19 +255,31 @@
         </main>
         
         
-        <footer class="mt-16 pt-8 border-t border-slate-200 dark:border-gray-700/50 text-center text-sm text-slate-500 dark:text-slate-400">
-             <div class="flex justify-center items-center gap-6">
-                 <a href="https://t.me/mikrotikpatch" target="_blank" title="Telegram" class="text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                     <span class="iconify text-3xl" data-icon="ph:telegram-logo-bold"></span>
-                 </a>
-                 <a href="https://github.com/elseif/MikroTikPatch" target="_blank" title="GitHub" class="text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                     <span class="iconify text-3xl" data-icon="ph:github-logo-bold"></span>
-                 </a>
-             </div>
+        <!-- Footer with banner-style social links -->
+        <footer class="mt-16 pt-8 border-t border-slate-200 dark:border-gray-700/50">
+            <div class="text-center">
+                <!-- Social links without container background -->
+                <div class="flex justify-center items-center gap-4">
+                    <!-- Telegram link -->
+                    <a href="https://t.me/mikrotikpatch" target="_blank" 
+                       class="group flex items-center gap-3 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">
+                        <span class="iconify text-xl transition-transform duration-300 group-hover:rotate-12" data-icon="ph:telegram-logo-bold"></span>
+                        <span class="font-semibold text-sm">Telegram</span>
+                    </a>
+
+                    <!-- GitHub link -->
+                    <a href="https://github.com/elseif/MikroTikPatch" target="_blank" 
+                       class="group flex items-center gap-3 px-6 py-3 rounded-xl bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-700 hover:to-gray-800 dark:from-slate-600 dark:to-slate-700 dark:hover:from-slate-500 dark:hover:to-slate-600 text-white shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">
+                        <span class="iconify text-xl transition-transform duration-300 group-hover:rotate-12" data-icon="ph:github-logo-bold"></span>
+                        <span class="font-semibold text-sm">GitHub</span>
+                    </a>
+                </div>
+            </div>
         </footer>
     </div>
 
     
+    <!-- URLs modal for cache clearing -->
     <div id="urls-pannel" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden" tabindex="-1">
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col transform transition-all opacity-0 scale-95" id="modal-content">
             <header class="p-4 border-b border-slate-200 dark:border-gray-700 flex justify-between items-center">
@@ -242,6 +289,7 @@
                      <span class="iconify text-2xl" data-icon="ph:x-bold"></span>
                 </button>
             </header>
+            <!-- URLs list display area -->
             <div id="urls-list" class="p-6 text-sm text-slate-600 dark:text-slate-400 overflow-y-auto custom-scrollbar flex-grow bg-slate-50 dark:bg-gray-900/50 rounded-b-xl whitespace-pre-wrap break-all"></div>
             <footer class="p-4 border-t border-slate-200 dark:border-gray-700">
                  <button id="copy-to-clear-cache" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-white dark:focus:ring-offset-gray-800 flex items-center justify-center gap-2" data-i18n="copyUrlsClearCache" href="#"></button> 
@@ -249,10 +297,36 @@
         </div>
     </div>
 
+    <!-- Changelog popup modal -->
+    <div id="changelog-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden" tabindex="-1">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col transform transition-all opacity-0 scale-95" id="changelog-modal-content">
+            <header class="p-4 border-b border-slate-200 dark:border-gray-700 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-slate-800 dark:text-white flex items-center gap-2">
+                    <span class="iconify text-blue-500" data-icon="ph:newspaper-clipping-bold"></span>
+                    <span data-i18n="changelog"></span>
+                </h3>
+                <button id="changelog-close" class="p-1 rounded-full text-slate-400 hover:bg-slate-100 dark:hover:bg-gray-700">
+                     <span class="sr-only">Close modal</span>
+                     <span class="iconify text-2xl" data-icon="ph:x-bold"></span>
+                </button>
+            </header>
+            <!-- Changelog content display area -->
+            <div id="changelog-content" class="p-6 text-sm text-slate-600 dark:text-slate-400 overflow-y-auto custom-scrollbar flex-grow bg-slate-50 dark:bg-gray-900/50 rounded-b-xl">
+                <!-- Loading state for changelog -->
+                <div class="flex items-center justify-center py-8">
+                    <span class="iconify text-4xl text-blue-600 animate-spin" data-icon="ph:spinner-gap-bold"></span>
+                    <span class="ml-4 text-lg font-medium" data-i18n="loadingChangelog"></span>
+                </div>
+            </div>
+        </div>
+    </div>
 
+
+    <!-- Main JavaScript functionality -->
     <script>
         document.addEventListener("DOMContentLoaded", async () => {
         
+            // Icon definitions for consistent icon usage
             const ICONS = {
                 download: 'ph:download-simple-bold',
                 changelog: 'ph:newspaper-clipping-bold',
@@ -260,6 +334,7 @@
                 copyAndOpen: 'ph:copy-simple-bold'
             };
             
+            // Function to fetch latest version numbers with timeout fallback
             async function fetch_latest_versions(url, defaultValue, timeout = 3000) {
                 try {
                     const controller = new AbortController();
@@ -268,14 +343,15 @@
                     clearTimeout(id);
                     if (res.ok) {
                         const text = await res.text();
-                        return text.split(" ")[0];
+                        return text.split(" ")[0]; // Extract version number from response
                     }
                 } catch (e) {
                     console.warn("fetch failed or timeout:", e);
                 }
-                return defaultValue;
+                return defaultValue; // Return fallback version if fetch fails
             }
 
+            // Internationalization (i18n) translations for English and Chinese
             const i18n = {
                 en: {
                     language: "Language",
@@ -289,6 +365,9 @@
                     quickInformation:"Quick Information",
                     settings:"Settings",
                     theme:"Theme",
+                    changelog:"Changelog",
+                    loadingChangelog:"Loading changelog...",
+                    changelogError:"Failed to load changelog. Please try again later.",
                 },
                 zh: {
                     language: "语言",
@@ -302,13 +381,18 @@
                     quickInformation:"快速信息",
                     settings:"设置",
                     theme:"主题",
+                    changelog:"更新日志",
+                    loadingChangelog:"正在加载更新日志...",
+                    changelogError:"加载更新日志失败，请稍后重试。",
                 }
             };
 
+            // Function to set language and update all i18n elements
             function setLanguage(lang) {
                 document.querySelectorAll("[data-i18n]").forEach(el => {
                     const key = el.getAttribute("data-i18n");
                     if (i18n[lang] && i18n[lang][key]) {
+                        // Special handling for buttons that need icons
                         if (key === 'clearCache') {
                            el.innerHTML = `<span class="iconify" data-icon="${ICONS.trash}"></span> ${i18n[lang][key]}`;
                         } else if (key === 'copyUrlsClearCache' && el.id === 'copy-to-clear-cache') {
@@ -321,27 +405,32 @@
                         }
                     }
                 });
-                localStorage.setItem("lang", lang);
+                localStorage.setItem("lang", lang); // Save language preference
             }
 
+            // Initialize language based on saved preference or browser language
             function initLanguage() {
                 let savedLang = localStorage.getItem("lang");
                 if (!savedLang) {
+                    // Auto-detect Chinese language, default to English
                     savedLang = navigator.language.startsWith("zh") ? "zh" : "en";
                 }
                 document.getElementById("lang-switcher").value = savedLang;
                 setLanguage(savedLang);
             }
             
+            // Language switcher event listener
             document.getElementById("lang-switcher").addEventListener("change", e => {
                 setLanguage(e.target.value);
             });
 
+            // Theme toggle functionality
             const themeBtn = document.getElementById("theme-toggle-btn");
             const htmlEl = document.documentElement;
             const sunIcon = themeBtn.querySelector('.sun-icon');
             const moonIcon = themeBtn.querySelector('.moon-icon');
 
+            // Update theme UI icons based on current theme
             function updateThemeUI() {
                 if (htmlEl.classList.contains('dark')) {
                     sunIcon.classList.remove('hidden');
@@ -352,25 +441,30 @@
                 }
             }
             
+            // Initialize theme based on saved preference or system preference
             function initializeTheme() {
                 const savedTheme = localStorage.getItem("theme");
                 if (savedTheme) {
                     htmlEl.classList.toggle("dark", savedTheme === "dark");
                 } else {
+                    // Use system preference if no saved theme
                     htmlEl.classList.toggle("dark", window.matchMedia('(prefers-color-scheme: dark)').matches);
                 }
                 updateThemeUI();
             }
 
+            // Theme toggle button event listener
             themeBtn.addEventListener("click", () => {
                 htmlEl.classList.toggle("dark");
                 localStorage.setItem("theme", htmlEl.classList.contains("dark") ? "dark" : "light");
                 updateThemeUI();
             });
 
+            // Initialize theme and language
             initializeTheme();
             initLanguage();
 
+            // Fetch latest version numbers from MikroTik servers
             const loadingOverlay = document.getElementById("loading");
             const [routeros7_stable, routeros7_testing, routeros6_longterm, routeros6_stable] = await Promise.all([
                 fetch_latest_versions("https://upgrade.mikrotik.ltd/routeros/NEWESTa7.stable", "7.19.4"),
@@ -378,9 +472,11 @@
                 fetch_latest_versions("https://upgrade.mikrotik.ltd/routeros/NEWEST6.long-term", "6.49.18"),
                 fetch_latest_versions("https://upgrade.mikrotik.ltd/routeros/NEWEST6.stable", "6.49.19"),
             ]);
+            // Hide loading overlay and remove loading class
             loadingOverlay.style.display = "none";
             document.body.classList.remove('loading');
 
+            // Download sections configuration with versions and file types
             const downloads =[
                 {
                     title:"RouterOS v7",
@@ -408,35 +504,48 @@
                 },
             ];
 
+            // Function to generate file names based on version, architecture, and type
             const fileNames = (version, arch, type) => {
                 const files = [];
+                // RouterOS v6 only supports x86 architecture
                 if (version.charAt(0) === "6" && arch !== "x86") return files;
+                // Main package for RouterOS v7
                 if (type === "main" && version.charAt(0) === "7") files.push(`routeros-${version}${arch === "x86" ? "" : "-" + arch}.npk`);
+                // ISO images
                 if (type === "iso") files.push(`mikrotik-${version}${arch === "x86" ? "" : "-" + arch}.iso`);
+                // Extra packages
                 if (type === "extra") files.push(`all_packages-${arch}-${version}.zip`);
+                // Install images
                 if (type === "install") files.push(`install-image-${version}${arch === "x86" ? "" : "-" + arch}.zip`);
+                // Virtual machine images
                 if (type in { vhdx: 1, vmdk: 1, vdi: 1, vhd: 1, img: 1 }) {
                     files.push(`chr-${version}${arch === "x86" ? "" : "-" + arch}.${type}.zip`);
+                    // Add legacy BIOS version for x86 RouterOS v7
                     if (arch === "x86" && version.charAt(0) !== "6") files.push(`chr-${version}-legacy-bios.${type}.zip`);
                 }
+                // OVA templates (RouterOS v7 only)
                 if (type === "ova" && version.charAt(0) !== "6") {
                     files.push(`chr-${version}${arch === "x86" ? "" : "-" + arch}.${type}.zip`);
                     if (arch === "x86") files.push(`chr-${version}-legacy-bios.${type}.zip`);
                 }
+                // Netinstall packages
                 if (type === "netinstall_windows") files.push(`netinstall-${version}.zip`);
                 if (type === "netinstall_linux_cli") files.push(`netinstall-${version}.tar.gz`);
                 return files;
             };
 
+            // Generate base URL for downloads with optional GitHub proxy
             const baseUrl = (version, arch) => `${localStorage.getItem("gh-proxy-enabled") === "true" ? "https://gh-proxy.com/" : ""}https://github.com/elseif/MikroTikPatch/releases/download/${version}${arch === "x86" || arch === "general" ? "" : "-" + arch}/`;
             
+            // Clear and populate download sections
             const container = document.getElementById("download-rows");
             container.innerHTML = '';
 
+            // Generate download sections dynamically
             downloads.forEach((download, index) => {
                 const accordion = document.createElement("details");
                 accordion.className = "bg-white/60 dark:bg-gray-800/60 rounded-2xl shadow-lg ring-1 ring-black/5 backdrop-blur-xl overflow-hidden group";
-                accordion.open = index === 0;
+                accordion.open = index === 0; // Open first section by default
 
                 const summary = document.createElement("summary");
                 summary.className = "p-6 cursor-pointer text-xl font-bold text-slate-800 dark:text-white flex justify-between items-center";
@@ -466,7 +575,7 @@
                                         <td class="px-6 py-4 font-medium text-slate-900 dark:text-white whitespace-nowrap">${d.title}</td>
                                         ${download.versions.map(v => {
                                             if (d.type === "changlog") {
-                                                return `<td class="px-6 py-4 text-center"><a href="https://upgrade.mikrotik.ltd/routeros/${v.version}/CHANGELOG" class="inline-flex items-center gap-1.5 text-blue-500 dark:text-blue-400 hover:underline" title="Changelog" target="_blank"><span class="iconify" data-icon="${ICONS.changelog}"></span> View</a></td>`;
+                                                return `<td class="px-6 py-4 text-center"><button onclick="showChangelog('${v.version}')" class="inline-flex items-center gap-1.5 text-blue-500 dark:text-blue-400 hover:underline cursor-pointer" title="Changelog"><span class="iconify" data-icon="${ICONS.changelog}"></span> View</button></td>`;
                                             }
                                             const files = fileNames(v.version, g.arch, d.type);
                                             if (!files || files.length === 0) return `<td class="px-6 py-4"></td>`;
@@ -498,13 +607,16 @@
                 container.appendChild(accordion);
             });
             
+            // GitHub proxy functionality
             const ghProxyCheckbox = document.getElementById("gh-proxy");
             const clearCacheBtn = document.getElementById("clear-cache");
             ghProxyCheckbox.checked = localStorage.getItem("gh-proxy-enabled") === "true";
             clearCacheBtn.style.display = ghProxyCheckbox.checked ? "inline-flex" : "none";
             
+            // Update all download links with/without GitHub proxy
             function updateAllDownloadLinks() {
-                document.querySelectorAll('a[href*="github.com/elseif/MikroTikPatch"]').forEach(link => {
+                // Only apply proxy to download links (releases/download), not to other GitHub links
+                document.querySelectorAll('a[href*="github.com/elseif/MikroTikPatch/releases/download"]').forEach(link => {
                     const isProxyEnabled = localStorage.getItem("gh-proxy-enabled") === "true";
                     const hasProxy = link.href.includes('gh-proxy.com');
                     if (isProxyEnabled && !hasProxy) {
@@ -513,16 +625,19 @@
                         link.href = link.href.replace("https://gh-proxy.com/", "");
                     }
                 });
+                // Update command display if a version is selected
                 const activeBtn = document.querySelector("#version-buttons button.active");
                 if (activeBtn) updateCommand(activeBtn.dataset.version);
             }
 
+            // GitHub proxy toggle event listener
             ghProxyCheckbox.addEventListener("change", () => {
                 localStorage.setItem("gh-proxy-enabled", ghProxyCheckbox.checked ? "true" : "false");
                 clearCacheBtn.style.display = ghProxyCheckbox.checked ? "inline-flex" : "none";
                 updateAllDownloadLinks();
             });
             
+            // Cache clearing modal functionality
             const modal = document.getElementById("urls-pannel");
             const modalContent = document.getElementById("modal-content");
             clearCacheBtn.addEventListener("click", () => {
@@ -532,22 +647,111 @@
                 setTimeout(() => { modalContent.classList.add('opacity-100', 'scale-100'); modalContent.classList.remove('opacity-0', 'scale-95'); }, 10);
             });
             
+            // Modal close functionality
             document.getElementById("urls-close").addEventListener("click", () => {
                 modalContent.classList.remove('opacity-100', 'scale-100');
                 modalContent.classList.add('opacity-0', 'scale-95');
                 setTimeout(() => modal.classList.add('hidden'), 200);
             });
 
+            // Copy URLs and open cache clearing page
             document.getElementById("copy-to-clear-cache").addEventListener("click", () => {
                 navigator.clipboard.writeText(document.getElementById("urls-list").innerText);
                 window.open("https://cache.gh-proxy.com/", "_blank");
                 document.getElementById("urls-close").click();
             });
 
+            // Changelog modal functionality
+            const changelogModal = document.getElementById("changelog-modal");
+            const changelogModalContent = document.getElementById("changelog-modal-content");
+            const changelogContent = document.getElementById("changelog-content");
+            const changelogClose = document.getElementById("changelog-close");
+
+            // Fetch changelog content from MikroTik servers
+            async function fetchChangelog(version) {
+                try {
+                    const response = await fetch(`https://upgrade.mikrotik.ltd/routeros/${version}/CHANGELOG`);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const text = await response.text();
+                    return text;
+                } catch (error) {
+                    console.error("Failed to fetch changelog:", error);
+                    return null;
+                }
+            }
+
+            // Global function to show changelog modal
+            window.showChangelog = function(version) {
+                changelogModal.classList.remove('hidden');
+                changelogContent.innerHTML = `
+                    <div class="flex items-center justify-center py-8">
+                        <span class="iconify text-4xl text-blue-600 animate-spin" data-icon="ph:spinner-gap-bold"></span>
+                        <span class="ml-4 text-lg font-medium" data-i18n="loadingChangelog"></span>
+                    </div>
+                `;
+                setLanguage(document.getElementById("lang-switcher").value);
+                
+                setTimeout(() => {
+                    changelogModalContent.classList.add('opacity-100', 'scale-100');
+                    changelogModalContent.classList.remove('opacity-0', 'scale-95');
+                }, 10);
+
+                // Fetch and display changelog content
+                fetchChangelog(version).then(content => {
+                    if (content) {
+                        changelogContent.innerHTML = `
+                            <div class="prose prose-slate dark:prose-invert max-w-none">
+                                <pre class="whitespace-pre-wrap text-sm leading-relaxed">${content}</pre>
+                            </div>
+                        `;
+                    } else {
+                        // Show error state with retry button
+                        changelogContent.innerHTML = `
+                            <div class="flex flex-col items-center justify-center py-8 text-center">
+                                <span class="iconify text-6xl text-red-500 mb-4" data-icon="ph:warning-circle-bold"></span>
+                                <p class="text-lg font-medium text-slate-700 dark:text-slate-300 mb-2" data-i18n="changelogError"></p>
+                                <button onclick="showChangelog('${version}')" class="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+                                    <span class="iconify mr-2" data-icon="ph:arrow-clockwise-bold"></span>
+                                    Retry
+                                </button>
+                            </div>
+                        `;
+                        setLanguage(document.getElementById("lang-switcher").value);
+                    }
+                });
+            };
+
+            // Hide changelog modal with animation
+            function hideChangelog() {
+                changelogModalContent.classList.remove('opacity-100', 'scale-100');
+                changelogModalContent.classList.add('opacity-0', 'scale-95');
+                setTimeout(() => changelogModal.classList.add('hidden'), 200);
+            }
+
+            changelogClose.addEventListener("click", hideChangelog);
+            
+            // Close modal when clicking outside
+            changelogModal.addEventListener("click", (e) => {
+                if (e.target === changelogModal) {
+                    hideChangelog();
+                }
+            });
+
+            // Close modal with Escape key
+            document.addEventListener("keydown", (e) => {
+                if (e.key === "Escape" && !changelogModal.classList.contains("hidden")) {
+                    hideChangelog();
+                }
+            });
+
+            // Command generation and version selection
             const versionBtnsContainer = document.getElementById("version-buttons");
             const commandDiv = document.getElementById("command");
             const copyBtn = document.getElementById("copy-btn");
 
+            // Generate version selection buttons
             versionBtnsContainer.innerHTML = `
                 <button data-version="${routeros7_stable}" class="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-blue-200 dark:hover:bg-gray-600 transition-all">v7 Stable</button>
                 <button data-version="${routeros7_testing}" class="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-blue-200 dark:hover:bg-gray-600 transition-all">v7 Testing</button>
@@ -555,6 +759,7 @@
                 <button data-version="${routeros6_stable}" class="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-blue-200 dark:hover:bg-gray-600 transition-all">v6 Stable</button>
             `;
             
+            // Update command display based on selected tool and version
             function updateCommand(version) {
                 const tool = document.querySelector('input[name="tool"]:checked').value;
                 const proxy = localStorage.getItem("gh-proxy-enabled") === "true" ? " | sed 's#https://github.com#https://gh-proxy.com/https://github.com#g'" : "";
@@ -564,6 +769,7 @@
                 commandDiv.innerHTML = cmd;
             }
 
+            // Tool selection event listeners
             document.querySelectorAll('input[name="tool"]').forEach(radio => {
                 radio.addEventListener("change", () => {
                     const activeBtn = document.querySelector("#version-buttons button.active");
@@ -571,6 +777,7 @@
                 });
             });
 
+            // Version button event listeners
             const buttons = document.querySelectorAll("#version-buttons button");
             buttons.forEach(btn => {
                 btn.addEventListener("click", (e) => {
@@ -580,8 +787,9 @@
                     btn.classList.add("active");
                 });
             });
-            buttons[0].click();
+            buttons[0].click(); // Select first button by default
             
+            // Copy command to clipboard functionality
             copyBtn.addEventListener("click", () => {
                 const code = commandDiv.querySelector("code").innerText;
                 navigator.clipboard.writeText(code).then(() => {
