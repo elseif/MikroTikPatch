@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-LATEST_VERSION="${1:-7.19.4}"
+LATEST_VERSION="${1:-7.19.6}"
 echo "VERSION: $LATEST_VERSION"
 ARCH=$(uname -m)
 
