@@ -332,7 +332,7 @@ jobs:
           </References>
           <DiskSection>
             <Info>Virtual disk information</Info>
-            <Disk ovf:capacity="{CAPACITY_MB}" ovf:capacityAllocationUnits="byte * 2^20" ovf:diskId="vmdisk1" ovf:fileRef="file1" ovf:format="http://www.vmware.com/interfaces/specifications/vmdk.html#streamOptimized" ovf:populatedSize="{POPULATED_SIZE}"/>
+            <Disk ovf:capacity="{CAPACITY_MB}" ovf:capacityAllocationUnits="byte * 2^20" ovf:diskId="vmdisk1" ovf:fileRef="file1" ovf:format="http://www.vmware.com/interfaces/specifications/vmdk.html#streamOptimized"/>
           </DiskSection>
           <NetworkSection>
             <Info>The list of logical networks</Info>
