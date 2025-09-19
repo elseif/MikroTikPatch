@@ -504,7 +504,7 @@
             clearCacheBtn.style.display = ghProxyCheckbox.checked ? "inline-flex" : "none";
             
             function updateAllDownloadLinks() {
-                document.querySelectorAll('a[href*="github.com/elseif/MikroTikPatch/release/"]').forEach(link => {
+                document.querySelectorAll('a[href*="github.com/elseif/MikroTikPatch/release"]').forEach(link => {
                     const isProxyEnabled = localStorage.getItem("gh-proxy-enabled") === "true";
                     const hasProxy = link.href.includes('gh-proxy.com');
                     if (isProxyEnabled && !hasProxy) {
