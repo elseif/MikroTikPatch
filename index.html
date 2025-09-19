@@ -501,11 +501,8 @@
             const ghProxyCheckbox = document.getElementById("gh-proxy");
             const clearCacheBtn = document.getElementById("clear-cache");
             ghProxyCheckbox.checked = localStorage.getItem("gh-proxy-enabled") === "true";
-            if (ghProxyCheckbox.checked) {
-                clearCacheBtn.style.removeProperty("display");
-            } else {
-                clearCacheBtn.style.display = "none"; 
-            }
+            clearCacheBtn.style.display = ghProxyCheckbox.checked ? "inline-flex" : "none";
+            
             function updateAllDownloadLinks() {
                 document.querySelectorAll('a[href*="github.com/elseif/MikroTikPatch"]').forEach(link => {
                     const isProxyEnabled = localStorage.getItem("gh-proxy-enabled") === "true";
@@ -522,7 +519,7 @@
 
             ghProxyCheckbox.addEventListener("change", () => {
                 localStorage.setItem("gh-proxy-enabled", ghProxyCheckbox.checked ? "true" : "false");
-                clearCacheBtn.style.display = ghProxyCheckbox.checked ? "block" : "none";
+                clearCacheBtn.style.display = ghProxyCheckbox.checked ? "inline-flex" : "none";
                 updateAllDownloadLinks();
             });
             
