@@ -1,6 +1,11 @@
 [![Patch Mikrotik RouterOS 6.x](https://github.com/elseif/MikroTikPatch/actions/workflows/mikrotik_patch_6.yml/badge.svg)](https://github.com/elseif/MikroTikPatch/actions/workflows/mikrotik_patch_6.yml)
 [![Patch Mikrotik RouterOS 7.x](https://github.com/elseif/MikroTikPatch/actions/workflows/mikrotik_patch_7.yml/badge.svg)](https://github.com/elseif/MikroTikPatch/actions/workflows/mikrotik_patch_7.yml)
 
+### 感谢赞助
+[DartNode](https://dartnode.com?aff=SnazzyLobster067)
+[ZMTO](https://console.zmto.com/?affid=1588)
+[Vultr](https://www.vultr.com/?ref=9807160-9J)
+
 # MikroTik RouterOS Patch  [[English](README_EN.md)]
 [![License: WTFPL](https://img.shields.io/badge/License-WTFPL-brightgreen.svg)](./LICENSE)
 [![CoC:WTFCoC](https://img.shields.io/badge/CoC-WTFCoC-brightgreen.svg)](./CODE_OF_CONDUCT.md)
@@ -60,10 +65,7 @@ graph TD
     
 ## 所有的修补操作都自动运行在[Github Action](https://github.com/elseif/MikroTikPatch/blob/main/.github/workflows/)。
 
-### 感谢赞助
-[DartNode](https://dartnode.com?aff=SnazzyLobster067)
-[ZMTO](https://console.zmto.com/?affid=1588)
-[Vultr](https://www.vultr.com/?ref=9807160-9J)
+
 
 
 
