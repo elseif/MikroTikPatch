@@ -61,7 +61,10 @@ graph TD
 ## 所有的修补操作都自动运行在[Github Action](https://github.com/elseif/MikroTikPatch/blob/main/.github/workflows/)。
 
 ### 感谢赞助
+[DartNode](https://dartnode.com?aff=SnazzyLobster067)
 [ZMTO](https://console.zmto.com)
+
+
 
 
 
