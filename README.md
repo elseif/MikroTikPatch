@@ -2,7 +2,7 @@
 [![Patch Mikrotik RouterOS 7.x](https://github.com/elseif/MikroTikPatch/actions/workflows/mikrotik_patch_7.yml/badge.svg)](https://github.com/elseif/MikroTikPatch/actions/workflows/mikrotik_patch_7.yml)
 
 ### 感谢赞助
-[DartNode(aff)](https://dartnode.com?aff=SnazzyLobster067)  [ZMTO(aff)](https://console.zmto.com/?affid=1588) [Vultr(aff)](https://www.vultr.com/?ref=9807160-9J)
+[DartNode(aff)](https://dartnode.com?aff=SnazzyLobster067) | [ZMTO(aff)](https://console.zmto.com/?affid=1588) | [Vultr(aff)](https://www.vultr.com/?ref=9807160-9J)
 
 # MikroTik RouterOS Patch  [[English](README_EN.md)]
 [![License: WTFPL](https://img.shields.io/badge/License-WTFPL-brightgreen.svg)](./LICENSE)
