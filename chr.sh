@@ -179,7 +179,7 @@ download_image(){
         curl -L -# -o /tmp/chr.img.zip "$IMG_URL" || { echo "$MSG_DOWNLOAD_FAILED"; exit 1; }
     elif command -v wget >/dev/null 2>&1; then
         wget -nv -O /tmp/chr.img.zip "$IMG_URL" || { echo "$MSG_DOWNLOAD_FAILED"; exit 1; }
-    el
+    else
         echo "$MSG_DOWNLOAD_ERROR $IMG_URL"
         exit 1
     fi
