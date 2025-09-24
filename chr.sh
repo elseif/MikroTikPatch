@@ -230,8 +230,8 @@ write_and_reboot() {
 }
 
 set_language
-select_version
 show_system_info
+select_version
 download_image
 create_autorun
 write_and_reboot
