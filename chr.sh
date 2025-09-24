@@ -89,10 +89,16 @@ show_system_info() {
 }
 
 select_version() {
-    if [[ -n "$1" ]]; then
-        LATEST_VERSION="$1"
-        V7=$([[ "$LATEST_VERSION" == 7.* ]] && echo 1 || echo 0)
-        echo "$MSG_SELECTED_VERSION $LATEST_VERSION"
+    if [[ -n "$VERSION" ]]; then
+        if [[ "$VERSION" == 7.* ]]; then
+            V7=1
+        elif [[ "$VERSION" == 6.* ]]; then
+            V7=0
+        else
+            echo "Error: Unsupported version $VERSION"
+            exit 1
+        fi
+        echo "$MSG_SELECTED_VERSION $VERSION"
         return
     fi
     while true; do
@@ -117,14 +123,14 @@ select_version() {
                 ;;
         esac
         case $version_choice in
-            1) LATEST_VERSION=$(curl -s "https://upgrade.mikrotik.ltd/routeros/NEWESTa7.stable" | cut -d' ' -f1); V7=1 ;;
-            2) LATEST_VERSION=$(curl -s "https://upgrade.mikrotik.ltd/routeros/NEWESTa7.testing" | cut -d' ' -f1); V7=1 ;;
+            1) VERSION=$(curl -s "https://upgrade.mikrotik.ltd/routeros/NEWESTa7.stable" | cut -d' ' -f1); V7=1 ;;
+            2) VERSION=$(curl -s "https://upgrade.mikrotik.ltd/routeros/NEWESTa7.testing" | cut -d' ' -f1); V7=1 ;;
             3)
                 if [[ "$ARCH" == "aarch64" ]]; then
                     echo "$MSG_ARM64_NOT_SUPPORT_V6"
                     continue
                 fi
-                LATEST_VERSION=$(curl -s "https://upgrade.mikrotik.ltd/routeros/NEWEST6.long-term" | cut -d' ' -f1)
+                VERSION=$(curl -s "https://upgrade.mikrotik.ltd/routeros/NEWEST6.long-term" | cut -d' ' -f1)
                 V7=0
                 ;;
             4)
@@ -132,7 +138,7 @@ select_version() {
                     echo "$MSG_ARM64_NOT_SUPPORT_V6"
                     continue
                 fi
-                LATEST_VERSION=$(curl -s "https://upgrade.mikrotik.ltd/routeros/NEWEST6.stable" | cut -d' ' -f1)
+                VERSION=$(curl -s "https://upgrade.mikrotik.ltd/routeros/NEWEST6.stable" | cut -d' ' -f1)
                 V7=0
                 ;;
             *)
@@ -140,7 +146,7 @@ select_version() {
                 continue
                 ;;
         esac
-        echo "$MSG_SELECTED_VERSION $LATEST_VERSION"
+        echo "$MSG_SELECTED_VERSION $VERSION"
         break
     done
 }
@@ -149,13 +155,13 @@ download_image(){
     case $ARCH in
         x86_64|i386|i486|i586|i686)
             if [[ $V7 == 1 && $BOOT_MODE == "BIOS" ]]; then
-                IMG_URL="https://github.com/elseif/MikroTikPatch/releases/download/$LATEST_VERSION/chr-$LATEST_VERSION-legacy-bios.img.zip"
+                IMG_URL="https://github.com/elseif/MikroTikPatch/releases/download/$VERSION/chr-$VERSION-legacy-bios.img.zip"
             else
-                IMG_URL="https://github.com/elseif/MikroTikPatch/releases/download/$LATEST_VERSION/chr-$LATEST_VERSION.img.zip"
+                IMG_URL="https://github.com/elseif/MikroTikPatch/releases/download/$VERSION/chr-$VERSION.img.zip"
             fi
             ;; 
         aarch64)
-             IMG_URL="https://github.com/elseif/MikroTikPatch/releases/download/$LATEST_VERSION-arm64/chr-$LATEST_VERSION-arm64.img.zip"
+             IMG_URL="https://github.com/elseif/MikroTikPatch/releases/download/$VERSION-arm64/chr-$VERSION-arm64.img.zip"
             ;; 
         *)
             echo "$MSG_UNSUPPORTED_ARCH"
@@ -163,11 +169,11 @@ download_image(){
             ;;
     esac
     echo "$MSG_FILE_DOWNLOAD $(basename "$IMG_URL")"
-    if command -v wget >/dev/null 2>&1; then
-        wget -nv -O /tmp/chr.img.zip "$IMG_URL" || { echo "$MSG_DOWNLOAD_FAILED"; exit 1; }
-    elif command -v curl >/dev/null 2>&1; then
+    if command -v curl >/dev/null 2>&1; then
         curl -L -# -o /tmp/chr.img.zip "$IMG_URL" || { echo "$MSG_DOWNLOAD_FAILED"; exit 1; }
-    else
+    elif command -v wget >/dev/null 2>&1; then
+        wget -nv -O /tmp/chr.img.zip "$IMG_URL" || { echo "$MSG_DOWNLOAD_FAILED"; exit 1; }
+    el
         echo "$MSG_DOWNLOAD_ERROR $IMG_URL"
         exit 1
     fi
