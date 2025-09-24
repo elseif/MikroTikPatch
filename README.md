@@ -6,7 +6,8 @@
 
 ### 感谢捐赠
 ETH/USDT：0x7d5ade1bb74f170411ba4a9a6e8752d7b431b455
-TRX/USDT:TJ1Spmytu9CFhDg4QSo3cmWSrBKjNXuUYP
+
+TRX/USDT: TJ1Spmytu9CFhDg4QSo3cmWSrBKjNXuUYP
 
 
 # MikroTik RouterOS Patch  [[English](README_EN.md)]
