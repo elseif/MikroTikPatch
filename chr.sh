@@ -1,97 +1,238 @@
 #!/bin/bash
 set -e
-LATEST_VERSION="${1:-7.19.6}"
-echo "VERSION: $LATEST_VERSION"
-ARCH=$(uname -m)
 
-if [[ $LATEST_VERSION == 7.* ]]; then
+set_language() {
+    local current_lang=${LANG:-C} 
+    current_lang=${current_lang%%.*}
+    if [[ "$current_lang" == "zh_CN" ]]; then
+        MSG_SYSTEM_INFO="系统信息:"
+        MSG_ARCH="CPU架构:"
+        MSG_BOOTMODE="引导模式:"
+        MSG_STORAGE_DEVICE="存储设备:"
+        MSG_ETH_DEVICE="网络设备:"
+        MSG_ADDRESS="IP地址:"
+        MSG_GATEWAY="网关:"
+        MSG_DNS="DNS服务器:"
+        MSG_SELECT_VERSION="请选择您要安装的版本:"
+        MSG_STABLE="稳定版 (v7)"
+        MSG_TEST="测试版 (v7)"
+        MSG_LTS="长期支持版 (v6)"
+        MSG_STABLE6="稳定版 (v6)"
+        MSG_PLEASE_CHOOSE="请选择一个选项:"
+        MSG_UNSUPPORTED_ARCH="错误: 不支持的架构: "
+        MSG_INVALID_OPTION="错误: 无效选项"
+        MSG_ARM64_NOT_SUPPORT_V6="ARM64架构暂不支持安装v6版本"
+        MSG_SELECTED_VERSION="已选择版本:"
+        MSG_FILE_DOWNLOAD="下载文件: "
+        MSG_DOWNLOAD_ERROR="错误: wget 或 curl 都未安装，无法下载文件。"
+        MSG_EXTRACT_ERROR="错误: unzip 或 gunzip 都未安装，无法解压文件。"
+        MSG_DOWNLOAD_FAILED="错误: 下载失败！"
+        MSG_OPERATION_ABORTED="错误: 操作已中止。"
+        MSG_WARNING="警告：/dev/%s 上的数据将会丢失！"
+        MSG_REBOOTING="好的，正在重启..."
+        MSG_ADMIN_PASSWORD="管理员密码:"
+        MSG_ERROR_MOUNT="错误: 挂载分区失败"
+        MSG_ERROR_LOOP="错误: 设置 loop 设备失败"
+        MSG_AUTO_RUN_FILE_CREATED="autorun.scr 文件已创建。"
+        MSG_CONFIRM_CONTINUE="您是否确定继续？ [Y/n]:"
+    else
+        MSG_SYSTEM_INFO="SYSTEM INFO:"
+        MSG_ARCH="ARCH:"
+        MSG_BOOTMODE="BOOT MODE:"
+        MSG_STORAGE_DEVICE="STORAGE:"
+        MSG_ETH_DEVICE="ETH:"
+        MSG_ADDRESS="ADDRESS:"
+        MSG_GATEWAY="GATEWAY:"
+        MSG_DNS="DNS:"
+        MSG_SELECT_VERSION="Select the version you want to install:"
+        MSG_STABLE="stable (v7)"
+        MSG_TEST="testing (v7)"
+        MSG_LTS="long-term (v6)"
+        MSG_STABLE6="stable (v6)"
+        MSG_PLEASE_CHOOSE="Please choose an option:"
+        MSG_UNSUPPORTED_ARCH="Error: Unsupported architecture: "
+        MSG_INVALID_OPTION="Error: Invalid option!"
+        MSG_ARM64_NOT_SUPPORT_V6="arm64 does not support v6 version for now."
+        MSG_SELECTED_VERSION="Selected version:"
+        MSG_FILE_DOWNLOAD="Download file: "
+        MSG_DOWNLOAD_ERROR="Error: No wget nor curl is installed. Cannot download."
+        MSG_EXTRACT_ERROR="Error: No unzip nor gunzip is installed. Cannot uncompress."
+        MSG_DOWNLOAD_FAILED="Error: Download failed!"
+        MSG_OPERATION_ABORTED="Error: Operation aborted."
+        MSG_WARNING="Warn: All data on /dev/%s will be lost!"
+        MSG_REBOOTING="Ok, rebooting..."
+        MSG_ADMIN_PASSWORD="admin password:"
+        MSG_ERROR_MOUNT="Error: Failed to mount partition"
+        MSG_ERROR_LOOP="Error: Failed to setup loop device"
+        MSG_AUTO_RUN_FILE_CREATED="autorun.scr file created."
+        MSG_CONFIRM_CONTINUE="Do you want to continue? [Y/n]:"
+    fi
+}
+
+show_system_info() {
+    ARCH=$(uname -m)
+    BOOT_MODE=$( [ -d "/sys/firmware/efi" ] && echo "UEFI" || echo "BIOS" )
+    STORAGE=$(lsblk -d -n -o NAME,TYPE | awk '$2=="disk"{print $1; exit}')
+    ETH=$(ip route show default | grep '^default' | sed -n 's/.* dev \([^\ ]*\) .*/\1/p')
+    ADDRESS=$(ip addr show $ETH | grep global | cut -d' ' -f 6 | head -n 1)
+    GATEWAY=$(ip route list | grep default | cut -d' ' -f 3)
+    DNS=$(grep '^nameserver' /etc/resolv.conf | awk '{print $2}' | head -n 1)
+    [ -z "$DNS" ] && DNS="8.8.8.8"
+    echo "$MSG_SYSTEM_INFO"
+    echo "$MSG_ARCH $ARCH"
+    echo "$MSG_BOOTMODE $BOOT_MODE"
+    echo "$MSG_STORAGE_DEVICE $STORAGE"
+    echo "$MSG_ETH_DEVICE $ETH"
+    echo "$MSG_ADDRESS $ADDRESS"
+    echo "$MSG_GATEWAY $GATEWAY"
+    echo "$MSG_DNS $DNS"
+}
+
+select_version() {
+    if [[ -n "$1" ]]; then
+        LATEST_VERSION="$1"
+        V7=$([[ "$LATEST_VERSION" == 7.* ]] && echo 1 || echo 0)
+        echo "$MSG_SELECTED_VERSION $LATEST_VERSION"
+        return
+    fi
+    while true; do
+        case $ARCH in
+            x86_64|i386|i486|i586|i686)
+                echo "$MSG_SELECT_VERSION"
+                echo "1. $MSG_STABLE"
+                echo "2. $MSG_TEST"
+                echo "3. $MSG_LTS"
+                echo "4. $MSG_STABLE6"
+                read -p "$MSG_PLEASE_CHOOSE [1-4]" version_choice
+                ;; 
+            aarch64)
+                echo "$MSG_SELECT_VERSION"
+                echo "1. $MSG_STABLE"
+                echo "2. $MSG_TEST"
+                read -p "$MSG_PLEASE_CHOOSE [1-2]" version_choice
+                ;; 
+            *)
+                echo "$MSG_UNSUPPORTED_ARCH $ARCH"
+                exit 1
+                ;;
+        esac
+        case $version_choice in
+            1) LATEST_VERSION=$(curl -s "https://upgrade.mikrotik.ltd/routeros/NEWESTa7.stable" | cut -d' ' -f1); V7=1 ;;
+            2) LATEST_VERSION=$(curl -s "https://upgrade.mikrotik.ltd/routeros/NEWESTa7.testing" | cut -d' ' -f1); V7=1 ;;
+            3)
+                if [[ "$ARCH" == "aarch64" ]]; then
+                    echo "$MSG_ARM64_NOT_SUPPORT_V6"
+                    continue
+                fi
+                LATEST_VERSION=$(curl -s "https://upgrade.mikrotik.ltd/routeros/NEWEST6.long-term" | cut -d' ' -f1)
+                V7=0
+                ;;
+            4)
+                if [[ "$ARCH" == "aarch64" ]]; then
+                    echo "$MSG_ARM64_NOT_SUPPORT_V6"
+                    continue
+                fi
+                LATEST_VERSION=$(curl -s "https://upgrade.mikrotik.ltd/routeros/NEWEST6.stable" | cut -d' ' -f1)
+                V7=0
+                ;;
+            *)
+                echo "$MSG_INVALID_OPTION"
+                continue
+                ;;
+        esac
+        echo "$MSG_SELECTED_VERSION $LATEST_VERSION"
+        break
+    done
+}
+
+download_image(){
     case $ARCH in
         x86_64|i386|i486|i586|i686)
-            echo "ARCH: $ARCH"
-            if [ -d /sys/firmware/efi ]; then
-                echo "BOOT MODE: UEFI"
-                IMG_URL="https://github.com/elseif/MikroTikPatch/releases/download/$LATEST_VERSION/chr-$LATEST_VERSION.img.zip"
-            else
-                echo "BOOT MODE: BIOS/MBR"
+            if [[ $V7 == 1 && $BOOT_MODE == "BIOS" ]]; then
                 IMG_URL="https://github.com/elseif/MikroTikPatch/releases/download/$LATEST_VERSION/chr-$LATEST_VERSION-legacy-bios.img.zip"
+            else
+                IMG_URL="https://github.com/elseif/MikroTikPatch/releases/download/$LATEST_VERSION/chr-$LATEST_VERSION.img.zip"
             fi
             ;; 
         aarch64)
-             echo "ARCH: $ARCH"
              IMG_URL="https://github.com/elseif/MikroTikPatch/releases/download/$LATEST_VERSION-arm64/chr-$LATEST_VERSION-arm64.img.zip"
             ;; 
         *)
-            echo "Unsupported architecture: $ARCH"
+            echo "$MSG_UNSUPPORTED_ARCH"
             exit 1
             ;;
     esac
-else
-    case $ARCH in
-        x86_64|i386|i486|i586|i686)
-            echo "ARCH: $ARCH"
-            IMG_URL="https://github.com/elseif/MikroTikPatch/releases/download/$LATEST_VERSION/chr-$LATEST_VERSION.img.zip"
-            ;; 
-        *)
-            echo "Unsupported architecture: $ARCH"
-            exit 1
-            ;;
-    esac
-fi
+    echo "$MSG_FILE_DOWNLOAD $(basename "$IMG_URL")"
+    if command -v wget >/dev/null 2>&1; then
+        wget -nv -O /tmp/chr.img.zip "$IMG_URL" || { echo "$MSG_DOWNLOAD_FAILED"; exit 1; }
+    elif command -v curl >/dev/null 2>&1; then
+        curl -L -# -o /tmp/chr.img.zip "$IMG_URL" || { echo "$MSG_DOWNLOAD_FAILED"; exit 1; }
+    else
+        echo "$MSG_DOWNLOAD_ERROR $IMG_URL"
+        exit 1
+    fi
+    cd /tmp
+    if command -v unzip >/dev/null 2>&1; then
+        unzip -p "chr.img.zip" > chr.img
+    elif command -v gunzip >/dev/null 2>&1; then
+        gunzip -c chr.img.zip > chr.img
+    else
+        echo "$MSG_EXTRACT_ERROR"
+        exit 1
+    fi
+}
 
-STORAGE=$(lsblk -d -n -o NAME,TYPE | awk '$2=="disk"{print $1; exit}')
-echo "STORAGE: $STORAGE"
-ETH=$(ip route show default | grep '^default' | sed -n 's/.* dev \([^\ ]*\) .*/\1/p')
-echo "ETH: $ETH"
-ADDRESS=$(ip addr show $ETH | grep global | cut -d' ' -f 6 | head -n 1)
-echo "ADDRESS: $ADDRESS"
-GATEWAY=$(ip route list | grep default | cut -d' ' -f 3)
-echo "GATEWAY:  $GATEWAY"
-DNS=$(grep '^nameserver' /etc/resolv.conf | awk '{print $2}' | head -n 1)
-[ -z "$DNS" ] && DNS="8.8.8.8"  
-echo "DNS: $DNS"
-
-echo "FILE: $(basename $IMG_URL)"
-if command -v wget >/dev/null 2>&1; then
-    wget --no-check-certificate -O /tmp/chr.img.zip "$IMG_URL" || { echo "Download failed!"; exit 1; }
-elif command -v curl >/dev/null 2>&1; then
-    curl -L --insecure -o /tmp/chr.img.zip "$IMG_URL" || { echo "Download failed!"; exit 1; }
-else
-    echo "Neither wget nor curl is installed. Cannot download $url"
-    exit 1
-fi
-cd /tmp
-gunzip -c chr.img.zip  > chr.img
-RANDOM_PASS=$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 8)
-if LOOP=$(losetup -Pf --show chr.img 2>/dev/null); then
-    sleep 3
-    MNT=/tmp/chr
-    mkdir -p $MNT
-    if mount ${LOOP}p2 $MNT 2>/dev/null; then
-        cat <<EOF | tee $MNT/rw/autorun.scr
+create_autorun() {
+    RANDOM_ADMIN_PASS=$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 16)
+    if LOOP=$(losetup -Pf --show chr.img 2>/dev/null); then
+        sleep 1
+        MNT=/tmp/chr
+        mkdir -p $MNT
+        PARTITION=$([ "$V7" == 1 ] && echo "p2" || echo "p1")
+        if mount "${LOOP}${PARTITION}" "$MNT" 2>/dev/null; then
+            cat <<-EOF | tee "$MNT/rw/autorun.scr"
+/ip dhcp-client disable [ /ip dhcp-client find ]
 /ip address add address=$ADDRESS interface=ether1
 /ip route add gateway=$GATEWAY
 /ip dns set servers=$DNS
-/user set admin password="$RANDOM_PASS"
+/user set admin password="$RANDOM_ADMIN_PASS"
 EOF
-        echo "autorun.scr file created."
-        echo -e "admin password: \e[31m$RANDOM_PASS\e[0m"
-        umount $MNT
+
+            echo "$MSG_AUTO_RUN_FILE_CREATED"
+            echo -e "$MSG_ADMIN_PASSWORD \e[31m$RANDOM_ADMIN_PASS\e[0m"
+            umount $MNT
+            losetup -d "$LOOP"
+        else
+            losetup -d "$LOOP"
+            echo "$MSG_ERROR_MOUNT $PARTITION"
+            exit 1
+        fi
     else
-        echo "Failed to mount partition 2, skipping autorun.scr creation."
+        echo "$MSG_ERROR_LOOP"
+        exit 1
     fi
-    losetup -d $LOOP
-fi
+}
 
-echo "WARNING: All data on /dev/$STORAGE will be lost!"
-read -p "Do you want to continue? [Y/n]: " confirm < /dev/tty
-confirm=${confirm:-Y}
-if [[ "$confirm" =~ ^[Nn]$ ]]; then
-    echo "Operation aborted."
-    exit 1
-fi
 
-dd if=chr.img of=/dev/$STORAGE bs=4M conv=fsync
-echo "Ok, rebooting..."
-echo 1 > /proc/sys/kernel/sysrq 2>/dev/null || true
-echo b > /proc/sysrq-trigger 2>/dev/null || true
-reboot -f
+write_and_reboot() {
+    printf "$MSG_WARNING\n" "$STORAGE"
+    read -p "$MSG_CONFIRM_CONTINUE" confirm < /dev/tty
+    confirm=${confirm:-Y}
+    if [[ "$confirm" =~ ^[Nn]$ ]]; then
+        echo "$MSG_OPERATION_ABORTED"
+        exit 1
+    fi
+    dd if=chr.img of=/dev/$STORAGE bs=4M conv=fsync
+    echo "$MSG_REBOOTING"
+    echo 1 > /proc/sys/kernel/sysrq 2>/dev/null || true
+    echo b > /proc/sysrq-trigger 2>/dev/null || true
+    reboot -f
+}
+
+set_language
+select_version
+show_system_info
+download_image
+create_autorun
+write_and_reboot
+exit 0
