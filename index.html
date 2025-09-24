@@ -762,10 +762,10 @@
             // Update command display based on selected tool and version
             function updateCommand(version) {
                 const tool = document.querySelector('input[name="tool"]:checked').value;
-                const proxy = localStorage.getItem("gh-proxy-enabled") === "true" ? " | sed 's#https://github.com#https://gh-proxy.com/https://github.com#g'" : "";
+                const proxy = localStorage.getItem("gh-proxy-enabled") === "true" ? " | <span class='text-blue-400'>sed</span> <span class='text-orange-400'>'s#https://github.com#https://gh-proxy.com/https://github.com#g'</span>" : "";
                 const cmd = tool === "curl" 
-                    ? `<pre class="text-slate-300"><code><span class="text-pink-400">curl</span> <span class="text-cyan-400">https://mikrotik.ltd/chr.sh</span>${proxy} | <span class="text-pink-400">bash</span> -s <span class="text-green-400">${version}</span></code></pre>`
-                    : `<pre class="text-slate-300"><code><span class="text-pink-400">wget</span> -O - <span class="text-cyan-400">https://mikrotik.ltd/chr.sh</span>${proxy} | <span class="text-pink-400">bash</span> -s <span class="text-green-400">${version}</span></code></pre>`;
+                    ? `<pre class="text-slate-300"><code><span class="text-green-400">VERSION</span>=<span class="text-pink-400">${version}</span> <span class="text-blue-400">bash</span> \<(<span class="text-blue-400">curl</span> <span class="text-cyan-400">https://mikrotik.ltd/chr.sh</span>${proxy})</code></pre>`
+                    : `<pre class="text-slate-300"><code><span class="text-green-400">VERSION</span>=<span class="text-pink-400">${version}</span> <span class="text-blue-400">bash</span> \<(<span class="text-blue-400">wget -O - </span><span class="text-cyan-400">https://mikrotik.ltd/chr.sh</span>${proxy})</code></pre>`;
                 commandDiv.innerHTML = cmd;
             }
 
