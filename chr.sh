@@ -31,6 +31,9 @@ set_language() {
         MSG_WARNING="警告：/dev/%s 上的数据将会丢失！"
         MSG_REBOOTING="好的，正在重启..."
         MSG_ADMIN_PASSWORD="管理员密码:"
+        MSG_MANUAL_PASS_CHOICE="是否手动输入密码？(y/N): "
+        MSG_ENTER_NEW_PASS="请输入新密码: "
+        MSG_PASS_EMPTY="密码不能为空，请重新输入。"
         MSG_ERROR_MOUNT="错误: 挂载分区失败"
         MSG_ERROR_LOOP="错误: 设置 loop 设备失败"
         MSG_AUTO_RUN_FILE_CREATED="autorun.scr 文件已创建。"
@@ -62,6 +65,9 @@ set_language() {
         MSG_WARNING="Warn: All data on /dev/%s will be lost!"
         MSG_REBOOTING="Ok, rebooting..."
         MSG_ADMIN_PASSWORD="admin password:"
+        MSG_MANUAL_PASS_CHOICE="Do you want to enter a password manually? (y/N): "
+        MSG_ENTER_NEW_PASS="Enter new password: "
+        MSG_PASS_EMPTY="Password cannot be empty, please try again."
         MSG_ERROR_MOUNT="Error: Failed to mount partition"
         MSG_ERROR_LOOP="Error: Failed to setup loop device"
         MSG_AUTO_RUN_FILE_CREATED="autorun.scr file created."
@@ -189,23 +195,37 @@ download_image(){
 }
 
 create_autorun() {
-    RANDOM_ADMIN_PASS=$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 16)
+    
     if LOOP=$(losetup -Pf --show chr.img 2>/dev/null); then
         sleep 1
         MNT=/tmp/chr
         mkdir -p $MNT
         PARTITION=$([ "$V7" == 1 ] && echo "p2" || echo "p1")
         if mount "${LOOP}${PARTITION}" "$MNT" 2>/dev/null; then
-            cat <<-EOF | tee "$MNT/rw/autorun.scr"
+            RANDOM_ADMIN_PASS=$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 16)
+            echo -e "$MSG_ADMIN_PASSWORD \e[31m$RANDOM_ADMIN_PASS\e[0m"
+            read -p "$MSG_MANUAL_PASS_CHOICE" input_pass_choice < /dev/tty
+            input_pass_choice=${input_pass_choice:-N}
+            if [[ "$input_pass_choice" =~ ^[Yy]$ ]]; then
+                while true; do
+                    read -p "$MSG_ENTER_NEW_PASS" user_pass
+                    if [[ -n "$user_pass" ]]; then
+                        RANDOM_ADMIN_PASS="$user_pass"
+                        echo -e "$MSG_ADMIN_PASSWORD \e[31m$RANDOM_ADMIN_PASS\e[0m"
+                        break
+                    else
+                        echo "$MSG_PASS_EMPTY"
+                    fi
+                done
+            fi
+            cat <<EOF > "$MNT/rw/autorun.scr"
 /ip dhcp-client disable [ /ip dhcp-client find ]
 /ip address add address=$ADDRESS interface=ether1
 /ip route add gateway=$GATEWAY
 /ip dns set servers=$DNS
 /user set admin password="$RANDOM_ADMIN_PASS"
 EOF
-
             echo "$MSG_AUTO_RUN_FILE_CREATED"
-            echo -e "$MSG_ADMIN_PASSWORD \e[31m$RANDOM_ADMIN_PASS\e[0m"
             umount $MNT
             losetup -d "$LOOP"
         else
