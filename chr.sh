@@ -219,11 +219,10 @@ create_autorun() {
                 done
             fi
             cat <<EOF > "$MNT/rw/autorun.scr"
-/ip dhcp-client disable [ /ip dhcp-client find ]
+/user set admin password="$RANDOM_ADMIN_PASS"
+/ip dns set servers=$DNS
 /ip address add address=$ADDRESS interface=ether1
 /ip route add gateway=$GATEWAY
-/ip dns set servers=$DNS
-/user set admin password="$RANDOM_ADMIN_PASS"
 EOF
             echo "$MSG_AUTO_RUN_FILE_CREATED"
             umount $MNT
