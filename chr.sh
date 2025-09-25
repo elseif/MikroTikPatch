@@ -1,81 +1,5 @@
 #!/bin/bash
 set -e
-set_language() {
-    local current_lang=${LANG:-C} 
-    current_lang=${current_lang%%.*}
-    if [[ "$current_lang" == "zh_CN" ]]; then
-        MSG_SYSTEM_INFO="系统信息:"
-        MSG_ARCH="CPU架构:"
-        MSG_BOOTMODE="引导模式:"
-        MSG_STORAGE_DEVICE="输入存储设备名称:"
-        MSG_ADDRESS="输入IP地址:"
-        MSG_GATEWAY="输入网关地址:"
-        MSG_DNS="输入DNS服务器:"
-        MSG_SELECT_VERSION="请选择您要安装的版本:"
-        MSG_STABLE="稳定版 (v7)"
-        MSG_TEST="测试版 (v7)"
-        MSG_LTS="长期支持版 (v6)"
-        MSG_STABLE6="稳定版 (v6)"
-        MSG_PLEASE_CHOOSE="请选择一个选项:"
-        MSG_UNSUPPORTED_ARCH="错误: 不支持的架构: "
-        MSG_INVALID_OPTION="错误: 无效选项"
-        MSG_ARM64_NOT_SUPPORT_V6="ARM64架构暂不支持安装v6版本"
-        MSG_SELECTED_VERSION="已选择版本:"
-        MSG_FILE_DOWNLOAD="下载文件: "
-        MSG_DOWNLOAD_ERROR="错误: wget 或 curl 都未安装，无法下载文件。"
-        MSG_EXTRACT_ERROR="错误: unzip 或 gunzip 都未安装，无法解压文件。"
-        MSG_DOWNLOAD_FAILED="错误: 下载失败！"
-        MSG_OPERATION_ABORTED="错误: 操作已中止。"
-        MSG_WARNING="警告：/dev/%s 上的数据将会丢失！"
-        MSG_REBOOTING="好的，正在重启..."
-        MSG_ADMIN_PASSWORD="管理员密码:"
-        MSG_MANUAL_PASS_CHOICE="是否手动输入密码？(y/N): "
-        MSG_ENTER_NEW_PASS="请输入新密码: "
-        MSG_PASS_EMPTY="密码不能为空，请重新输入。"
-        MSG_ERROR_MOUNT="错误: 挂载分区失败"
-        MSG_ERROR_LOOP="错误: 设置 loop 设备失败"
-        MSG_AUTO_RUN_FILE_CREATED="autorun.scr 文件已创建。"
-        MSG_AUTO_RUN_FILE_NOT_CREATED="警告：autorun.scr 文件创建失败!"
-        MSG_CONFIRM_CONTINUE="您是否确定继续? [y/n]"
-    else
-        MSG_SYSTEM_INFO="SYSTEM INFO:"
-        MSG_ARCH="ARCH:"
-        MSG_BOOTMODE="BOOT MODE:"
-        MSG_STORAGE_DEVICE="Input storage device name:"
-        MSG_ADDRESS="Input IP address:"
-        MSG_GATEWAY="Input gateway:"
-        MSG_DNS="Input domain name server:"
-        MSG_SELECT_VERSION="Select the version you want to install:"
-        MSG_STABLE="stable (v7)"
-        MSG_TEST="testing (v7)"
-        MSG_LTS="long-term (v6)"
-        MSG_STABLE6="stable (v6)"
-        MSG_PLEASE_CHOOSE="Please choose an option:"
-        MSG_UNSUPPORTED_ARCH="Error: Unsupported architecture: "
-        MSG_INVALID_OPTION="Error: Invalid option!"
-        MSG_ARM64_NOT_SUPPORT_V6="arm64 does not support v6 version for now."
-        MSG_SELECTED_VERSION="Selected version:"
-        MSG_FILE_DOWNLOAD="Download file: "
-        MSG_DOWNLOAD_ERROR="Error: No wget nor curl is installed. Cannot download."
-        MSG_EXTRACT_ERROR="Error: No unzip nor gunzip is installed. Cannot uncompress."
-        MSG_DOWNLOAD_FAILED="Error: Download failed!"
-        MSG_OPERATION_ABORTED="Error: Operation aborted."
-        MSG_WARNING="Warn: All data on /dev/%s will be lost!"
-        MSG_REBOOTING="Ok, rebooting..."
-        MSG_ADMIN_PASSWORD="admin password:"
-        MSG_MANUAL_PASS_CHOICE="Do you want to enter a password manually? (y/N): "
-        MSG_ENTER_NEW_PASS="Enter new password: "
-        MSG_PASS_EMPTY="Password cannot be empty, please try again."
-        MSG_ERROR_MOUNT="Error: Failed to mount partition"
-        MSG_ERROR_LOOP="Error: Failed to setup loop device"
-        MSG_AUTO_RUN_FILE_CREATED="autorun.scr file created."
-        MSG_AUTO_RUN_FILE_NOT_CREATED="Warn: autorun.scr file create failed"
-        MSG_CONFIRM_CONTINUE="Do you want to continue? [y/n]"
-    fi
-}
-
-
-
 _ask() {
 	local _redo=0
 
@@ -122,10 +46,94 @@ ask_yesno() {
 }
 
 
+select_language() {
+    while true; do
+        echo "Select your language:"
+        echo "1. English"
+        echo "2. 简体中文"
+        read -p "$MSG_PLEASE_CHOOSE [1-2]" language_choice
+        case $language_choice in
+            1) 
+                MSG_ARCH="Arch:"
+                MSG_BOOTMODE="BootMode:"
+                MSG_STORAGE_DEVICE="Input storage device name:"
+                MSG_ADDRESS="Input IP address:"
+                MSG_GATEWAY="Input gateway:"
+                MSG_DNS="Input domain name server:"
+                MSG_SELECT_VERSION="Select the version you want to install:"
+                MSG_STABLE="stable (v7)"
+                MSG_TEST="testing (v7)"
+                MSG_LTS="long-term (v6)"
+                MSG_STABLE6="stable (v6)"
+                MSG_PLEASE_CHOOSE="Please choose an option:"
+                MSG_UNSUPPORTED_ARCH="Error: Unsupported architecture: "
+                MSG_INVALID_OPTION="Error: Invalid option!"
+                MSG_ARM64_NOT_SUPPORT_V6="arm64 does not support v6 version for now."
+                MSG_SELECTED_VERSION="Selected version:"
+                MSG_FILE_DOWNLOAD="Download file: "
+                MSG_DOWNLOAD_ERROR="Error: No wget nor curl is installed. Cannot download."
+                MSG_EXTRACT_ERROR="Error: No unzip nor gunzip is installed. Cannot uncompress."
+                MSG_DOWNLOAD_FAILED="Error: Download failed!"
+                MSG_OPERATION_ABORTED="Error: Operation aborted."
+                MSG_WARNING="Warn: All data on /dev/%s will be lost!"
+                MSG_REBOOTING="Ok, rebooting..."
+                MSG_ADMIN_PASSWORD="admin password:"
+                MSG_MANUAL_PASS_CHOICE="Do you want to enter a password manually? (y/N): "
+                MSG_ENTER_NEW_PASS="Enter new password: "
+                MSG_PASS_EMPTY="Password cannot be empty, please try again."
+                MSG_ERROR_MOUNT="Error: Failed to mount partition"
+                MSG_ERROR_LOOP="Error: Failed to setup loop device"
+                MSG_AUTO_RUN_FILE_CREATED="autorun.scr file created."
+                MSG_AUTO_RUN_FILE_NOT_CREATED="Warn: autorun.scr file create failed"
+                MSG_CONFIRM_CONTINUE="Do you want to continue? [y/n]"
+                ;;
+            2) 
+                MSG_ARCH="CPU架构:"
+                MSG_BOOTMODE="引导模式:"
+                MSG_STORAGE_DEVICE="输入存储设备名称:"
+                MSG_ADDRESS="输入IP地址:"
+                MSG_GATEWAY="输入网关地址:"
+                MSG_DNS="输入DNS服务器:"
+                MSG_SELECT_VERSION="请选择您要安装的版本:"
+                MSG_STABLE="稳定版 (v7)"
+                MSG_TEST="测试版 (v7)"
+                MSG_LTS="长期支持版 (v6)"
+                MSG_STABLE6="稳定版 (v6)"
+                MSG_PLEASE_CHOOSE="请选择一个选项:"
+                MSG_UNSUPPORTED_ARCH="错误: 不支持的架构: "
+                MSG_INVALID_OPTION="错误: 无效选项"
+                MSG_ARM64_NOT_SUPPORT_V6="ARM64架构暂不支持安装v6版本"
+                MSG_SELECTED_VERSION="已选择版本:"
+                MSG_FILE_DOWNLOAD="下载文件: "
+                MSG_DOWNLOAD_ERROR="错误: wget 或 curl 都未安装，无法下载文件。"
+                MSG_EXTRACT_ERROR="错误: unzip 或 gunzip 都未安装，无法解压文件。"
+                MSG_DOWNLOAD_FAILED="错误: 下载失败！"
+                MSG_OPERATION_ABORTED="错误: 操作已中止。"
+                MSG_WARNING="警告：/dev/%s 上的数据将会丢失！"
+                MSG_REBOOTING="好的，正在重启..."
+                MSG_ADMIN_PASSWORD="管理员密码:"
+                MSG_MANUAL_PASS_CHOICE="是否手动输入密码？(y/N): "
+                MSG_ENTER_NEW_PASS="请输入新密码: "
+                MSG_PASS_EMPTY="密码不能为空，请重新输入。"
+                MSG_ERROR_MOUNT="错误: 挂载分区失败"
+                MSG_ERROR_LOOP="错误: 设置 loop 设备失败"
+                MSG_AUTO_RUN_FILE_CREATED="autorun.scr 文件已创建。"
+                MSG_AUTO_RUN_FILE_NOT_CREATED="警告：autorun.scr 文件创建失败!"
+                MSG_CONFIRM_CONTINUE="您是否确定继续? [y/n]"
+                ;;
+            *)
+                echo "Error: Invalid option!"
+                continue
+                ;;
+        esac
+        break
+    done
+}
+
+
 show_system_info() {
     ARCH=$(uname -m)
     BOOT_MODE=$( [ -d "/sys/firmware/efi" ] && echo "UEFI" || echo "BIOS" )
-    echo "$MSG_SYSTEM_INFO"
     echo "$MSG_ARCH $ARCH"
     echo "$MSG_BOOTMODE $BOOT_MODE"
 }
@@ -329,7 +337,7 @@ write_and_reboot() {
     reboot -f
 }
 
-set_language
+select_language
 show_system_info
 select_version
 download_image
