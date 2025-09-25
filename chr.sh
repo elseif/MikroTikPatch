@@ -80,6 +80,7 @@ show_system_info() {
     ARCH=$(uname -m)
     BOOT_MODE=$( [ -d "/sys/firmware/efi" ] && echo "UEFI" || echo "BIOS" )
     STORAGE=$(lsblk -d -n -o NAME,TYPE | awk '$2=="disk"{print $1; exit}')
+    [ -z "$STORAGE" ] && STORAGE=$(fdisk -l | awk '/^Disk \/dev/ {print $2; exit}' | sed 's#:##' | sed 's#/dev/##')
     ETH=$(ip route show default | grep '^default' | sed -n 's/.* dev \([^\ ]*\) .*/\1/p')
     ADDRESS=$(ip addr show $ETH | grep global | cut -d' ' -f 6 | head -n 1)
     GATEWAY=$(ip route list | grep default | cut -d' ' -f 3)
