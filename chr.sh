@@ -36,6 +36,7 @@ set_language() {
         MSG_ERROR_MOUNT="错误: 挂载分区失败"
         MSG_ERROR_LOOP="错误: 设置 loop 设备失败"
         MSG_AUTO_RUN_FILE_CREATED="autorun.scr 文件已创建。"
+        MSG_AUTO_RUN_FILE_NOT_CREATED="autorun.scr 文件创建失败!"
         MSG_CONFIRM_CONTINUE="您是否确定继续？ [Y/n]:"
     else
         MSG_SYSTEM_INFO="SYSTEM INFO:"
@@ -70,6 +71,7 @@ set_language() {
         MSG_ERROR_MOUNT="Error: Failed to mount partition"
         MSG_ERROR_LOOP="Error: Failed to setup loop device"
         MSG_AUTO_RUN_FILE_CREATED="autorun.scr file created."
+        MSG_AUTO_RUN_FILE_NOT_CREATED="autorun.scr file create failed"
         MSG_CONFIRM_CONTINUE="Do you want to continue? [Y/n]:"
     fi
 }
@@ -255,11 +257,11 @@ EOF
         else
             losetup -d "$LOOP"
             echo "$MSG_ERROR_MOUNT $PARTITION"
-            exit 1
+            echo "$MSG_AUTO_RUN_FILE_NOT_CREATED"
         fi
     else
         echo "$MSG_ERROR_LOOP"
-        exit 1
+        echo "$MSG_AUTO_RUN_FILE_NOT_CREATED"
     fi
 }
 
