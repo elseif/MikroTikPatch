@@ -283,7 +283,6 @@ download_image(){
 }
 
 create_autorun() {
-    confirm_storge
     if LOOP=$(losetup -Pf --show chr.img 2>/dev/null); then
         sleep 1
         MNT=/tmp/chr
@@ -316,6 +315,7 @@ EOF
 
 
 write_and_reboot() {
+	confirm_storge
     printf "$MSG_WARNING\n" "$STORAGE"
     ask_yesno "$MSG_CONFIRM_CONTINUE"
     if [ $? -ne 0 ]; then
