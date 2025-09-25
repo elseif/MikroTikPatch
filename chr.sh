@@ -51,8 +51,8 @@ select_language() {
         echo "Select your language:"
         echo "1. English"
         echo "2. 简体中文"
-        read -p "Please choose an option [1-2]" language_choice
-        case $language_choice in
+        ask_until "Please choose an option" "1"
+        case $resp in
             1) 
                 MSG_ARCH="Arch:"
                 MSG_BOOTMODE="BootMode:"
