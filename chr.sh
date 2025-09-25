@@ -1,6 +1,5 @@
 #!/bin/bash
 set -e
-
 set_language() {
     local current_lang=${LANG:-C} 
     current_lang=${current_lang%%.*}
@@ -94,6 +93,41 @@ show_system_info() {
     echo "$MSG_DNS $DNS"
 }
 
+http_get() {
+    local url=$1
+    local dest_file=$2
+    if command -v curl >/dev/null 2>&1; then
+        if [ -z "$dest_file" ]; then
+            curl -Ls "$url"
+        else
+            curl -L -# -o "$dest_file" "$url" || { echo "$MSG_DOWNLOAD_FAILED"; exit 1; }
+        fi
+    elif command -v wget >/dev/null 2>&1; then
+        if [ -z "$dest_file" ]; then
+            wget --no-check-certificate -qO- "$url"
+        else
+            wget --no-check-certificate -O "$dest_file" "$url" || { echo "$MSG_DOWNLOAD_FAILED"; exit 1; }
+        fi
+    else
+        echo "$MSG_DOWNLOAD_ERROR"
+        exit 1
+    fi
+}
+
+extract_zip() {
+    local zip_file=$1
+    local dest_file=$2
+    if command -v unzip >/dev/null 2>&1; then
+        unzip -p "$zip_file" > "$dest_file" || { echo "$MSG_EXTRACT_ERROR"; exit 1; }
+    elif command -v gunzip >/dev/null 2>&1; then
+        gunzip -c "$zip_file" > "$dest_file" || { echo "$MSG_EXTRACT_ERROR"; exit 1; }
+    else
+        echo "$MSG_EXTRACT_ERROR"
+        exit 1
+    fi
+}
+
+
 select_version() {
     if [[ -n "$VERSION" ]]; then
         if [[ "$VERSION" == 7.* ]]; then
@@ -129,14 +163,20 @@ select_version() {
                 ;;
         esac
         case $version_choice in
-            1) VERSION=$(curl -s "https://upgrade.mikrotik.ltd/routeros/NEWESTa7.stable" | cut -d' ' -f1); V7=1 ;;
-            2) VERSION=$(curl -s "https://upgrade.mikrotik.ltd/routeros/NEWESTa7.testing" | cut -d' ' -f1); V7=1 ;;
+            1) 
+                VERSION=$(http_get "https://upgrade.mikrotik.ltd/routeros/NEWESTa7.stable" | cut -d' ' -f1)
+                V7=1
+                ;;
+            2) 
+                VERSION=$(http_get "https://upgrade.mikrotik.ltd/routeros/NEWESTa7.testing" | cut -d' ' -f1)
+                V7=1
+                ;;
             3)
                 if [[ "$ARCH" == "aarch64" ]]; then
                     echo "$MSG_ARM64_NOT_SUPPORT_V6"
                     continue
                 fi
-                VERSION=$(curl -s "https://upgrade.mikrotik.ltd/routeros/NEWEST6.long-term" | cut -d' ' -f1)
+                VERSION=$(http_get "https://upgrade.mikrotik.ltd/routeros/NEWEST6.long-term" | cut -d' ' -f1)
                 V7=0
                 ;;
             4)
@@ -144,7 +184,7 @@ select_version() {
                     echo "$MSG_ARM64_NOT_SUPPORT_V6"
                     continue
                 fi
-                VERSION=$(curl -s "https://upgrade.mikrotik.ltd/routeros/NEWEST6.stable" | cut -d' ' -f1)
+                VERSION=$(http_get "https://upgrade.mikrotik.ltd/routeros/NEWEST6.stable" | cut -d' ' -f1)
                 V7=0
                 ;;
             *)
@@ -175,27 +215,12 @@ download_image(){
             ;;
     esac
     echo "$MSG_FILE_DOWNLOAD $(basename "$IMG_URL")"
-    if command -v curl >/dev/null 2>&1; then
-        curl -L -# -o /tmp/chr.img.zip "$IMG_URL" || { echo "$MSG_DOWNLOAD_FAILED"; exit 1; }
-    elif command -v wget >/dev/null 2>&1; then
-        wget -nv -O /tmp/chr.img.zip "$IMG_URL" || { echo "$MSG_DOWNLOAD_FAILED"; exit 1; }
-    else
-        echo "$MSG_DOWNLOAD_ERROR $IMG_URL"
-        exit 1
-    fi
+    http_get "$IMG_URL" "/tmp/chr.img.zip"
     cd /tmp
-    if command -v unzip >/dev/null 2>&1; then
-        unzip -p "chr.img.zip" > chr.img
-    elif command -v gunzip >/dev/null 2>&1; then
-        gunzip -c chr.img.zip > chr.img
-    else
-        echo "$MSG_EXTRACT_ERROR"
-        exit 1
-    fi
+    extract_zip "chr.img.zip" chr.img
 }
 
 create_autorun() {
-    
     if LOOP=$(losetup -Pf --show chr.img 2>/dev/null); then
         sleep 1
         MNT=/tmp/chr
