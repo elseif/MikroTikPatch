@@ -7,11 +7,10 @@ set_language() {
         MSG_SYSTEM_INFO="系统信息:"
         MSG_ARCH="CPU架构:"
         MSG_BOOTMODE="引导模式:"
-        MSG_STORAGE_DEVICE="存储设备:"
-        MSG_ETH_DEVICE="网络设备:"
-        MSG_ADDRESS="IP地址:"
-        MSG_GATEWAY="网关:"
-        MSG_DNS="DNS服务器:"
+        MSG_STORAGE_DEVICE="输入存储设备名称:"
+        MSG_ADDRESS="输入IP地址:"
+        MSG_GATEWAY="输入网关地址:"
+        MSG_DNS="输入DNS服务器:"
         MSG_SELECT_VERSION="请选择您要安装的版本:"
         MSG_STABLE="稳定版 (v7)"
         MSG_TEST="测试版 (v7)"
@@ -36,17 +35,16 @@ set_language() {
         MSG_ERROR_MOUNT="错误: 挂载分区失败"
         MSG_ERROR_LOOP="错误: 设置 loop 设备失败"
         MSG_AUTO_RUN_FILE_CREATED="autorun.scr 文件已创建。"
-        MSG_AUTO_RUN_FILE_NOT_CREATED="autorun.scr 文件创建失败!"
-        MSG_CONFIRM_CONTINUE="您是否确定继续？ [Y/n]:"
+        MSG_AUTO_RUN_FILE_NOT_CREATED="警告：autorun.scr 文件创建失败!"
+        MSG_CONFIRM_CONTINUE="您是否确定继续? [y/n]"
     else
         MSG_SYSTEM_INFO="SYSTEM INFO:"
         MSG_ARCH="ARCH:"
         MSG_BOOTMODE="BOOT MODE:"
-        MSG_STORAGE_DEVICE="STORAGE:"
-        MSG_ETH_DEVICE="ETH:"
-        MSG_ADDRESS="ADDRESS:"
-        MSG_GATEWAY="GATEWAY:"
-        MSG_DNS="DNS:"
+        MSG_STORAGE_DEVICE="Input storage device name:"
+        MSG_ADDRESS="Input IP address:"
+        MSG_GATEWAY="Input gateway:"
+        MSG_DNS="Input domain name server:"
         MSG_SELECT_VERSION="Select the version you want to install:"
         MSG_STABLE="stable (v7)"
         MSG_TEST="testing (v7)"
@@ -71,29 +69,90 @@ set_language() {
         MSG_ERROR_MOUNT="Error: Failed to mount partition"
         MSG_ERROR_LOOP="Error: Failed to setup loop device"
         MSG_AUTO_RUN_FILE_CREATED="autorun.scr file created."
-        MSG_AUTO_RUN_FILE_NOT_CREATED="autorun.scr file create failed"
-        MSG_CONFIRM_CONTINUE="Do you want to continue? [Y/n]:"
+        MSG_AUTO_RUN_FILE_NOT_CREATED="Warn: autorun.scr file create failed"
+        MSG_CONFIRM_CONTINUE="Do you want to continue? [y/n]"
     fi
 }
+
+
+
+_ask() {
+	local _redo=0
+
+	read resp
+	case "$resp" in
+	!)	echo "Type 'exit' to return to setup."
+		sh
+		_redo=1
+		;;
+	!*)	eval "${resp#?}"
+		_redo=1
+		;;
+	esac
+	return $_redo
+}
+ask() {
+	local _question="$1" _default="$2"
+	while :; do
+		printf %s "$_question "
+		[ -z "$_default" ] || printf "[%s] " "$_default"
+		_ask && : ${resp:=$_default} && break
+	done
+}
+ask_until() {
+	resp=
+	while [ -z "$resp" ] ; do
+		ask "$1" "$2"
+	done
+}
+yesno() {
+	case $1 in
+	[Yy]) return 0;;
+	esac
+	return 1
+}
+ask_yesno() {
+	while true; do
+		ask "$1" "$2"
+		case "$resp" in
+			Y|y|N|n) break;;
+		esac
+	done
+	yesno "$resp"
+}
+
 
 show_system_info() {
     ARCH=$(uname -m)
     BOOT_MODE=$( [ -d "/sys/firmware/efi" ] && echo "UEFI" || echo "BIOS" )
-    STORAGE=$(lsblk -d -n -o NAME,TYPE | awk '$2=="disk"{print $1; exit}')
-    [ -z "$STORAGE" ] && STORAGE=$(fdisk -l | awk '/^Disk \/dev/ {print $2; exit}' | sed 's#:##' | sed 's#/dev/##')
-    ETH=$(ip route show default | grep '^default' | sed -n 's/.* dev \([^\ ]*\) .*/\1/p')
-    ADDRESS=$(ip addr show $ETH | grep global | cut -d' ' -f 6 | head -n 1)
-    GATEWAY=$(ip route list | grep default | cut -d' ' -f 3)
-    DNS=$(grep '^nameserver' /etc/resolv.conf | awk '{print $2}' | head -n 1)
-    [ -z "$DNS" ] && DNS="8.8.8.8"
     echo "$MSG_SYSTEM_INFO"
     echo "$MSG_ARCH $ARCH"
     echo "$MSG_BOOTMODE $BOOT_MODE"
-    echo "$MSG_STORAGE_DEVICE $STORAGE"
-    echo "$MSG_ETH_DEVICE $ETH"
-    echo "$MSG_ADDRESS $ADDRESS"
-    echo "$MSG_GATEWAY $GATEWAY"
-    echo "$MSG_DNS $DNS"
+}
+
+confirm_storge() {
+    if command -v curl >/dev/null 2>&1; then
+        STORAGE=$(lsblk -d -n -o NAME,TYPE | awk '$2=="disk"{print $1; exit}')
+    else
+        STORAGE=$(fdisk -l | awk '/^Disk \/dev/ {print $2; exit}' | sed 's#:##' | sed 's#/dev/##')
+    fi
+    ask_until "$MSG_STORAGE_DEVICE" "$STORAGE"
+    STORAGE=$resp
+}
+confirm_address() {
+    ETH=$(ip route show default | grep '^default' | sed -n 's/.* dev \([^\ ]*\) .*/\1/p')
+    ADDRESS=$(ip addr show $ETH | grep global | cut -d' ' -f 6 | head -n 1)
+    GATEWAY=$(ip route list | grep default | cut -d' ' -f 3)
+    if [ -f "/etc/resolv.conf" ]; then
+        DNS=$(grep '^nameserver' /etc/resolv.conf | awk '{print $2}' | head -n 1)
+    fi
+    [ -z "$DNS" ] && DNS="8.8.8.8"
+    ask_until "$MSG_ADDRESS" "$ADDRESS"
+    ADDRESS=$resp
+    ask_until "$MSG_GATEWAY" "$GATEWAY"
+    GATEWAY=$resp
+    ask_until "$MSG_DNS" "$DNS"
+    DNS=$resp
 }
 
 http_get() {
@@ -224,28 +283,17 @@ download_image(){
 }
 
 create_autorun() {
+    confirm_storge
     if LOOP=$(losetup -Pf --show chr.img 2>/dev/null); then
         sleep 1
         MNT=/tmp/chr
         mkdir -p $MNT
         PARTITION=$([ "$V7" == 1 ] && echo "p2" || echo "p1")
         if mount "${LOOP}${PARTITION}" "$MNT" 2>/dev/null; then
+            confirm_address
             RANDOM_ADMIN_PASS=$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 16)
-            echo -e "$MSG_ADMIN_PASSWORD \e[31m$RANDOM_ADMIN_PASS\e[0m"
-            read -p "$MSG_MANUAL_PASS_CHOICE" input_pass_choice < /dev/tty
-            input_pass_choice=${input_pass_choice:-N}
-            if [[ "$input_pass_choice" =~ ^[Yy]$ ]]; then
-                while true; do
-                    read -p "$MSG_ENTER_NEW_PASS" user_pass
-                    if [[ -n "$user_pass" ]]; then
-                        RANDOM_ADMIN_PASS="$user_pass"
-                        echo -e "$MSG_ADMIN_PASSWORD \e[31m$RANDOM_ADMIN_PASS\e[0m"
-                        break
-                    else
-                        echo "$MSG_PASS_EMPTY"
-                    fi
-                done
-            fi
+            ask_until "$MSG_ADMIN_PASSWORD" "$RANDOM_ADMIN_PASS"
+            RANDOM_ADMIN_PASS=$resp
             cat <<EOF > "$MNT/rw/autorun.scr"
 /user set admin password="$RANDOM_ADMIN_PASS"
 /ip dns set servers=$DNS
@@ -269,9 +317,8 @@ EOF
 
 write_and_reboot() {
     printf "$MSG_WARNING\n" "$STORAGE"
-    read -p "$MSG_CONFIRM_CONTINUE" confirm < /dev/tty
-    confirm=${confirm:-Y}
-    if [[ "$confirm" =~ ^[Nn]$ ]]; then
+    ask_yesno "$MSG_CONFIRM_CONTINUE"
+    if [ $? -ne 0 ]; then
         echo "$MSG_OPERATION_ABORTED"
         exit 1
     fi
