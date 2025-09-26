@@ -611,6 +611,10 @@
             // GitHub proxy functionality
             const ghProxyCheckbox = document.getElementById("gh-proxy");
             const clearCacheBtn = document.getElementById("clear-cache");
+            if (localStorage.getItem("gh-proxy-enabled") === null && navigator.language.startsWith("zh")) {
+                // Enable GitHub proxy by default for Chinese users
+                localStorage.setItem("gh-proxy-enabled", "true");
+            }
             ghProxyCheckbox.checked = localStorage.getItem("gh-proxy-enabled") === "true";
             clearCacheBtn.style.display = ghProxyCheckbox.checked ? "inline-flex" : "none";
             
