@@ -139,7 +139,7 @@ show_system_info() {
 }
 
 confirm_storge() {
-    if command -v curl >/dev/null 2>&1; then
+    if command -v lsblk >/dev/null 2>&1; then
         STORAGE=$(lsblk -d -n -o NAME,TYPE | awk '$2=="disk"{print $1; exit}')
     else
         STORAGE=$(fdisk -l | awk '/^Disk \/dev/ {print $2; exit}' | sed 's#:##' | sed 's#/dev/##')
