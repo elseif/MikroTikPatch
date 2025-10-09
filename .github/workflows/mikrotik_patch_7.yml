@@ -680,9 +680,9 @@ jobs:
         sudo unzip netinstall.zip
         sudo -E python3 patch.py netinstall netinstall.exe
         sudo zip netinstall-$LATEST_VERSION.zip ./netinstall.exe
-        sudo tar -xvf netinstall.tar.gz
-        sudo -E python3 patch.py netinstall netinstall-cli
-        sudo tar -czvf netinstall-$LATEST_VERSION.tar.gz ./netinstall-cli
+        # sudo tar -xvf netinstall.tar.gz
+        # sudo -E python3 patch.py netinstall netinstall-cli
+        # sudo tar -czvf netinstall-$LATEST_VERSION.tar.gz ./netinstall-cli
 
     - name: Prepare for Upload
       if: steps.get_latest.outputs.has_new_version == 'true' && env.RELEASE == 'true'
