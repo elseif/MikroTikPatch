@@ -2,7 +2,7 @@
 [![Patch Mikrotik RouterOS 7.x](https://github.com/elseif/MikroTikPatch/actions/workflows/mikrotik_patch_7.yml/badge.svg)](https://github.com/elseif/MikroTikPatch/actions/workflows/mikrotik_patch_7.yml)
 
 ### 感谢赞助
-[DartNode(aff)](https://dartnode.com?aff=SnazzyLobster067) | [DigitalOcean](https://www.digitalocean.com/) | [ZMTO(aff)](https://console.zmto.com/?affid=1588) | [Vultr(aff)](https://www.vultr.com/?ref=9807160-9J)
+[DartNode(aff)](https://dartnode.com?aff=SnazzyLobster067) | [DigitalOcean(aff)](https://www.digitalocean.com/?refcode=dbf6ed365068) | [ZMTO(aff)](https://console.zmto.com/?affid=1588) | [Vultr(aff)](https://www.vultr.com/?ref=9807160-9J)
 
 ### 感谢捐赠
 ETH/BSC/MATIC(USDT)：0x7d5ade1bb74f170411ba4a9a6e8752d7b431b455
