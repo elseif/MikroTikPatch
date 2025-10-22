@@ -468,10 +468,10 @@
             // Fetch latest version numbers from MikroTik servers
             const loadingOverlay = document.getElementById("loading");
             const [routeros7_stable, routeros7_testing, routeros6_longterm, routeros6_stable] = await Promise.all([
-                fetch_latest_versions("https://upgrade.mikrotik.ltd/routeros/NEWESTa7.stable", "7.19.4"),
-                fetch_latest_versions("https://upgrade.mikrotik.ltd/routeros/NEWESTa7.testing", "7.20rc1"),
-                fetch_latest_versions("https://upgrade.mikrotik.ltd/routeros/NEWEST6.long-term", "6.49.18"),
-                fetch_latest_versions("https://upgrade.mikrotik.ltd/routeros/NEWEST6.stable", "6.49.19"),
+                fetch_latest_versions(`https://upgrade.mikrotik.ltd/routeros/NEWESTa7.stable?ts=${Date.now()}`, "7.19.4"),
+                fetch_latest_versions(`https://upgrade.mikrotik.ltd/routeros/NEWESTa7.testing?ts=${Date.now()}`, "7.20rc1"),
+                fetch_latest_versions(`https://upgrade.mikrotik.ltd/routeros/NEWEST6.long-term?ts=${Date.now()}`, "6.49.18"),
+                fetch_latest_versions(`https://upgrade.mikrotik.ltd/routeros/NEWEST6.stable?ts=${Date.now()}`, "6.49.19"),
             ]);
             // Hide loading overlay and remove loading class
             loadingOverlay.style.display = "none";
