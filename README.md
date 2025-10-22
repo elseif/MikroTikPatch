@@ -6,17 +6,6 @@
 
 [DartNode(aff)](https://dartnode.com?aff=SnazzyLobster067)  | [ZMTO(aff)](https://console.zmto.com/?affid=1588) | [Vultr(aff)](https://www.vultr.com/?ref=9807160-9J)
 
-
-
-### 感谢捐赠
-ETH/BSC/MATIC(USDT)：0x7d5ade1bb74f170411ba4a9a6e8752d7b431b455
-
-TRX(USDT): TJ1Spmytu9CFhDg4QSo3cmWSrBKjNXuUYP
-
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/O4O31LX7D0)
-
-捐赠后请将交易号或链接通过tg或email发给我记录。
-
 # MikroTik RouterOS Patch  [[English](README_EN.md)]
 [![License: WTFPL](https://img.shields.io/badge/License-WTFPL-brightgreen.svg)](./LICENSE)
 [![CoC:WTFCoC](https://img.shields.io/badge/CoC-WTFCoC-brightgreen.svg)](./CODE_OF_CONDUCT.md)
