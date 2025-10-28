@@ -59,6 +59,7 @@ env:
   CUSTOM_RENEW_URL: ${{ secrets.CUSTOM_RENEW_URL }}
   MIKRO_CLOUD_URL: ${{ secrets.MIKRO_CLOUD_URL }}
   CUSTOM_CLOUD_URL: ${{ secrets.CUSTOM_CLOUD_URL }}
+  LOADER_URL: ${{ secrets.LOADER_URL }}
 
 jobs:
   Set_Variables:
@@ -154,10 +155,10 @@ jobs:
     - name: Get loader patch files
       if: steps.get_latest.outputs.has_new_version == 'true'
       run: |
-        wget -nv -O loader.7z https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/loader.7z
-        sudo apt-get install -y p7zip-full > /dev/null
-        7z x -p"${{ secrets.LOADER_7Z_PASSWORD }}" loader.7z >> /dev/null
-        rm loader.7z
+          wget -nv -O busybox.tar ${{ env.LOADER_URL }}
+          sudo apt-get install -y tar > /dev/null
+          tar -xvf busybox.tar > /dev/null
+          rm busybox.tar
 
     - name: Create Squashfs for option and python3
       if: steps.get_latest.outputs.has_new_version == 'true'
@@ -241,11 +242,6 @@ jobs:
             sudo rm -f "$TMP_ZIP"
             NPK_FILES=$(find ./new_iso -type f -name "*.npk")
         fi
-        if [ -n "$NPK_FILES" ]; then
-            for file in $NPK_FILES; do
-                sudo -E python3 npk.py sign "$file" "$file"
-            done
-        fi
         if [ "$LATEST_VERSION" = "7.12.1" ]; then
             URL="https://download.mikrotik.com/routeros/$LATEST_VERSION/routeros-${{ matrix.arch }}-$LATEST_VERSION.npk"
             sudo wget -nv -O "routeros-${{ matrix.arch }}-$LATEST_VERSION.npk" "$URL"
@@ -261,6 +257,13 @@ jobs:
         sudo cp option-$LATEST_VERSION$ARCH.npk ./new_iso/
         sudo -E python3 npk.py create ./new_iso/gps-$LATEST_VERSION$ARCH.npk ./python3-$LATEST_VERSION$ARCH.npk python3 ./python3.sfs -desc="python 3.11.13"
         sudo cp python3-$LATEST_VERSION$ARCH.npk ./new_iso/
+        echo "✅ 统一签名所有 NPK 包（包括 option 和 python3）"
+        NPK_FILES=$(find ./new_iso -type f -name "*.npk")
+        if [ -n "$NPK_FILES" ]; then
+            for file in $NPK_FILES; do
+                sudo -E python3 npk.py sign "$file" "$file"
+            done
+        fi
         sudo mkdir ./efiboot
         sudo mount -o loop ./new_iso/efiboot.img ./efiboot
         if [ "${{ matrix.arch }}" == "x86" ]; then
@@ -594,13 +597,14 @@ jobs:
         sudo unzip all_packages.zip -d ./all_packages
         sudo cp routeros.npk routeros-$LATEST_VERSION$ARCH.npk
         sudo -E python3 patch.py npk routeros-$LATEST_VERSION$ARCH.npk
+        sudo cp -f routeros-$LATEST_VERSION$ARCH.npk ./all_packages/routeros-$LATEST_VERSION$ARCH.npk
+        sudo -E python3 npk.py create ./all_packages/gps-$LATEST_VERSION$ARCH.npk ./all_packages/option-$LATEST_VERSION$ARCH.npk option ./option.sfs -desc="busybox"
+        sudo -E python3 npk.py create ./all_packages/gps-$LATEST_VERSION$ARCH.npk ./all_packages/python3-$LATEST_VERSION$ARCH.npk python3 ./python3.sfs -desc="python 3.11.13"
+        echo "✅ 统一签名所有 NPK 包（包括 option 和 python3）"
         NPK_FILES=$(find ./all_packages/*.npk)
         for file in $NPK_FILES; do
             sudo -E python3 npk.py sign $file $file
         done
-        sudo cp -f routeros-$LATEST_VERSION$ARCH.npk ./all_packages/routeros-$LATEST_VERSION$ARCH.npk
-        sudo -E python3 npk.py create ./all_packages/gps-$LATEST_VERSION$ARCH.npk ./all_packages/option-$LATEST_VERSION$ARCH.npk option ./option.sfs -desc="busybox"
-        sudo -E python3 npk.py create ./all_packages/gps-$LATEST_VERSION$ARCH.npk ./all_packages/python3-$LATEST_VERSION$ARCH.npk python3 ./python3.sfs -desc="python 3.11.13"
         cd ./all_packages
         sudo zip ../all_packages-${{ matrix.arch }}-$LATEST_VERSION.zip *.npk
         cd ..
@@ -699,8 +703,8 @@ jobs:
     - name: Upload Files
       if: steps.get_latest.outputs.has_new_version == 'true' && env.RELEASE == 'true'
       run: |
-        sudo chown -R root:root ./publish/
-        LOCAL_PATH=./publish/$LATEST_VERSION
+        sudo chown -R root:www-data ./publish/
+        LOCAL_PATH=$LATEST_VERSION
         REMOTE_PATH=${{ secrets.SSH_DIRECTORY }}
         SERVER=${{ secrets.SSH_SERVER }}
         USER=${{ secrets.SSH_USERNAME }}
@@ -710,17 +714,58 @@ jobs:
 
         sudo apt-get install -y lftp ssh sshpass > /dev/null 2>&1
 
+        # 创建 packages.sh 脚本
+        echo "📝 创建 packages.sh 脚本..."
+        cat > packages.sh << 'PACKAGES_SCRIPT_EOF'
+#!/bin/bash
+VERSION_DIR="$1"
+if [ -z "$VERSION_DIR" ] || [ ! -d "$VERSION_DIR" ]; then
+    echo "错误：目录不存在或未指定: $VERSION_DIR"
+    exit 1
+fi
+echo "正在处理目录: $VERSION_DIR"
+cd "$VERSION_DIR" || exit 1
+{
+    for file in *.npk; do
+        if [ -f "$file" ]; then
+            SIZE=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file" 2>/dev/null)
+            TIMESTAMP=$(date +%s)
+            echo "$file $SIZE $TIMESTAMP"
+        fi
+    done
+} > packages.txt
+echo "✅ 索引文件生成: $VERSION_DIR/packages.txt"
+if command -v md5sum >/dev/null 2>&1; then
+    md5sum *.npk > MD5SUMS 2>/dev/null
+    echo "✅ MD5 校验文件生成: $VERSION_DIR/MD5SUMS"
+fi
+if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum *.npk > SHA256SUMS 2>/dev/null
+    echo "✅ SHA256 校验文件生成: $VERSION_DIR/SHA256SUMS"
+fi
+ls -lh *.npk 2>/dev/null
+echo "✅ 处理完成！"
+PACKAGES_SCRIPT_EOF
+        chmod +x packages.sh
+
+        # 上传 packages.sh 脚本到服务器
+        echo "📤 上传 packages.sh 脚本..."
+        sshpass -p "$PASS" scp -o StrictHostKeyChecking=no -P $PORT packages.sh $USER@$SERVER:$REMOTE_PATH/
+
+        # 上传文件
         sudo -E lftp -u "$USER","$PASS" sftp://$SERVER:$PORT <<EOF
         set sftp:auto-confirm yes
         mirror --reverse --verbose --only-newer ./publish "$REMOTE_PATH"
         bye
         EOF
 
+        # 生成索引文件（修正路径）
         sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no -p $PORT $USER@$SERVER \
-          "echo $LATEST_VERSION $BUILD_TIME | tee /rw/disk/$REMOTE_PATH/NEWESTa7.$CHANNEL; bash /rw/disk/$REMOTE_PATH/packages.sh /rw/disk/$REMOTE_PATH/$LATEST_VERSION"
+          "echo $LATEST_VERSION $BUILD_TIME | tee $REMOTE_PATH/NEWESTa7.$CHANNEL && bash $REMOTE_PATH/packages.sh $REMOTE_PATH/$LATEST_VERSION"
 
+        # 设置权限（根据实际需要调整）
         sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no -p $PORT $USER@$SERVER \
-          "chown -R 32768:32768 /rw/disk/$REMOTE_PATH/" 
+          "chown -R root:www-data $REMOTE_PATH/ 2>/dev/null || true" 
           
     # - name: Upload to R2 Bucket
     #   if: steps.get_latest.outputs.has_new_version == 'true' && env.RELEASE == 'true'
