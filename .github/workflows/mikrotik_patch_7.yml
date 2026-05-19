@@ -235,7 +235,7 @@ jobs:
     - name: Patch mikrotik-${{ env.LATEST_VERSION }}${{ env.ARCH }}.iso
       if: steps.get_latest.outputs.has_new_version == 'true' && (matrix.arch == 'x86' || matrix.arch == 'arm64')
       run: |
-        sudo apt-get install -y mkisofs xorriso > /dev/null
+        sudo apt-get install -y build-essential binutils-arm-linux-gnueabi mkisofs xorriso > /dev/null
         sudo mkdir ./iso 
         sudo mount -o loop,ro mikrotik.iso ./iso
         sudo mkdir ./new_iso
