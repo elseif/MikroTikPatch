@@ -792,7 +792,7 @@ jobs:
           
     - name: Upload Files as Artifact (No Release)
       if: steps.get_latest.outputs.has_new_version == 'true' && env.RELEASE == 'false'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: mikrotik-${{ env.LATEST_VERSION }}${{ env.ARCH }}
         path: |
