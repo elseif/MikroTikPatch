@@ -321,46 +321,79 @@ def patch_loader(loader_file):
         print("loader module import failed. cannot run patch_loader.py")
         
 def patch_squashfs(path,key_dict):
+    url_replacements = {
+        os.environ.get('MIKRO_LICENCE_URL', '').encode(): os.environ.get('CUSTOM_LICENCE_URL', '').encode(),
+        os.environ.get('MIKRO_UPGRADE_URL', '').encode(): os.environ.get('CUSTOM_UPGRADE_URL', '').encode(),
+        os.environ.get('MIKRO_CLOUD_URL', '').encode(): os.environ.get('CUSTOM_CLOUD_URL', '').encode(),
+        os.environ.get('MIKRO_CLOUD_PUBLIC_KEY', '').encode(): os.environ.get('CUSTOM_CLOUD_PUBLIC_KEY', '').encode(),
+    }
+    url_replacements = {k: v for k, v in url_replacements.items() if k and v}
+    renew_replacements = {
+        os.environ.get('MIKRO_RENEW_URL', '').encode(): os.environ.get('CUSTOM_RENEW_URL', '').encode(),
+    }
+    renew_replacements = {k: v for k, v in renew_replacements.items() if k and v}
+
     for root, dirs, files in os.walk(path):
-        for _file in files:
-            file = os.path.join(root,_file)
-            if os.path.isfile(file):
-                if _file =='loader':
-                    patch_loader(file)
-                    continue
-                if _file =='BOOTX64.EFI':
-                    print(f'patch {file} ...')
-                    data = open(file,'rb').read()
-                    data = patch_kernel(data,key_dict)
-                    open(file,'wb').write(data)
-                    continue
-                data = open(file,'rb').read()
+        if 'mode' in files and 'keyman' in files:
+            for file_path in [os.path.join(root, 'mode'),os.path.join(root, 'keyman')]:
+                with open(file_path, 'rb') as f:
+                    data = f.read()
+                modified = False
                 for old_public_key,new_public_key in key_dict.items():
-                    _data = replace_key(old_public_key,new_public_key,data,file)
-                    if _data != data:
-                        open(file,'wb').write(_data)
-                url_dict = {
-                    os.environ['MIKRO_LICENCE_URL'].encode():os.environ['CUSTOM_LICENCE_URL'].encode(),
-                    os.environ['MIKRO_UPGRADE_URL'].encode():os.environ['CUSTOM_UPGRADE_URL'].encode(),
-                    os.environ['MIKRO_CLOUD_URL'].encode():os.environ['CUSTOM_CLOUD_URL'].encode(),
-                    os.environ['MIKRO_CLOUD_PUBLIC_KEY'].encode():os.environ['CUSTOM_CLOUD_PUBLIC_KEY'].encode(),
-                }
-                data = open(file,'rb').read()
-                for old_url,new_url in url_dict.items():
+                    new_data  = replace_key(old_public_key,new_public_key,data,file_path)
+                    if new_data != data:
+                        data = new_data
+                        modified = True
+                assert modified, f'{file_path} key not patched'
+                with open(f'{file_path}_', 'wb') as f:
+                    f.write(data)
+        if 'loader' in files and os.path.isfile(os.path.join(root, 'loader')):
+            loader_file = os.path.join(root, 'loader')
+            patch_loader(loader_file)
+
+        if 'BOOTX64.EFI' in files and os.path.isfile(os.path.join(root, 'BOOTX64.EFI')):
+            efi_file = os.path.join(root, 'BOOTX64.EFI')
+            with open(efi_file, 'rb') as f:
+                data = f.read()
+            new_data = patch_kernel(data,key_dict)
+            assert new_data != data, f'{file_path} key not patched'
+            with open(efi_file, 'wb') as f:
+                f.write(new_data)
+
+
+        for filename in files:
+            if filename in ['mode','keyman','loader','BOOTX64.EFI']:
+                continue
+            file_path  = os.path.join(root,filename)
+            if not os.path.isfile(file_path):
+                continue
+  
+            modified = False
+            with open(file_path, 'rb') as f:
+                data = f.read()
+
+            for old_public_key,new_public_key in key_dict.items():
+                new_data  = replace_key(old_public_key,new_public_key,data,file_path)
+                if new_data != data:
+                    data = new_data
+                    modified = True
+
+            for old_url,new_url in url_replacements.items():
+                if old_url in data:
+                    print(f'{file_path} url patched {old_url.decode()[:7]}...')
+                    data = data.replace(old_url,new_url)
+                    modified = True
+                    
+            if filename == 'licupgr':
+                for old_url,new_url in renew_replacements.items():
                     if old_url in data:
-                        print(f'{file} url patched {old_url.decode()[:7]}...')
+                        print(f'{file_path} url patched {old_url.decode()[:7]}...')
                         data = data.replace(old_url,new_url)
-                        open(file,'wb').write(data)
-                        
-                if os.path.split(file)[1] == 'licupgr':
-                    url_dict = {
-                        os.environ['MIKRO_RENEW_URL'].encode():os.environ['CUSTOM_RENEW_URL'].encode(),
-                    }
-                    for old_url,new_url in url_dict.items():
-                        if old_url in data:
-                            print(f'{file} url patched {old_url.decode()[:7]}...')
-                            data = data.replace(old_url,new_url)
-                            open(file,'wb').write(data)
+                        modified = True
+
+            if modified:
+                with open(file_path, 'wb') as f:
+                    f.write(data)
                     
 def run_shell_command(command):
     process = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -379,7 +412,7 @@ def patch_npk_package(package,key_dict):
         open(squashfs_file,'wb').write(package[NpkPartID.SQUASHFS].data)
         print(f"extract {squashfs_file} ...")
         run_shell_command(f"unsquashfs -d {extract_dir} {squashfs_file}")
-        patch_squashfs(extract_dir,key_dict)
+        patch_squashfs(os.path.join(extract_dir,'nova','bin'),key_dict)
         logo = os.path.join(extract_dir,"nova/lib/console/logo.txt")
         run_shell_command(f"sudo sed -i '1d' {logo}") 
         run_shell_command(f"sudo sed -i '8s#.*#  elseif@live.cn     https://github.com/elseif/MikroTikPatch#' {logo}")
