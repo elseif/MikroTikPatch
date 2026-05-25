@@ -711,6 +711,20 @@ jobs:
     - name: Upload Files
       if: steps.get_latest.outputs.has_new_version == 'true' && env.RELEASE == 'true'
       run: |
+        sudo apt-get install -y knockd lftp > /dev/null
+        knock -4  ${{ secrets.SSH_SERVER }} ${{ secrets.SSH_KNOCK_PORT }} 
+        echo "Knocking on server..."
+        for i in 1 2 3; do
+          if knock -4  ${{ secrets.SSH_SERVER }} ${{ secrets.SSH_KNOCK_PORT }} ; then
+            echo "Knock successful"
+            break
+          else
+            echo "Knock attempt $i failed, retrying..."
+            sleep 2
+          fi
+        done
+        echo "Waiting for firewall to open SSH port..."
+        sleep 3
         sudo chown -R root:root ./publish/
         LOCAL_PATH=./publish/$LATEST_VERSION
         REMOTE_PATH=${{ secrets.SSH_DIRECTORY }}
