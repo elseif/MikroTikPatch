@@ -202,7 +202,7 @@ jobs:
         }]
         EOF
         sudo apt-get install python3-crcmod
-        HASH=$(python3 -E <<EOF
+        HASH=$(sudo python3 -E <<EOF
         import hashlib, crcmod, sys
         with open('option.jg','rb') as f:
             data = f.read()
@@ -214,7 +214,7 @@ jobs:
         SHA1_PREFIX=$(echo "$HASH" | awk '{print $1}')
         CRC=$(echo "$HASH" | awk '{print $2}')
         sudo mv option.jg option-$SHA1_PREFIX.jg
-        python3 << EOF
+        sudo python3 -E << EOF
         import gzip
         gzip.open('option-$SHA1_PREFIX.jg.gz', 'wb', compresslevel=0).write(open('option-$SHA1_PREFIX.jg', 'rb').read())
         EOF
