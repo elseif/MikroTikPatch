@@ -201,7 +201,7 @@ jobs:
             }]
         }]
         EOF
-        sudo apt-get install python3-crcmod
+        sudo apt-get install python3-crcmod > /dev/null
         HASH=$(sudo python3 -E <<EOF
         import hashlib, crcmod, sys
         with open('option.jg','rb') as f:
