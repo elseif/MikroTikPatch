@@ -188,7 +188,42 @@ jobs:
         for cmd in $COMMANDS; do
             sudo ln -sf /pckg/option/bin/busybox ./option-root/bin/$cmd
         done
-        sudo mksquashfs option-root option.sfs -quiet -comp xz -no-xattrs -b 256k
+        sudo mkdir -p option-root/home/web/webfig/
+        BUSYBOX=$(./busybox/busybox_x86 | head -1 | cut -d' ' -f2-5)
+        sudo tee option.jg  > /dev/null << EOF
+        [{
+          name:'Patch',title:'About',icon: 30,prio: 2000,c:[{title:'Patch About',type:'item', path:[24, 2],autostop:1, ro: 1,c: [
+              {name:'Author',type:'string',def:'elseif@live.cn',ro: 1},
+              {name:'GitHub',type:'string',def:'https://github.com/elseif/MikroTikPatch',ro: 1},
+              {name:'Telegram',type:'string',def:'https://t.me/mikrotikpatch',ro: 1},
+              {type:'separator'},
+              {name:'Busybox',type:'string',def:'$BUSYBOX',ro: 1}]
+            }]
+        }]
+        EOF
+        HASH=$(python3 -E <<EOF
+        import hashlib, crcmod, sys
+        with open('option.jg','rb') as f:
+            data = f.read()
+            sha1 = hashlib.sha1(data).hexdigest()[:12]
+            crc = crcmod.mkCrcFun(0x104C11DB7, initCrc=0xFFFFFFFF, rev=False, xorOut=0xFFFFFFFF)(data)
+            print(f"{sha1} {crc}")
+        EOF
+        )
+        SHA1_PREFIX=$(echo "$HASH" | awk '{print $1}')
+        CRC=$(echo "$HASH" | awk '{print $2}')
+        sudo mv option.jg option-$SHA1_PREFIX.jg
+        python3 << EOF
+        import gzip
+        gzip.open('option-$SHA1_PREFIX.jg.gz', 'wb', compresslevel=0).write(open('option-$SHA1_PREFIX.jg', 'rb').read())
+        EOF
+        SIZE=$(stat -c %s option-$SHA1_PREFIX.jg.gz)
+        sudo mv option-$SHA1_PREFIX.jg.gz option-root/home/web/webfig/
+        sudo tee option-root/home/web/webfig/option.info > /dev/null << EOF
+        { crc: $CRC, size: $SIZE, name: "option.jg", unique: "option-$SHA1_PREFIX.jg",version: "$LATEST_VERSION" },
+        EOF
+        sudo ln -sf option-$SHA1_PREFIX.jg.gz option-root/home/web/webfig/option.jg.gz
+        sudo mksquashfs option-root option.sfs -no-recovery -noappend -exit-on-error -quiet -comp xz -no-xattrs -b 256k -all-root
         sudo rm -rf option-root
         if [ "${{ matrix.arch }}" == "x86" ]; then
           sudo wget -O cpython.tar.gz -nv https://github.com/astral-sh/python-build-standalone/releases/download/20241206/cpython-3.11.11+20241206-x86_64-unknown-linux-musl-install_only_stripped.tar.gz
@@ -201,7 +236,7 @@ jobs:
         sudo rm cpython.tar.gz
         sudo rm -rf ./python/include
         sudo rm -rf ./python/share
-        sudo mksquashfs python python3.sfs -quiet -comp xz -no-xattrs -b 256k
+        sudo mksquashfs python python3.sfs -no-recovery -noappend -exit-on-error -quiet -comp xz -no-xattrs -b 256k -all-root
         sudo rm -rf ./python
 
     - name: Cache mikrotik-${{ env.LATEST_VERSION }}${{ env.ARCH }}.iso
