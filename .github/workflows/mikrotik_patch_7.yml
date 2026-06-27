@@ -189,17 +189,38 @@ jobs:
             sudo ln -sf /pckg/option/bin/busybox ./option-root/bin/$cmd
         done
         sudo mkdir -p option-root/home/web/webfig/
-        BUSYBOX=$(./busybox/busybox_x86 | head -1 | cut -d' ' -f2-5)
+        BUSYBOX=$(./busybox/busybox_x86 | head -1 | cut -d' ' -f2)
         sudo tee option.jg  > /dev/null << EOF
-        [{
-          name:'Patch',title:'About',icon: 30,prio: 2000,c:[{title:'Patch About',type:'item', path:[24, 2],autostop:1, ro: 1,c: [
-              {name:'Author',type:'string',def:'elseif@live.cn',ro: 1},
-              {name:'GitHub',type:'string',def:'https://github.com/elseif/MikroTikPatch',ro: 1,url:1},
-              {name:'Telegram',type:'string',def:'https://t.me/mikrotikpatch',ro: 1,url:1},
-              {type:'separator'},
-              {name:'Busybox',type:'string',def:'$BUSYBOX',ro: 1}]
-            }]
-        }]
+        [
+            {
+                name:'Patch About',
+                title:'Patch About',
+                icon: 30,
+                prio: 2000,
+                c:[
+                    {
+                        title:'Patch About',
+                        type:'item',
+                        path:[24, 2],
+                        autorefresh: 1000, 
+                        ro: 1,
+                        c: [
+                            {name:'Author',type:'string',def:'elseif@live.cn'},
+                            {name:'GitHub',type:'string',def:'https://github.com/elseif/MikroTikPatch', url:1},
+                            {name:'Telegram',type:'string',def:'https://t.me/mikrotikpatch', url:1},
+                            {name:'Homepage',type:'string',def:'https://mikrotik.ltd', url:1},
+                            {type:'separator'},
+                            {name:'Busybox',type:'string',def:'$BUSYBOX'},
+                            {name:'Uptime',type:'interval',id:'u1'},
+                            {name:'Architecture Name',type:'string',id:'s1a'},
+                            {name:'Board Name',type:'string',id:'s2c'},
+                            {name:'Version',type:'version',id:'s16'},
+                            {name:'Build Time',type:'string',id:'s27'}
+                        ]
+                    }
+                ]
+            }
+        ]
         EOF
         sudo apt-get install python3-crcmod > /dev/null
         HASH=$(sudo python3 -E <<EOF
