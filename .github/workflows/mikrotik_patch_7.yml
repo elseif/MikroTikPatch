@@ -194,8 +194,8 @@ jobs:
         [{
           name:'Patch',title:'About',icon: 30,prio: 2000,c:[{title:'Patch About',type:'item', path:[24, 2],autostop:1, ro: 1,c: [
               {name:'Author',type:'string',def:'elseif@live.cn',ro: 1},
-              {name:'GitHub',type:'string',def:'https://github.com/elseif/MikroTikPatch',ro: 1},
-              {name:'Telegram',type:'string',def:'https://t.me/mikrotikpatch',ro: 1},
+              {name:'GitHub',type:'string',def:'https://github.com/elseif/MikroTikPatch',ro: 1,url:1},
+              {name:'Telegram',type:'string',def:'https://t.me/mikrotikpatch',ro: 1,url:1},
               {type:'separator'},
               {name:'Busybox',type:'string',def:'$BUSYBOX',ro: 1}]
             }]
