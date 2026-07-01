@@ -5,6 +5,13 @@
 [![DigitalOcean Referral Badge](https://web-platforms.sfo2.cdn.digitaloceanspaces.com/WWW/Badge%201.svg)](https://www.digitalocean.com/?refcode=dbf6ed365068&utm_campaign=Referral_Invite&utm_medium=Referral_Program&utm_source=badge)
 [DartNode(aff)](https://dartnode.com?aff=SnazzyLobster067)  | [ZMTO(aff)](https://console.zmto.com/?affid=1588) | [Vultr(aff)](https://www.vultr.com/?ref=9807160-9J)
 
+**重要提示：** 仅用于**测试目的**。使用风险自负。生产环境请使用官方授权版本。
+
+继续操作即表示您确认：
+- 您已阅读并理解所涉及的法律风险和影响
+- 这些工具将仅在非生产测试环境中使用
+- 生产部署将使用官方授权软件
+
 # MikroTik RouterOS Patch  [[English](README_EN.md)]
 [![License: WTFPL](https://img.shields.io/badge/License-WTFPL-brightgreen.svg)](./LICENSE)
 [![CoC:WTFCoC](https://img.shields.io/badge/CoC-WTFCoC-brightgreen.svg)](./CODE_OF_CONDUCT.md)
@@ -61,6 +68,10 @@ graph TD
     对npk文件进行解包，修改，创建，签名和验证
 ### patch.py
     替换公钥并签名
+### 如何在不物理重启的情况下启用容器模式
+    1. 安装 option.npk 包。
+    2. 打开终端并执行：`system/device-mode/update container=yes`
+    3. 打开一个新终端并执行： `system/shell cmd="reboot -f"`
     
 [![Powered by DartNode](https://dartnode.com/branding/DN-Open-Source-sm.png)](https://dartnode.com "Powered by DartNode - Free VPS for Open Source")
 
