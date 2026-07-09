@@ -288,7 +288,8 @@ download_image(){
 }
 
 create_autorun() {
-    if LOOP=$(losetup -Pf --show chr.img 2>/dev/null); then
+    LOOP=$(losetup -f)
+    if losetup -P "$LOOP" chr.img 2>/dev/null; then
         sleep 1
         MNT=/tmp/chr
         mkdir -p $MNT
