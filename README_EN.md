@@ -22,28 +22,23 @@ By proceeding, you acknowledge that:
 ![](image/install.png)
 ![](image/routeros.png)
 
-### license RouterOS for x86.
-![](image/x86.png)
 ### Renew license for x86 v6.x
 ![](image/renew_v6.png)
 ### Renew license for chr
 ![](image/renew.png)
-### license RouterOS for chr
-![](image/chr.png)
 
 ![](image/arm.png)
 ![](image/mips.png)
 
 ## How to use shell
     install option-{version}.npk package
-    run telnet to routeros with username devel and password is same as admin
+    Enter the shell by executing /sh in the terminal.
 ## How to license RouterOS
-    telnet to routeros with username devel and password is same as admin
-    run keygen
-    chr mode could use renew lincense online
+    After installing the option-{version}.npk package, reboot the device. The license will be activated automatically.
+    CHR images support online license activation
 ## How to use python3
     install python3-{version}.npk package
-    run telnet to routeros with username devel and password is same as admin
+    Enter the shell by executing /sh in the terminal.
     run python -V
 ### npk.py
     Sign，Verify，Create, Extract npk file.

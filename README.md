@@ -39,30 +39,23 @@ graph TD
 ![](image/install.png)
 ![](image/routeros.png)
 
-### x86模式授权许可
-![](image/x86.png)
 ### x86模式在线授权(v6.x)
 ![](image/renew_v6.png)
 ### Chr模式在线授权
 ![](image/renew.png)
-### Chr模式授权许可
-![](image/chr.png)
 
 ![](image/arm.png)
 ![](image/mips.png)
 
 ## 如何使用Shell
     安装 option-{version}.npk 包
-    telnet到RouterOS,用户名devel,密码与admin的密码相同
-    要使用devel用户名登录必须安装option-{version}.npk包，且启用。
+    在终端执行 /sh 进入shell
 ## 如何授权许可
-    进入shell
-    运行 keygen
-    参考上图。
+    安装 option-{version}.npk 包后，重启设备，会自动激活授权许可
     Chr镜像支持在线授权许可
 ## 如何使用Python
     安装 python3-{version}.npk 包
-    telnet到RouterOS,用户名devel,密码与admin的密码相同
+    在终端执行 /sh 进入shell
     运行 python -V
 ### npk.py
     对npk文件进行解包，修改，创建，签名和验证

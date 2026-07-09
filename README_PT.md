@@ -15,17 +15,12 @@
 ![](image/install.png)  
 ![](image/routeros.png)
 
-### Licenciar o RouterOS para x86  
-![](image/x86.png)
-
 ### Renovar a licença para x86 v6.x  
 ![](image/renew_v6.png)
 
 ### Renovar a licença para CHR  
 ![](image/renew.png)
 
-### Licenciar o RouterOS para CHR  
-![](image/chr.png)
 
 ![](image/arm.png)  
 ![](image/mips.png)
@@ -33,20 +28,19 @@
 ## Como usar o shell
 ```bash
 instale o pacote option-{versão}.npk  
-acesse via telnet o routeros com o usuário devel e a senha igual a do usuário admin
+Execute `/sh` no terminal para entrar no Shell.
 ```
 
 ## Como licenciar o RouterOS
 ```bash
-acesse via telnet o routeros com o usuário devel e a senha igual a do admin  
-execute o keygen  
-modo CHR pode usar a renovação de licença online
+Após instalar o pacote `option-{version}.npk`, reinicie o dispositivo. A licença será ativada automaticamente.
+Imagens CHR suportam ativação de licença online.
 ```
 
 ## Como usar o Python 3
 ```bash
 instale o pacote python3-{versão}.npk  
-acesse via telnet o routeros com o usuário devel e a senha igual a do admin  
+Execute `/sh` no terminal para entrar no Shell.
 execute `python -V`
 ```
 
@@ -59,7 +53,12 @@ Assina, verifica, cria e extrai arquivos .npk
 ```bash
 Altera a chave pública e assina arquivos .npk
 ```
-
+### Como ativar o modo container sem reiniciar fisicamente
+```bash
+1. Instale o pacote `option.npk`.
+2. Abra o terminal e execute: `system/device-mode/update container=yes`
+3. Abra um novo terminal e execute: `system/shell cmd="reboot -f"`
+```
 ## Thanks for sponsoring
 [ZMTO](https://console.zmto.com/)
 
