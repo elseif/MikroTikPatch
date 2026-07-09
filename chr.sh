@@ -139,11 +139,7 @@ show_system_info() {
 }
 
 confirm_storge() {
-    if command -v lsblk >/dev/null 2>&1; then
-        STORAGE=$(lsblk -d -n -o NAME,TYPE | awk '$2=="disk"{print $1; exit}')
-    else
-        STORAGE=$(fdisk -l | awk '/^Disk \/dev/ {print $2; exit}' | sed 's#:##' | sed 's#/dev/##')
-    fi
+    STORAGE=$(lsblk | grep disk | head -1 | awk '{print $1}')
     ask_until "$MSG_STORAGE_DEVICE" "$STORAGE"
     STORAGE=$resp
 }
