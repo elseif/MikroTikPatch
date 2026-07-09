@@ -305,8 +305,8 @@ create_autorun() {
 /ip address add address=$ADDRESS interface=[/interface ethernet get [find mac-address=$MAC] name]
 /ip route add gateway=$GATEWAY
 EOF
-            echo "$MSG_AUTO_RUN_FILE_CREATED:"
             cat "$MNT/rw/autorun.scr"
+            echo "$MSG_AUTO_RUN_FILE_CREATED"
             umount $MNT
             losetup -d "$LOOP"
         else
