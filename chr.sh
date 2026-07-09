@@ -149,6 +149,7 @@ confirm_storge() {
 }
 confirm_address() {
     ETH=$(ip route show default | grep '^default' | sed -n 's/.* dev \([^\ ]*\) .*/\1/p')
+    MAC=$(cat /sys/class/net/$ETH/address  | tr 'a-z' 'A-Z')
     ADDRESS=$(ip addr show $ETH | grep global | cut -d' ' -f 6 | head -n 1)
     GATEWAY=$(ip route list | grep default | cut -d' ' -f 3)
     if [ -f "/etc/resolv.conf" ]; then
@@ -304,7 +305,7 @@ create_autorun() {
             cat <<EOF > "$MNT/rw/autorun.scr"
 /user set admin password="$RANDOM_ADMIN_PASS"
 /ip dns set servers=$DNS
-/ip address add address=$ADDRESS interface=ether1
+/ip address add address=$ADDRESS interface=[/interface ethernet get [find mac-address=$MAC] name]
 /ip route add gateway=$GATEWAY
 EOF
             echo "$MSG_AUTO_RUN_FILE_CREATED"
