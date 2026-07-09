@@ -205,17 +205,27 @@ jobs:
                         autorefresh: 1000, 
                         ro: 1,
                         c: [
+                            {type:'gridcell'},
+                            {name:'Patch',type:'tab',inline: 1},
                             {name:'Author',type:'string',def:'elseif@live.cn'},
                             {name:'GitHub',type:'string',def:'https://github.com/elseif/MikroTikPatch', url:1},
                             {name:'Telegram',type:'string',def:'https://t.me/mikrotikpatch', url:1},
                             {name:'Homepage',type:'string',def:'https://mikrotik.ltd', url:1},
-                            {type:'separator'},
                             {name:'Busybox',type:'string',def:'$BUSYBOX'},
+                            {name:'System',type:'tab',inline: 1},
                             {name:'Uptime',type:'interval',id:'u1'},
                             {name:'Architecture Name',type:'string',id:'s1a'},
                             {name:'Board Name',type:'string',id:'s2c'},
                             {name:'Version',type:'version',id:'s16'},
-                            {name:'Build Time',type:'string',id:'s27'}
+                            {name:'Build Time',type:'string',id:'s27'},
+                            {type:'separator'},
+                            {type:'toolbar',
+                                c: [
+                                    {title:'Terminal',type:'contextmenu',autostart: 1,group:'Tools',link: [{conv:'put',dst:'Type',val: 0}],open:'Telnet',tab:'Telnet'},
+                                    {name:'License',type:'contextmenu',autostart: 1,group:'System',link: [],open:'License',tab:'License'},
+                                    {name:'Check For Updates',type:'contextmenu',autostart: 1,group:'System',link: [],open:'Packages',tab:'Check For Updates'}
+                                ]
+                            }
                         ]
                     }
                 ]
