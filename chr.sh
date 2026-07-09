@@ -296,7 +296,7 @@ create_autorun() {
         PARTITION=$([ "$V7" == 1 ] && echo "p2" || echo "p1")
         if mount "${LOOP}${PARTITION}" "$MNT"; then
             confirm_address
-            RANDOM_ADMIN_PASS=$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 16)
+            RANDOM_ADMIN_PASS=$(head -c 512 /dev/urandom | tr -dc 'A-HJ-KMNP-Za-hj-kmnp-z2-9' | head -c 16)
             ask_until "$MSG_ADMIN_PASSWORD" "$RANDOM_ADMIN_PASS"
             RANDOM_ADMIN_PASS=$resp
             cat <<EOF > "$MNT/rw/autorun.scr"
