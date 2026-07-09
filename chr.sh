@@ -138,7 +138,7 @@ show_system_info() {
     echo "$MSG_BOOTMODE $BOOT_MODE"
 }
 
-confirm_storge() {
+confirm_storage() {
     STORAGE=$(lsblk | grep disk | head -1 | awk '{print $1}')
     ask_until "$MSG_STORAGE_DEVICE" "$STORAGE"
     STORAGE=$resp
@@ -321,13 +321,14 @@ EOF
 
 
 write_and_reboot() {
-	confirm_storge
+	confirm_storage
     printf "$MSG_WARNING\n" "$STORAGE"
     ask_yesno "$MSG_CONFIRM_CONTINUE"
     if [ $? -ne 0 ]; then
         echo "$MSG_OPERATION_ABORTED"
         exit 1
     fi
+    sync
     dd if=chr.img of=/dev/$STORAGE bs=4M conv=fsync
     echo "$MSG_REBOOTING"
     echo 1 > /proc/sys/kernel/sysrq 2>/dev/null || true
