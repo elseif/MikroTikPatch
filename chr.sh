@@ -289,12 +289,12 @@ download_image(){
 
 create_autorun() {
     LOOP=$(losetup -f)
-    if losetup -P "$LOOP" chr.img 2>/dev/null; then
+    if losetup -P "$LOOP" chr.img; then
         sleep 1
         MNT=/tmp/chr
         mkdir -p $MNT
         PARTITION=$([ "$V7" == 1 ] && echo "p2" || echo "p1")
-        if mount "${LOOP}${PARTITION}" "$MNT" 2>/dev/null; then
+        if mount "${LOOP}${PARTITION}" "$MNT"; then
             confirm_address
             RANDOM_ADMIN_PASS=$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 16)
             ask_until "$MSG_ADMIN_PASSWORD" "$RANDOM_ADMIN_PASS"
