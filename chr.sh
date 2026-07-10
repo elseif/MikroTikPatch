@@ -56,10 +56,10 @@ select_language() {
             1) 
                 MSG_ARCH="Arch:"
                 MSG_BOOTMODE="BootMode:"
-                MSG_STORAGE_DEVICE="Input storage device name:"
-                MSG_ADDRESS="Input IP address:"
-                MSG_GATEWAY="Input gateway:"
-                MSG_DNS="Input domain name server:"
+                MSG_STORAGE_DEVICE="Storage Device:"
+                MSG_ADDRESS="IP Address:"
+                MSG_GATEWAY="Gateway:"
+                MSG_DNS="Domain Name Server:"
                 MSG_SELECT_VERSION="Select the version you want to install:"
                 MSG_STABLE="stable (v7)"
                 MSG_TEST="testing (v7)"
@@ -77,10 +77,7 @@ select_language() {
                 MSG_OPERATION_ABORTED="Error: Operation aborted."
                 MSG_WARNING="Warn: All data on /dev/%s will be lost!"
                 MSG_REBOOTING="Ok, rebooting..."
-                MSG_ADMIN_PASSWORD="admin password:"
-                MSG_MANUAL_PASS_CHOICE="Do you want to enter a password manually? (y/N): "
-                MSG_ENTER_NEW_PASS="Enter new password: "
-                MSG_PASS_EMPTY="Password cannot be empty, please try again."
+                MSG_ADMIN_PASSWORD="Admin Password:"
                 MSG_ERROR_MOUNT="Error: Failed to mount partition"
                 MSG_ERROR_LOOP="Error: Failed to setup loop device"
                 MSG_AUTO_RUN_FILE_CREATED="autorun.scr file created."
@@ -90,10 +87,10 @@ select_language() {
             2) 
                 MSG_ARCH="CPU架构:"
                 MSG_BOOTMODE="引导模式:"
-                MSG_STORAGE_DEVICE="输入存储设备名称:"
-                MSG_ADDRESS="输入IP地址:"
-                MSG_GATEWAY="输入网关地址:"
-                MSG_DNS="输入DNS服务器:"
+                MSG_STORAGE_DEVICE="存储设备名称:"
+                MSG_ADDRESS="IP地址:"
+                MSG_GATEWAY="网关地址:"
+                MSG_DNS="DNS服务器:"
                 MSG_SELECT_VERSION="请选择您要安装的版本:"
                 MSG_STABLE="稳定版 (v7)"
                 MSG_TEST="测试版 (v7)"
@@ -110,11 +107,8 @@ select_language() {
                 MSG_DOWNLOAD_FAILED="错误: 下载失败！"
                 MSG_OPERATION_ABORTED="错误: 操作已中止。"
                 MSG_WARNING="警告：/dev/%s 上的数据将会丢失！"
-                MSG_REBOOTING="好的，正在重启..."
+                MSG_REBOOTING="正在重启..."
                 MSG_ADMIN_PASSWORD="管理员密码:"
-                MSG_MANUAL_PASS_CHOICE="是否手动输入密码？(y/N): "
-                MSG_ENTER_NEW_PASS="请输入新密码: "
-                MSG_PASS_EMPTY="密码不能为空，请重新输入。"
                 MSG_ERROR_MOUNT="错误: 挂载分区失败"
                 MSG_ERROR_LOOP="错误: 设置 loop 设备失败"
                 MSG_AUTO_RUN_FILE_CREATED="autorun.scr 文件已创建。"
@@ -321,7 +315,7 @@ EOF
 }
 
 
-write_and_reboot() {
+write_reboot() {
 	confirm_storage
     printf "$MSG_WARNING\n" "$STORAGE"
     ask_yesno "$MSG_CONFIRM_CONTINUE"
@@ -342,5 +336,5 @@ show_system_info
 select_version
 download_image
 create_autorun
-write_and_reboot
+write_reboot
 exit 0
