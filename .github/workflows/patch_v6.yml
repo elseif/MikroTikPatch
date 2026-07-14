@@ -311,7 +311,9 @@ jobs:
         sudo modprobe nbd
         sudo apt-get install syslinux syslinux-common xorriso extlinux qemu-utils -y > /dev/null
         unzip $PUBLISH_DIR/all_packages-$ARCH-$VERSION.zip -d $BUILD_DIR/new_iso/
-        python3 patch.py kernel $BUILD_DIR/new_iso/isolinux/initrd.rgz
+        mv $BUILD_DIR/new_iso/isolinux/initrd.rgz $BUILD_DIR/initrd.rgz
+        python3 patch.py kernel $BUILD_DIR/initrd.rgz -O $BUILD_DIR/new_iso/isolinux/initrd.rgz
+        rm -f $BUILD_DIR/initrd.rgz
         xorriso -as mkisofs -o $PUBLISH_DIR/mikrotik-$VERSION$ARCH_EXT.iso \
                     -V "MikroTik $VERSION" \
                     -sysid "" -preparer "MiKroTiK" \
@@ -386,6 +388,9 @@ jobs:
         python3 npk.py extract $PUBLISH_DIR/routeros-$ARCH-$VERSION.npk boot/milo.conf $BUILD_DIR/chr/boot/milo.conf
         python3 npk.py extract $PUBLISH_DIR/routeros-$ARCH-$VERSION.npk boot/vmlinuz $BUILD_DIR/chr/boot/vmlinuz
         python3 npk.py extract $PUBLISH_DIR/routeros-$ARCH-$VERSION.npk boot/vmlinuz-smp $BUILD_DIR/chr/boot/vmlinuz-smp
+        mv $BUILD_DIR/chr/boot/initrd.rgz $BUILD_DIR/initrd.rgz
+        python3 patch.py kernel $BUILD_DIR/initrd.rgz -O $BUILD_DIR/chr/boot/initrd.rgz
+        rm -f $BUILD_DIR/initrd.rgz
         cp $PUBLISH_DIR/routeros-$ARCH-$VERSION.npk $BUILD_DIR/chr/var/pdb/routeros-x86/image
         cp $PUBLISH_DIR/option-$VERSION$ARCH_EXT.npk $BUILD_DIR/chr/var/pdb/option/image
         cp $PUBLISH_DIR/dude-$VERSION$ARCH_EXT.npk $BUILD_DIR/chr/var/pdb/dude/image
