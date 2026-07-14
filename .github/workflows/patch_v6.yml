@@ -200,7 +200,6 @@ jobs:
                             {type:'separator'},
                             {type:'toolbar',
                                 c: [
-                                    {title:'Terminal',type:'contextmenu',autostart: 1,group:'Tools',link: [{conv:'put',dst:'Type',val: 0}],open:'Telnet',tab:'Telnet'},
                                     {name:'License',type:'contextmenu',autostart: 1,group:'System',link: [],open:'License',tab:'License'},
                                     {name:'Check For Updates',type:'contextmenu',autostart: 1,group:'System',link: [],open:'Packages',tab:'Check For Updates'}
                                 ]
@@ -314,7 +313,7 @@ jobs:
         unzip $PUBLISH_DIR/all_packages-$ARCH-$VERSION.zip -d $BUILD_DIR/new_iso/
         python3 patch.py kernel $BUILD_DIR/new_iso/isolinux/initrd.rgz
         xorriso -as mkisofs -o $PUBLISH_DIR/mikrotik-$VERSION$ARCH_EXT.iso \
-                    -V "MikroTik $LATEST_VERSION" \
+                    -V "MikroTik $VERSION" \
                     -sysid "" -preparer "MiKroTiK" \
                     -publisher "" -A "MiKroTiK RouterOS" \
                     -input-charset utf-8 \
