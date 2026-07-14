@@ -151,6 +151,7 @@ jobs:
       run: |
         sudo apt-get update > /dev/null
         sudo apt-get install -y zip unzip squashfs-tools jq > /dev/null
+        sudo apt-get install -y python3-crcmod python3-pefile python3-pyelftools > /dev/null
   
         if [ "$ARCH" == "x86" ]; then
             ARCH_EXT=""
@@ -234,7 +235,6 @@ jobs:
             }
         ]
         EOF
-        sudo apt-get install python3-crcmod > /dev/null
         HASH=$(python3 -E <<EOF
         import hashlib, crcmod, sys
         with open('$BUILD_DIR/option.jg','rb') as f:
@@ -298,7 +298,7 @@ jobs:
                 echo "✅ Package downloaded: $PKG_FILE"
             fi
         done
-        
+
     - name: Get loader patch files
       run: |
         wget -nv -O loader.7z https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/loader.7z

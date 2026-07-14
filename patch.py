@@ -1,5 +1,7 @@
 import subprocess,lzma
 import struct,os,re,tempfile
+import pefile
+from elftools.elf.elffile import ELFFile
 from npk import NovaPackage,NpkPartID,NpkFileContainer
 
 def replace_chunks(old_chunks,new_chunks,data,name):
@@ -200,10 +202,6 @@ def patch_pe(data: bytes,key_dict:dict):
     return new_data
 
 def build_efi(input_file, output_file):
-    from package import check_install_package
-    check_install_package(['pyelftools','pefile'])
-    from elftools.elf.elffile import ELFFile
-    import pefile
     def find_xz_streams(data:bytes):
         streams = []
         XZ_HEADER_MAGIC = b'\xFD7zXZ\x00\x00\x01'
@@ -255,9 +253,6 @@ def build_efi(input_file, output_file):
 def patch_netinstall(key_dict: dict,input_file,output_file=None):
     netinstall = open(input_file,'rb').read()
     if netinstall[:2] == b'MZ':
-        from package import check_install_package
-        check_install_package(['pefile'])
-        import pefile
         ROUTEROS_BOOT = {
             129:{'arch':'power','name':'Powerboot'},
             130:{'arch':'e500','name':'e500_boot'},
@@ -296,7 +291,6 @@ def patch_netinstall(key_dict: dict,input_file,output_file=None):
                             pe.set_bytes_at_rva(rva,new_data)
             pe.write(output_file or input_file)
     elif netinstall[:4] == b'\x7FELF':
-        import re
         # 83 00 00 00 C4 68 C4 0B  5A C2 04 08 10 9E 52 00
         # 8A 00 00 00 C3 68 C4 0B  6A 60 57 08 C0 3D 54 00
         # 81 00 00 00 D3 68 C4 0B  2A 9E AB 08 5C 1B 78 00
@@ -363,8 +357,6 @@ def patch_kernel(data:bytes,key_dict):
 
 def patch_loader(loader_file):
     try:
-        from package import check_install_package
-        check_install_package(['pyelftools'])
         from loader.patch_loader import patch_loader as do_patch_loader
         arch = os.getenv('ARCH') or 'x86'
         arch = arch.replace('-', '')
