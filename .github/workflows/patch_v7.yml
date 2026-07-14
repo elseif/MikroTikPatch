@@ -969,7 +969,7 @@ jobs:
         USER=${{ secrets.SSH_USERNAME }}
         PASS=${{ secrets.SSH_PASSWORD }}
         PORT=${{ secrets.SSH_PORT }}
-        sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no -p $PORT $USER@$SERVER << 'EOF'
+        sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no -p $PORT $USER@$SERVER << EOF
         bash /rw/disk/$REMOTE_PATH/packages.sh /rw/disk/$REMOTE_PATH/$VERSION
         ln -sf /root/$REMOTE_PATH/$VERSION/info /rw/disk/$REMOTE_PATH/NEWESTa7.$CHANNEL
         chown -R 32768:32768 /rw/disk/$REMOTE_PATH
