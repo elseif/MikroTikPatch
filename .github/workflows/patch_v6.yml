@@ -142,11 +142,11 @@ jobs:
         echo "ARCH_EXT=$ARCH_EXT" >> $GITHUB_ENV
         echo "ARCH_EXT: $ARCH_EXT"
 
-        sudo rm -rf "$BUILD_DIR"
+        rm -rf "$BUILD_DIR"
         mkdir -p "$BUILD_DIR"
         echo "BUILD_DIR: $BUILD_DIR"
 
-        sudo rm -rf "$PUBLISH_DIR"
+        rm -rf "$PUBLISH_DIR"
         mkdir -p "$PUBLISH_DIR"
         echo "PUBLISH_DIR: $PUBLISH_DIR"
 
@@ -398,7 +398,7 @@ jobs:
         sudo $BUILD_DIR/chr/bin/milo $BUILD_DIR/chr/boot
         sudo mountpoint -q $BUILD_DIR/chr && sudo umount $BUILD_DIR/chr
         sudo losetup -d $LOOP_DEV 2>/dev/null || true
-        sudo rm -rf ./chr
+        rm $BUILD_DIR/chr
         qemu-img convert -f raw -O qcow2 $BUILD_DIR/chr-$VERSION$ARCH_EXT.img $BUILD_DIR/chr-$VERSION$ARCH_EXT.qcow2
         qemu-img convert -f raw -O vmdk  $BUILD_DIR/chr-$VERSION$ARCH_EXT.img $BUILD_DIR/chr-$VERSION$ARCH_EXT.vmdk
         qemu-img convert -f raw -O vpc $BUILD_DIR/chr-$VERSION$ARCH_EXT.img $BUILD_DIR/chr-$VERSION$ARCH_EXT.vhd
