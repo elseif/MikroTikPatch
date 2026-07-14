@@ -1,5 +1,5 @@
 import subprocess,lzma
-import struct,os,re
+import struct,os,re,tempfile
 from npk import NovaPackage,NpkPartID,NpkFileContainer
 
 def replace_chunks(old_chunks,new_chunks,data,name):
@@ -464,22 +464,21 @@ def patch_npk_package(package,key_dict):
                 print(f'patch {item.name} ...')
                 item.data = patch_kernel(item.data,key_dict)
         package[NpkPartID.FILE_CONTAINER].data = file_container.serialize()
-        squashfs_file = 'squashfs-root.sfs'
-        extract_dir = 'squashfs-root'
-        open(squashfs_file,'wb').write(package[NpkPartID.SQUASHFS].data)
-        print(f"extract {squashfs_file} ...")
-        run_shell_command(f"unsquashfs -d {extract_dir} {squashfs_file}")
-        patch_squashfs(extract_dir,key_dict)
-        logo = os.path.join(extract_dir,"nova/lib/console/logo.txt")
-        run_shell_command(f"sudo sed -i '1d' {logo}") 
-        run_shell_command(f"sudo sed -i '8s#.*#  elseif@live.cn     https://github.com/elseif/MikroTikPatch#' {logo}")
-        print(f"pack {extract_dir} ...")
-        run_shell_command(f"rm -f {squashfs_file}")
-        run_shell_command(f"mksquashfs {extract_dir} {squashfs_file} -quiet -comp xz -no-xattrs -b 256k")
-        print(f"clean ...")
-        run_shell_command(f"rm -rf {extract_dir}")
-        package[NpkPartID.SQUASHFS].data = open(squashfs_file,'rb').read()
-        run_shell_command(f"rm -f {squashfs_file}")
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            squashfs_file = os.path.join(tmp_dir, 'squashfs-root.sfs')
+            extract_dir = os.path.join(tmp_dir, 'squashfs-root')
+            with open(squashfs_file,'wb') as f:
+                f.write(package[NpkPartID.SQUASHFS].data)
+            print(f"extract {squashfs_file} ...")
+            run_shell_command(f"unsquashfs -d {extract_dir} {squashfs_file}")
+            patch_squashfs(extract_dir,key_dict)
+            logo = os.path.join(extract_dir,"nova/lib/console/logo.txt")
+            run_shell_command(f"sed -i '1d' {logo}") 
+            run_shell_command(f"sed -i '8s#.*#  elseif@live.cn     https://github.com/elseif/MikroTikPatch#' {logo}")
+            print(f"pack {extract_dir} ...")
+            run_shell_command(f"mksquashfs {extract_dir} {squashfs_file} -no-recovery -noappend -exit-on-error -quiet -comp xz -no-xattrs -b 256k -all-root")
+            with open(squashfs_file,'rb') as f:
+                package[NpkPartID.SQUASHFS].data = f.read()
 
 def patch_npk_file(key_dict,kcdsa_private_key,eddsa_private_key,input_file,output_file=None):
     npk = NovaPackage.load(input_file)   
