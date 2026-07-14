@@ -433,7 +433,7 @@ jobs:
             cp -vf $BUILD_DIR/new_iso/isolinux/linux $BUILD_DIR/install/
             cp -vf /usr/lib/syslinux/modules/bios/ldlinux.c32 $BUILD_DIR/install/
             mkdir -p $BUILD_DIR/install/EFI/BOOT
-            unzip -j ./refind/refind-bin-0.14.2.zip "refind-bin-0.14.2/refind/refind_x64.efi" -d $BUILD_DIR/install/EFI/BOOT
+            unzip -j $BUILD_DIR/refind-bin-0.14.2.zip "refind-bin-0.14.2/refind/refind_x64.efi" -d $BUILD_DIR/install/EFI/BOOT
             mv $BUILD_DIR/install/EFI/BOOT/refind_x64.efi $BUILD_DIR/install/EFI/BOOT/BOOTX64.EFI
             tee $BUILD_DIR/install/EFI/BOOT/refind.conf > /dev/null << 'EOF'
         timeout 0
