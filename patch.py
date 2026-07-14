@@ -355,7 +355,7 @@ def patch_kernel(data:bytes,key_dict):
         return patch_elf(data,key_dict)
     elif data[:5] == b'\xFD7zXZ':
         print('patching initrd')
-        return patch_initrd_xz(data,key_dict)
+        return patch_initrd_xz(data,key_dict,False)
     else:
         raise Exception('unknown kernel format')
 
