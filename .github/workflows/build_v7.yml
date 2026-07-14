@@ -254,7 +254,7 @@ jobs:
         SIZE=$(stat -c %s $BUILD_DIR/option-$SHA1_PREFIX.jg.gz)
         mv $BUILD_DIR/option-$SHA1_PREFIX.jg.gz $BUILD_DIR/option-root/home/web/webfig/
         tee $BUILD_DIR/option-root/home/web/webfig/option.info > /dev/null << EOF
-        { crc: $CRC, size: $SIZE, name: "option.jg", unique: "option-$SHA1_PREFIX.jg",version: "$LATEST_VERSION" },
+        { crc: $CRC, size: $SIZE, name: "option.jg", unique: "option-$SHA1_PREFIX.jg",version: "$VERSION" },
         EOF
         ln -sf option-$SHA1_PREFIX.jg.gz $BUILD_DIR/option-root/home/web/webfig/option.jg.gz
         mksquashfs $BUILD_DIR/option-root $BUILD_DIR/option.sfs -no-recovery -noappend -exit-on-error -quiet -comp xz -no-xattrs -b 256k -all-root  
@@ -318,12 +318,12 @@ jobs:
         OPTION_NPK=option-$VERSION$ARCH_EXT.npk
         python3 npk.py create $BUILD_DIR/all_packages/$OPTION_FROM_NPK $BUILD_DIR/all_packages/$OPTION_NPK option $BUILD_DIR/option.sfs -desc="busybox"
         rm -rf $BUILD_DIR/option.sfs
-        echo "✅ all package npk patched: "
+        echo "✅ all package npk files already signed: "
         ls -la $BUILD_DIR/all_packages/*.npk
         (cd $BUILD_DIR/all_packages && zip -r $PUBLISH_DIR/all_packages-$ARCH-$VERSION.zip .)
         mv $BUILD_DIR/all_packages/*.npk $PUBLISH_DIR/
         python3 patch.py npk $BUILD_DIR/routeros-$VERSION$ARCH_EXT.npk -O $PUBLISH_DIR/routeros-$VERSION$ARCH_EXT.npk
-        echo "✅ Main package npk patched: "
+        echo "✅ Main package npk file already patched: "
         ls -la $PUBLISH_DIR/routeros-$VERSION$ARCH_EXT.npk
         rm -rf $BUILD_DIR/all_packages
 
