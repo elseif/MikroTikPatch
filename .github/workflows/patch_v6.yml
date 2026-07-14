@@ -406,10 +406,10 @@ jobs:
         sudo touch $BUILD_DIR/chr/rw/autorun.scr
         sudo touch $BUILD_DIR/chr/UPGRADED
         sudo touch $BUILD_DIR/chr/SHOW_LICENSE
-        sudo $BUILD_DIR/chr/bin/milo $BUILD_DIR/chr/boot
+        sudo chroot $BUILD_DIR/chr /bin/milo /boot
         sudo mountpoint -q $BUILD_DIR/chr && sudo umount $BUILD_DIR/chr
         sudo qemu-nbd -d /dev/nbd0 2>/dev/null 
-        rm $BUILD_DIR/chr
+        rm -rf $BUILD_DIR/chr
         qemu-img convert -f raw -O qcow2 $BUILD_DIR/chr-$VERSION$ARCH_EXT.img $BUILD_DIR/chr-$VERSION$ARCH_EXT.qcow2
         qemu-img convert -f raw -O vmdk  $BUILD_DIR/chr-$VERSION$ARCH_EXT.img $BUILD_DIR/chr-$VERSION$ARCH_EXT.vmdk
         qemu-img convert -f raw -O vpc $BUILD_DIR/chr-$VERSION$ARCH_EXT.img $BUILD_DIR/chr-$VERSION$ARCH_EXT.vhd
