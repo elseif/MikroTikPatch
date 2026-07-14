@@ -258,6 +258,7 @@ jobs:
         mkdir -p $BUILD_DIR/new_iso
         sudo mount -o loop,ro $BUILD_DIR/mikrotik-$VERSION$ARCH_EXT.iso $BUILD_DIR/iso
         cp -r $BUILD_DIR/iso/* $BUILD_DIR/new_iso/
+        chmod -R +w $BUILD_DIR/new_iso/
         mv $BUILD_DIR/new_iso/*.npk $BUILD_DIR/all_packages/
         mv $BUILD_DIR/all_packages/system-$VERSION$ARCH_EXT.npk $BUILD_DIR/
         sudo umount $BUILD_DIR/iso
