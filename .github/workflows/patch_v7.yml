@@ -932,7 +932,7 @@ jobs:
     - name: Clear Cloudflare cache
       if: needs.Prepare_Patch.outputs.RELEASE == 'true'
       run: |
-        curl --request POST --url "https://api.cloudflare.com/client/v4/zones/096723464400de10b6eb85028baa8372/purge_cache" \
+        curl --request POST --url "https://api.cloudflare.com/client/v4/zones/fe6831ed6dc9e6235e69ef2a31f2e7fe/purge_cache" \
             --header "Authorization: Bearer 9GDQkzU51QXaqzp1qMjyFKpyeJyOdnNoG9GZQaGP" \
             --header "Content-Type:application/json" \
             --data '{"purge_everything": true}'
