@@ -141,7 +141,11 @@ def patch_block(dev:str,file:str,key_dict):
         print(']')
 
 def patch_initrd_xz(initrd_xz:bytes,key_dict:dict,ljust=True):
-    initrd = lzma.decompress(initrd_xz)
+    try:
+        initrd = lzma.decompress(initrd_xz)
+    except Exception as e:
+        print(f'size:{len(initrd_xz)},header:{initrd_xz[:20].hex().upper()},footer:{initrd_xz[-20:].hex().upper()}\n')
+        raise Exception(f'failed to decompress initrd_xz: {e}')
     new_initrd = initrd  
     for old_public_key,new_public_key in key_dict.items():
         new_initrd = replace_key(old_public_key,new_public_key,new_initrd,'initrd')
