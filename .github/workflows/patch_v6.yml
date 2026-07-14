@@ -371,7 +371,7 @@ jobs:
         echo "Creating CHR image..."
         mkdir -p $BUILD_DIR/chr
         truncate --size 128M $BUILD_DIR/chr-$VERSION$ARCH_EXT.img
-        sfdisk chr-$VERSION$ARCH_EXT.img <<EOF
+        sfdisk $BUILD_DIR/chr-$VERSION$ARCH_EXT.img <<EOF
         label: dos
         unit: sectors
         start=1, size=, type=83, bootable
