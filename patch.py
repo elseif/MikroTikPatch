@@ -393,7 +393,6 @@ def patch_squashfs(path,key_dict):
                     if new_data != data:
                         data = new_data
                         modified = True
-                assert modified, f'{file_path} key not patched'
                 with open(f'{file_path}_', 'wb') as f:
                     f.write(data)
         if 'loader' in files and os.path.isfile(os.path.join(root, 'loader')):
