@@ -376,10 +376,11 @@ jobs:
         unit: sectors
         start=1, size=, type=83, bootable
         EOF
-        sudo losetup -fP $BUILD_DIR/chr-$VERSION$ARCH_EXT.img
-        LOOP_DEV=$(sudo losetup -l | grep "$BUILD_DIR/chr-$VERSION$ARCH_EXT.img" | awk '{print $1}')
-        sudo mkfs.ext4 -F -L "system" -m 0 ${LOOP_DEV}p1
-        sudo mount -o uid=$(id -u),gid=$(id -g) ${LOOP_DEV}p1 $BUILD_DIR/chr
+        sudo qemu-nbd -d /dev/nbd0
+        sudo qemu-nbd -c /dev/nbd0 -f raw $BUILD_DIR/chr-$VERSION$ARCH_EXT.img
+        sudo partprobe /dev/nbd0
+        sudo mkfs.ext4 -F -L "system"  -m 0 /dev/nbd0p1
+        sudo mount -o uid=$(id -u),gid=$(id -g) /dev/nbd0p1 $BUILD_DIR/chr
         mkdir -p $BUILD_DIR/chr/{boot,bin,rw/disk,var/pdb/{routeros-x86,option,dude}}
         python3 npk.py extract $PUBLISH_DIR/routeros-$ARCH-$VERSION.npk bin/milo $BUILD_DIR/chr/bin/milo
         chmod +x $BUILD_DIR/chr/bin/milo
@@ -403,7 +404,7 @@ jobs:
         touch $BUILD_DIR/chr/SHOW_LICENSE
         sudo $BUILD_DIR/chr/bin/milo $BUILD_DIR/chr/boot
         sudo mountpoint -q $BUILD_DIR/chr && sudo umount $BUILD_DIR/chr
-        sudo losetup -d $LOOP_DEV 2>/dev/null || true
+        sudo qemu-nbd -d /dev/nbd0 2>/dev/null 
         rm $BUILD_DIR/chr
         qemu-img convert -f raw -O qcow2 $BUILD_DIR/chr-$VERSION$ARCH_EXT.img $BUILD_DIR/chr-$VERSION$ARCH_EXT.qcow2
         qemu-img convert -f raw -O vmdk  $BUILD_DIR/chr-$VERSION$ARCH_EXT.img $BUILD_DIR/chr-$VERSION$ARCH_EXT.vmdk
