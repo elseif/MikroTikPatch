@@ -354,7 +354,6 @@ jobs:
             cp ${NPK_FILES[$i-1]} $BUILD_DIR/install/$i.npk
         done
         touch $BUILD_DIR/install/CHOOSE
-        touch $BUILD_DIR/install/autorun.scr 
         sync
         sudo umount $BUILD_DIR/install
         sudo losetup -d $LOOP
@@ -404,9 +403,9 @@ jobs:
         echo -e '#!/bin/sh\n# This script will be executed *before* RouterOS *loader* start.\n# You can put your own initialization stuff in here\n' |sudo tee $BUILD_DIR/chr/rw/disk/rc.local
         sudo touch $BUILD_DIR/chr/rw/REBOOT
         sudo touch $BUILD_DIR/chr/rw/ENABLE_X86_64
-        sudo touch $BUILD_DIR/chr/rw/autorun.scr
         sudo touch $BUILD_DIR/chr/UPGRADED
         sudo touch $BUILD_DIR/chr/SHOW_LICENSE
+        sudo chown -R root:root $BUILD_DIR/chr
         sudo chroot $BUILD_DIR/chr /bin/milo /boot
         sudo mountpoint -q $BUILD_DIR/chr && sudo umount $BUILD_DIR/chr
         sudo qemu-nbd -d /dev/nbd0 2>/dev/null 
