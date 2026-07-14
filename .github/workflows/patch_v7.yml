@@ -629,17 +629,17 @@ jobs:
             sudo mkfs.vfat -n "Boot" /dev/nbd0p1
             sudo mkfs.ext4 -F -L "RouterOS"  -m 0 /dev/nbd0p2
             sudo mount -o uid=$(id -u),gid=$(id -g) /dev/nbd0p1 $BUILD_DIR/chr/boot
-            mkdir -p $BUILD_DIR/chr/boot/EFI/BOOT
-            cp -v $BUILD_DIR/chr/BOOTX64.EFI $BUILD_DIR/chr/boot/EFI/BOOT/BOOTX64.EFI
+            sudo mkdir -p $BUILD_DIR/chr/boot/EFI/BOOT
+            sudo cp -v $BUILD_DIR/chr/BOOTX64.EFI $BUILD_DIR/chr/boot/EFI/BOOT/BOOTX64.EFI
             sudo umount /dev/nbd0p1
 
             sudo mount /dev/nbd0p2 $BUILD_DIR/chr/routeros
-            mkdir -p $BUILD_DIR/chr/routeros/{var/pdb/{system,option},boot,bin,rw/disk}
+            sudo mkdir -p $BUILD_DIR/chr/routeros/{var/pdb/{system,option},boot,bin,rw/disk}
             # cmdStartVerify bin/milo
-            cp -v $BUILD_DIR/chr/milo $BUILD_DIR/chr/routeros/bin/milo
-            cp -v $PUBLISH_DIR/option-$VERSION$ARCH_EXT.npk $BUILD_DIR/chr/routeros/var/pdb/option/image
-            cp -v $PUBLISH_DIR/routeros-$VERSION$ARCH_EXT.npk $BUILD_DIR/chr/routeros/var/pdb/system/image
-            echo -e '#!/bin/sh\n# This script will be executed *before* RouterOS *loader* start.\n# You can put your own initialization stuff in here\n' | tee $BUILD_DIR/chr/routeros/rw/disk/rc.local
+            sudo cp -v $BUILD_DIR/chr/milo $BUILD_DIR/chr/routeros/bin/milo
+            sudo cp -v $PUBLISH_DIR/option-$VERSION$ARCH_EXT.npk $BUILD_DIR/chr/routeros/var/pdb/option/image
+            sudo cp -v $PUBLISH_DIR/routeros-$VERSION$ARCH_EXT.npk $BUILD_DIR/chr/routeros/var/pdb/system/image
+            echo -e '#!/bin/sh\n# This script will be executed *before* RouterOS *loader* start.\n# You can put your own initialization stuff in here\n' |sudo tee $BUILD_DIR/chr/routeros/rw/disk/rc.local
             sudo umount /dev/nbd0p2
             sudo qemu-nbd -d /dev/nbd0
 
@@ -689,9 +689,9 @@ jobs:
                 --gpttombr=1:2 \
                 $BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img
             dd if=$BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img of=$BUILD_DIR/mbr.bin bs=1 count=512  conv=notrunc
-            echo "FA31C08ED0BC007C89E65007501FFBFCBF0006B90001F2A5EA1D060000BEBE07B304803C807423803C00750983C610FECB75EFCD18BE9B06AC3C00740B56BB0700B40ECD105EEBF0EBFE8B148B4C0289F5BF0500BB007CB8010257CD135F730C31C0CD134F75EDBE7C06EBCCBFFE7D813D55AA75C289EEEA007C00004572726F72206C6F6164696E67206F7065726174696E672073797374656D004D697373696E67206F7065726174696E672073797374656D0000000000" | xxd -r -p | dd of=$BUILD_DIR/mbr.bin bs=1 count=440 conv=notrunc
-            printf '\x01' | dd of=$BUILD_DIR/mbr.bin bs=1 count=1 seek=336 conv=notrunc
-            printf '\x80' | dd of=$BUILD_DIR/mbr.bin bs=1 count=1 seek=446 conv=notrunc
+            echo "FA31C08ED0BC007C89E65007501FFBFCBF0006B90001F2A5EA1D060000BEBE07B304803C807423803C00750983C610FECB75EFCD18BE9B06AC3C00740B56BB0700B40ECD105EEBF0EBFE8B148B4C0289F5BF0500BB007CB8010257CD135F730C31C0CD134F75EDBE7C06EBCCBFFE7D813D55AA75C289EEEA007C00004572726F72206C6F6164696E67206F7065726174696E672073797374656D004D697373696E67206F7065726174696E672073797374656D0000000000" | xxd -r -p | sudo dd of=$BUILD_DIR/mbr.bin bs=1 count=440 conv=notrunc
+            printf '\x01' | sudo dd of=$BUILD_DIR/mbr.bin bs=1 count=1 seek=336 conv=notrunc
+            printf '\x80' | sudo dd of=$BUILD_DIR/mbr.bin bs=1 count=1 seek=446 conv=notrunc
             sgdisk \
                 --zap-all \
                 --set-alignment=1 \
@@ -699,24 +699,24 @@ jobs:
                 --new=2:0:-4096 --typecode=2:8300 --change-name=2:"RouterOS" \
                 $BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img
             dd if=$BUILD_DIR/mbr.bin of=$BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img bs=1 count=512 conv=notrunc
-            rm $BUILD_DIR/mbr.bin
+            sudo rm $BUILD_DIR/mbr.bin
             sudo qemu-nbd -d /dev/nbd0
             sudo qemu-nbd -c /dev/nbd0 -f raw $BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img
             sudo partprobe /dev/nbd0
             sudo mkfs.ext2 -F -m 0 -L "RouterOS Boot" /dev/nbd0p1
             sudo mkfs.ext4 -F -m 0 -L "RouterOS"  /dev/nbd0p2
             sudo mount /dev/nbd0p1 $BUILD_DIR/chr/boot
-            mkdir -p $BUILD_DIR/chr/boot/EFI/BOOT
-            cp -vf $BUILD_DIR/chr/BOOTX64.EFI $BUILD_DIR/chr/boot/EFI/BOOT/BOOTX64.EFI
+            sudo mkdir -p $BUILD_DIR/chr/boot/EFI/BOOT
+            sudo cp -vf $BUILD_DIR/chr/BOOTX64.EFI $BUILD_DIR/chr/boot/EFI/BOOT/BOOTX64.EFI
             sudo $BUILD_DIR/chr/milo $BUILD_DIR/chr/boot
             sudo umount /dev/nbd0p1
 
             sudo mount /dev/nbd0p2 $BUILD_DIR/chr/routeros
             sudo mkdir -p $BUILD_DIR/chr/routeros/{var/pdb/{system,option},boot,bin,rw/disk}
-            cp -v $BUILD_DIR/chr/milo $BUILD_DIR/chr/routeros/bin/milo
-            cp -v $PUBLISH_DIR/option-$VERSION$ARCH_EXT.npk $BUILD_DIR/chr/routeros/var/pdb/option/image
-            cp -v $PUBLISH_DIR/routeros-$VERSION$ARCH_EXT.npk $BUILD_DIR/chr/routeros/var/pdb/system/image
-            echo -e '#!/bin/sh\n# This script will be executed *before* RouterOS *loader* start.\n# You can put your own initialization stuff in here\n' | tee $BUILD_DIR/chr/routeros/rw/disk/rc.local
+            sudo cp -v $BUILD_DIR/chr/milo $BUILD_DIR/chr/routeros/bin/milo
+            sudo cp -v $PUBLISH_DIR/option-$VERSION$ARCH_EXT.npk $BUILD_DIR/chr/routeros/var/pdb/option/image
+            sudo cp -v $PUBLISH_DIR/routeros-$VERSION$ARCH_EXT.npk $BUILD_DIR/chr/routeros/var/pdb/system/image
+            echo -e '#!/bin/sh\n# This script will be executed *before* RouterOS *loader* start.\n# You can put your own initialization stuff in here\n' | sudo tee $BUILD_DIR/chr/routeros/rw/disk/rc.local
             sudo umount /dev/nbd0p2
             sudo qemu-nbd -d /dev/nbd0
 
@@ -787,14 +787,14 @@ jobs:
             sudo mkfs.vfat -n "Boot" "/dev/nbd0p1"
             sudo mkfs.ext4 -F -m 0 -L "RouterOS" "/dev/nbd0p2"
             sudo mount -o uid=$(id -u),gid=$(id -g) /dev/nbd0p1 $BUILD_DIR/chr/boot
-            mkdir -p $BUILD_DIR/chr/boot/EFI/BOOT
-            mv -v $BUILD_DIR/chr/BOOTAA64.EFI $BUILD_DIR/chr/boot/EFI/BOOT/BOOTAA64.EFI
+            sudo mkdir -p $BUILD_DIR/chr/boot/EFI/BOOT
+            sudo mv -v $BUILD_DIR/chr/BOOTAA64.EFI $BUILD_DIR/chr/boot/EFI/BOOT/BOOTAA64.EFI
             sudo umount /dev/nbd0p1
 
             sudo mount /dev/nbd0p2 $BUILD_DIR/chr/routeros
             sudo mkdir -p $BUILD_DIR/chr/routeros/{var/pdb/{system,option},boot,rw/disk}
-            cp -v $PUBLISH_DIR/option-$VERSION$ARCH_EXT.npk $BUILD_DIR/chr/routeros/var/pdb/option/image
-            cp -v $PUBLISH_DIR/routeros-$VERSION$ARCH_EXT.npk $BUILD_DIR/chr/routeros/var/pdb/system/image
+            sudo cp -v $PUBLISH_DIR/option-$VERSION$ARCH_EXT.npk $BUILD_DIR/chr/routeros/var/pdb/option/image
+            sudo cp -v $PUBLISH_DIR/routeros-$VERSION$ARCH_EXT.npk $BUILD_DIR/chr/routeros/var/pdb/system/image
             echo -e '#!/bin/sh\n# This script will be executed *before* RouterOS *loader* start.\n# You can put your own initialization stuff in here\n' | sudo tee $BUILD_DIR/chr/routeros/rw/disk/rc.local
             sudo umount /dev/nbd0p2
             sudo qemu-nbd -d /dev/nbd0
