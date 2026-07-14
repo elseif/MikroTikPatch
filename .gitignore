@@ -3,4 +3,5 @@ __pycache__/
 venv/
 app/
 loader/
+test/
 test_*.py

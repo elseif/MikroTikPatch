@@ -1,0 +1,559 @@
+name: Build RouterOS v6
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: 'Channel (stable, long-term)'
+        required: true
+        default: 'stable'
+        type: choice
+        options:
+          - stable
+          - long-term
+      version:
+        description: "Specify version (e.g., 6.49.19), empty for latest"
+        required: false
+        default: ''
+        type: string
+      buildtime:
+        description: "Custom build time, leave empty for original"
+        required: false
+        default: ''
+        type: string
+      release:
+        description: "Release to Upload "
+        required: false
+        default: false
+        type: boolean
+  workflow_call:  
+    inputs:
+      channel:
+        required: true
+        type: string
+      version:
+        required: false
+        type: string
+        default: ''
+      buildtime:
+        required: false
+        type: string
+        default: ''
+      release:
+        required: false
+        type: boolean
+        default: false
+
+env:
+  CUSTOM_LICENSE_PRIVATE_KEY: ${{ secrets.CUSTOM_LICENSE_PRIVATE_KEY }}
+  CUSTOM_LICENSE_PUBLIC_KEY: ${{ secrets.CUSTOM_LICENSE_PUBLIC_KEY }}
+  CUSTOM_NPK_SIGN_PRIVATE_KEY: ${{ secrets.CUSTOM_NPK_SIGN_PRIVATE_KEY }}
+  CUSTOM_NPK_SIGN_PUBLIC_KEY: ${{ secrets.CUSTOM_NPK_SIGN_PUBLIC_KEY }}
+  CUSTOM_CLOUD_PUBLIC_KEY: ${{ secrets.CUSTOM_CLOUD_PUBLIC_KEY }}
+  MIKRO_LICENSE_PUBLIC_KEY: ${{ secrets.MIKRO_LICENSE_PUBLIC_KEY }}
+  MIKRO_NPK_SIGN_PUBLIC_KEY: ${{ secrets.MIKRO_NPK_SIGN_PUBLIC_KEY }}
+  MIKRO_CLOUD_PUBLIC_KEY: ${{ secrets.MIKRO_CLOUD_PUBLIC_KEY }}
+  MIKRO_LICENCE_URL: ${{ secrets.MIKRO_LICENCE_URL }}
+  CUSTOM_LICENCE_URL: ${{ secrets.CUSTOM_LICENCE_URL }}
+  MIKRO_UPGRADE_URL: ${{ secrets.MIKRO_UPGRADE_URL }}
+  CUSTOM_UPGRADE_URL: ${{ secrets.CUSTOM_UPGRADE_URL }}
+  MIKRO_RENEW_URL: ${{ secrets.MIKRO_RENEW_URL }}
+  CUSTOM_RENEW_URL: ${{ secrets.CUSTOM_RENEW_URL }}
+  MIKRO_CLOUD_URL: ${{ secrets.MIKRO_CLOUD_URL }}
+  CUSTOM_CLOUD_URL: ${{ secrets.CUSTOM_CLOUD_URL }}
+
+
+jobs:
+  Prepare_Build:
+    runs-on: ubuntu-24.04
+    outputs:
+      VERSION: ${{ steps.prepare.outputs.VERSION }}
+      BUILD_TIME: ${{ steps.prepare.outputs.BUILD_TIME }}
+      ARCHS: ${{ steps.prepare.outputs.ARCHS }}
+      RELEASE: ${{ steps.prepare.outputs.RELEASE }}
+      SKIP_BUILD: ${{ steps.prepare.outputs.SKIP_BUILD }}
+    steps:
+    - name: Prepare Build for ${{ inputs.channel }}
+      id: prepare
+      run: |
+        CHANNEL="${{ inputs.channel }}"
+        VERSION="${{ inputs.version }}"
+        RELEASE="${{ inputs.release }}"
+        BUILD_TIME="${{ inputs.buildtime }}"
+        ARCHS='["x86"]'
+
+        SKIP_BUILD=false
+        if [ -z "$VERSION" ]; then
+          echo "Checking latest version from $CHANNEL channel..."
+          TIMESTAMP=$(date +%s)
+          NEWEST=$(wget -nv -O - "https://${{ env.MIKRO_UPGRADE_URL }}/routeros/NEWEST6.$CHANNEL?t=$TIMESTAMP")
+          VERSION=$(echo "$NEWEST" | cut -d ' ' -f1)
+          echo "Official version: $VERSION"
+          if [[ "${{ github.event_name }}" != "workflow_dispatch" ]]; then
+            PATCH_NEWEST=$(wget -nv -O - "https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/NEWEST6.$CHANNEL?t=$TIMESTAMP" 2>/dev/null || echo "")
+            PATCH_VERSION=$(echo "$PATCH_NEWEST" | cut -d ' ' -f1)
+            echo "Patch version: ${PATCH_VERSION:-none}"
+            if [ "$PATCH_VERSION" == "$VERSION" ]; then
+              echo "No new version for $CHANNEL, skipping..."
+              SKIP_BUILD=true
+            else
+              echo "New version $VERSION available, building..."
+            fi
+          fi
+        fi
+        echo "SKIP_BUILD=$SKIP_BUILD" >> $GITHUB_OUTPUT
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        echo "BUILD_TIME=$BUILD_TIME" >> $GITHUB_OUTPUT
+        echo "ARCHS=$ARCHS" >> $GITHUB_OUTPUT
+        echo "RELEASE=$RELEASE" >> $GITHUB_OUTPUT
+        echo "Version: $VERSION, Archs: $ARCHS"
+        
+
+  Build_RouterOS:
+    needs: Prepare_Build
+    if: needs.Prepare_Build.outputs.SKIP_BUILD == 'false'
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        arch: ${{ fromJson(needs.Prepare_Build.outputs.ARCHS) }}
+      fail-fast: false
+    env:
+      TZ: 'Asia/Shanghai'
+      CHANNEL: ${{ inputs.channel }}
+      ARCH: ${{ matrix.arch }}
+      VERSION: ${{ needs.Prepare_Build.outputs.VERSION }}
+      BUILD_TIME: ${{ needs.Prepare_Build.outputs.BUILD_TIME }}
+      BUILD_DIR: "/tmp/build/${{ needs.Prepare_Build.outputs.VERSION }}"
+      PUBLISH_DIR: "${{ github.workspace }}/publish/${{ needs.Prepare_Build.outputs.VERSION }}"
+      ARCH_EXT: ""
+      PACKAGES: ""
+    steps:
+    - uses: actions/checkout@v6
+    - name: Setup environment
+      run: |
+        sudo apt-get update > /dev/null
+        sudo apt-get install -y zip unzip squashfs-tools jq > /dev/null
+        sudo apt-get install -y python3-crcmod python3-pefile python3-pyelftools > /dev/null
+  
+        if [ "$ARCH" == "x86" ]; then
+            ARCH_EXT=""
+        else
+            ARCH_EXT="-$ARCH"
+        fi
+        echo "ARCH_EXT=$ARCH_EXT" >> $GITHUB_ENV
+        echo "ARCH_EXT: $ARCH_EXT"
+
+        sudo rm -rf "$BUILD_DIR"
+        mkdir -p "$BUILD_DIR"
+        echo "BUILD_DIR: $BUILD_DIR"
+
+        sudo rm -rf "$PUBLISH_DIR"
+        mkdir -p "$PUBLISH_DIR"
+        echo "PUBLISH_DIR: $PUBLISH_DIR"
+
+        wget -nv -O $PUBLISH_DIR/CHANGELOG "https://${{ env.MIKRO_UPGRADE_URL }}/routeros/$VERSION/CHANGELOG"
+        cat $PUBLISH_DIR/CHANGELOG
+
+
+    - name: Create Squashfs for Option Package
+      run: |
+        echo "Creating Option Package Squashfs for channel: $CHANNEL, arch: $ARCH"
+        mkdir -p $BUILD_DIR/option-root/bin/
+        cp ./busybox/busybox_$ARCH $BUILD_DIR/option-root/bin/busybox
+        chmod +x $BUILD_DIR/option-root/bin/busybox
+        cp ./keygen/keygen_$ARCH $BUILD_DIR/option-root/bin/keygen
+        chmod +x $BUILD_DIR/option-root/bin/keygen
+        chmod +x ./busybox/busybox_x86
+        COMMANDS=$(./busybox/busybox_x86 --list)
+        for cmd in $COMMANDS; do
+            ln -sf /pckg/option/bin/busybox $BUILD_DIR/option-root/bin/$cmd
+        done
+        mkdir -p $BUILD_DIR/option-root/home/web/webfig/
+        BUSYBOX=$(./busybox/busybox_x86 | head -1 | cut -d' ' -f2)
+        tee $BUILD_DIR/option.jg  > /dev/null << EOF
+        [
+            {
+                name:'Patch About',
+                title:'Patch About',
+                icon: 30,
+                prio: 2000,
+                c:[
+                    {
+                        title:'Patch About',
+                        type:'item',
+                        path:[24, 2],
+                        autorefresh: 1000, 
+                        ro: 1,
+                        c: [
+                            {type:'gridcell'},
+                            {name:'Patch',type:'tab',inline: 1},
+                            {name:'Author',type:'string',def:'elseif@live.cn'},
+                            {name:'GitHub',type:'string',def:'https://github.com/elseif/MikroTikPatch', url:1},
+                            {name:'Telegram',type:'string',def:'https://telegram.me/mikrotikpatch', url:1},
+                            {name:'Homepage',type:'string',def:'https://mikrotik.ltd', url:1},
+                            {name:'Busybox',type:'string',def:'$BUSYBOX'},
+                            {name:'System',type:'tab',inline: 1},
+                            {name:'Uptime',type:'interval',id:'u1'},
+                            {name:'Architecture Name',type:'string',id:'s1a'},
+                            {name:'Board Name',type:'string',id:'s2c'},
+                            {name:'Version',type:'version',id:'s16'},
+                            {name:'Build Time',type:'string',id:'s27'},
+                            {type:'separator'},
+                            {type:'toolbar',
+                                c: [
+                                    {title:'Terminal',type:'contextmenu',autostart: 1,group:'Tools',link: [{conv:'put',dst:'Type',val: 0}],open:'Telnet',tab:'Telnet'},
+                                    {name:'License',type:'contextmenu',autostart: 1,group:'System',link: [],open:'License',tab:'License'},
+                                    {name:'Check For Updates',type:'contextmenu',autostart: 1,group:'System',link: [],open:'Packages',tab:'Check For Updates'}
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+        EOF
+        sudo apt-get install python3-crcmod > /dev/null
+        HASH=$(python3 -E <<EOF
+        import hashlib, crcmod, sys
+        with open('$BUILD_DIR/option.jg','rb') as f:
+            data = f.read()
+            sha1 = hashlib.sha1(data).hexdigest()[:12]
+            crc = crcmod.mkCrcFun(0x104C11DB7, initCrc=0xFFFFFFFF, rev=False, xorOut=0xFFFFFFFF)(data)
+            print(f"{sha1} {crc}")
+        EOF
+        )
+        SHA1_PREFIX=$(echo "$HASH" | awk '{print $1}')
+        CRC=$(echo "$HASH" | awk '{print $2}')
+        mv $BUILD_DIR/option.jg $BUILD_DIR/option-$SHA1_PREFIX.jg
+        python3 -E << EOF
+        import gzip
+        gzip.open('$BUILD_DIR/option-$SHA1_PREFIX.jg.gz', 'wb', compresslevel=0).write(open('$BUILD_DIR/option-$SHA1_PREFIX.jg', 'rb').read())
+        EOF
+        SIZE=$(stat -c %s $BUILD_DIR/option-$SHA1_PREFIX.jg.gz)
+        mv $BUILD_DIR/option-$SHA1_PREFIX.jg.gz $BUILD_DIR/option-root/home/web/webfig/
+        tee $BUILD_DIR/option-root/home/web/webfig/option.info > /dev/null << EOF
+        { crc: $CRC, size: $SIZE, name: "option.jg", unique: "option-$SHA1_PREFIX.jg",version: "$VERSION" },
+        EOF
+        ln -sf option-$SHA1_PREFIX.jg.gz $BUILD_DIR/option-root/home/web/webfig/option.jg.gz
+        mksquashfs $BUILD_DIR/option-root $BUILD_DIR/option.sfs -no-recovery -noappend -exit-on-error -quiet -comp xz -no-xattrs -b 256k -all-root  
+        rm -rf $BUILD_DIR/option-root
+        echo "✅ Option Package Squashfs created: $BUILD_DIR/option.sfs"
+        ls -la "$BUILD_DIR/option.sfs"
+
+
+    - name: Cache mikrotik-${{ env.VERSION }}${{ env.ARCH_EXT }}.iso
+      id: cache-mikrotik-iso
+      uses: actions/cache@v5
+      with:
+        path: ${{ env.BUILD_DIR }}/mikrotik-${{ env.VERSION }}${{ env.ARCH_EXT }}.iso
+        key: mikrotik-${{ env.VERSION }}${{ env.ARCH_EXT }}
+
+    - name: Get mikrotik-${{ env.VERSION }}${{ env.ARCH_EXT }}.iso
+      if: steps.cache-mikrotik-iso.outputs.cache-hit != 'true' 
+      run: |
+        wget -nv -O $BUILD_DIR/mikrotik-$VERSION$ARCH_EXT.iso \
+            https://download.mikrotik.com/routeros/$VERSION/mikrotik-$VERSION$ARCH_EXT.iso
+
+    - name: Unpack ISO
+      run: |
+        mkdir -p $BUILD_DIR/all_packages
+        mkdir -p $BUILD_DIR/iso
+        mkdir -p $BUILD_DIR/new_iso
+        sudo mount -o loop,ro $BUILD_DIR/mikrotik-$VERSION$ARCH_EXT.iso $BUILD_DIR/iso
+        cp -r $BUILD_DIR/iso/* $BUILD_DIR/new_iso/
+        rsync -a $BUILD_DIR/iso/ $BUILD_DIR/new_iso/
+        mv $BUILD_DIR/new_iso/*.npk $BUILD_DIR/all_packages/
+        mv $BUILD_DIR/all_packages/system-$VERSION$ARCH_EXT.npk $BUILD_DIR/
+        sudo umount $BUILD_DIR/iso
+        rm -rf $BUILD_DIR/iso
+
+    - name: Cache routeros-${{ env.ARCH }}-${{ env.VERSION }}.npk
+      id: cache-routeros-npk
+      uses: actions/cache@v5
+      with:
+        path: ${{ env.BUILD_DIR }}/routeros-${{ env.ARCH }}-${{ env.VERSION }}.npk
+        key: routeros-${{ env.ARCH }}-${{ env.VERSION }}.npk
+
+    - name: Get routeros-${{ env.ARCH }}-${{ env.VERSION }}.npk
+      if: steps.cache-routeros-npk.outputs.cache-hit != 'true' 
+      run: |
+        wget -nv -O $BUILD_DIR/routeros-$ARCH-$VERSION.npk \
+            https://download.mikrotik.com/routeros/$VERSION/routeros-$ARCH-$VERSION.npk
+
+
+    - name: Get loader patch files
+      run: |
+        wget -nv -O loader.7z https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/loader.7z
+        sudo apt-get install -y p7zip-full > /dev/null
+        7z x -p"${{ secrets.LOADER_7Z_PASSWORD }}" loader.7z >> /dev/null
+        rm loader.7z
+
+
+    - name: Patch NPK files
+      run: |
+        sudo apt-get install build-essential -y > /dev/null
+        chmod +w $BUILD_DIR/all_packages/*.npk
+        NPK_FILES=$(find $BUILD_DIR/all_packages/*.npk)
+        for file in $NPK_FILES; do
+            python3 npk.py sign $file $file
+        done
+        OPTION_FROM_NPK=gps-$VERSION$ARCH_EXT.npk
+        OPTION_NPK=option-$VERSION$ARCH_EXT.npk
+        python3 npk.py create $BUILD_DIR/all_packages/$OPTION_FROM_NPK $BUILD_DIR/all_packages/$OPTION_NPK option $BUILD_DIR/option.sfs -desc="busybox"
+        rm -rf $BUILD_DIR/option.sfs
+        python3 patch.py npk $BUILD_DIR/system-$VERSION$ARCH_EXT.npk -O $BUILD_DIR/all_packages/system-$VERSION$ARCH_EXT.npk
+        (cd $BUILD_DIR/all_packages && zip -r $PUBLISH_DIR/all_packages-$ARCH-$VERSION.zip .)
+        mv $BUILD_DIR/all_packages/*.npk $PUBLISH_DIR/
+        python3 patch.py npk $BUILD_DIR/routeros-$ARCH-$VERSION.npk -O $PUBLISH_DIR/routeros-$ARCH-$VERSION.npk
+        echo "✅ all package npk files are signed and patched: "
+        ls -la $PUBLISH_DIR/*.npk
+
+    - name: Create ISO & INSTALL image files
+      run: |
+        set -e
+        echo "Creating ISO..."
+        sudo modprobe nbd
+        sudo apt-get install syslinux syslinux-common xorriso extlinux qemu-utils -y > /dev/null
+        unzip $PUBLISH_DIR/all_packages-$ARCH-$VERSION.zip -d $BUILD_DIR/new_iso/
+        python3 patch.py kernel $BUILD_DIR/new_iso/isolinux/initrd.rgz
+        xorriso -as mkisofs -o $PUBLISH_DIR/mikrotik-$VERSION$ARCH_EXT.iso \
+                    -V "MikroTik $LATEST_VERSION" \
+                    -sysid "" -preparer "MiKroTiK" \
+                    -publisher "" -A "MiKroTiK RouterOS" \
+                    -input-charset utf-8 \
+                    -b isolinux/isolinux.bin \
+                    -c isolinux/boot.cat \
+                    -no-emul-boot \
+                    -boot-load-size 4 \
+                    -boot-info-table \
+                    -R -J \
+                    $BUILD_DIR/new_iso
+        echo "✅ ISO created: "
+        ls -la $PUBLISH_DIR/mikrotik-$VERSION$ARCH_EXT.iso
+
+        echo "Creating install image..."
+        truncate --size 128M $BUILD_DIR/install-image-$VERSION.img
+        mkfs.vfat -I -F 32 -n "Install" $BUILD_DIR/install-image-$VERSION.img
+        LOOP=$(sudo losetup -f --show $BUILD_DIR/install-image-$VERSION.img)
+        sudo syslinux --install $LOOP
+        mkdir -p $BUILD_DIR/install
+        sudo mount -o loop,uid=$(id -u),gid=$(id -g),umask=000 $LOOP $BUILD_DIR/install
+        cp -vf $BUILD_DIR/new_iso/isolinux/linux $BUILD_DIR/install/
+        cp -vf /usr/lib/syslinux/modules/bios/ldlinux.c32 $BUILD_DIR/install/
+        tee $BUILD_DIR/install/syslinux.cfg > /dev/null << 'EOF'
+        default system
+        LABEL system
+          KERNEL linux
+          APPEND load_ramdisk=1 initrd=initrd.rgz -hdd-install
+        EOF
+
+        NPK_FILES=($(find $BUILD_DIR/new_iso/*.npk))
+        for ((i=1; i<=${#NPK_FILES[@]}; i++))
+        do
+            echo "${NPK_FILES[$i-1]}=>$i.npk" 
+            cp ${NPK_FILES[$i-1]} $BUILD_DIR/install/$i.npk
+        done
+        touch $BUILD_DIR/install/CHOOSE
+        touch $BUILD_DIR/install/autorun.scr 
+        sync
+        sudo umount $BUILD_DIR/install
+        sudo losetup -d $LOOP
+        rm -rf $BUILD_DIR/install
+        echo "✅ install imgage created: "
+        ls -la $BUILD_DIR/install-image-$VERSION.img
+        (cd $BUILD_DIR && zip $PUBLISH_DIR/install-image-$VERSION.zip install-image-$VERSION.img)
+        rm $BUILD_DIR/install-image-$VERSION.img
+        rm -rf $BUILD_DIR/new_iso
+
+
+    - name: Create CHR image files
+      run: |
+        set -e
+        echo "Creating CHR image..."
+        mkdir -p $BUILD_DIR/chr
+        truncate --size 128M $BUILD_DIR/chr-$VERSION$ARCH_EXT.img
+        sfdisk chr-$VERSION$ARCH_EXT.img <<EOF
+        label: dos
+        unit: sectors
+        start=1, size=, type=83, bootable
+        EOF
+        sudo losetup -fP $BUILD_DIR/chr-$VERSION$ARCH_EXT.img
+        LOOP_DEV=$(sudo losetup -l | grep "$BUILD_DIR/chr-$VERSION$ARCH_EXT.img" | awk '{print $1}')
+        sudo mkfs.ext4 -F -L "system" -m 0 ${LOOP_DEV}p1
+        sudo mount -o uid=$(id -u),gid=$(id -g) ${LOOP_DEV}p1 $BUILD_DIR/chr
+        mkdir -p $BUILD_DIR/chr/{boot,bin,rw/disk,var/pdb/{routeros-x86,option,dude}}
+        python3 npk.py extract $PUBLISH_DIR/routeros-$ARCH-$VERSION.npk bin/milo $BUILD_DIR/chr/bin/milo
+        chmod +x $BUILD_DIR/chr/bin/milo
+        python3 npk.py extract $PUBLISH_DIR/routeros-$ARCH-$VERSION.npk boot/vmlinuz-64 $BUILD_DIR/chr/boot/vmlinuz-64
+        python3 npk.py extract $PUBLISH_DIR/routeros-$ARCH-$VERSION.npk boot/initrd.rgz $BUILD_DIR/chr/boot/initrd.rgz
+        python3 npk.py extract $PUBLISH_DIR/routeros-$ARCH-$VERSION.npk boot/map $BUILD_DIR/chr/boot/map
+        python3 npk.py extract $PUBLISH_DIR/routeros-$ARCH-$VERSION.npk boot/milo.conf $BUILD_DIR/chr/boot/milo.conf
+        python3 npk.py extract $PUBLISH_DIR/routeros-$ARCH-$VERSION.npk boot/vmlinuz $BUILD_DIR/chr/boot/vmlinuz
+        python3 npk.py extract $PUBLISH_DIR/routeros-$ARCH-$VERSION.npk boot/vmlinuz-smp $BUILD_DIR/chr/boot/vmlinuz-smp
+        cp $PUBLISH_DIR/routeros-$ARCH-$VERSION.npk $BUILD_DIR/chr/var/pdb/routeros-x86/image
+        cp $PUBLISH_DIR/option-$VERSION$ARCH_EXT.npk $BUILD_DIR/chr/var/pdb/option/image
+        cp $PUBLISH_DIR/dude-$VERSION$ARCH_EXT.npk $BUILD_DIR/chr/var/pdb/dude/image
+        echo -e '#!/bin/sh\n# This script will be executed *before* RouterOS *loader* start.\n# You can put your own initialization stuff in here\n' | tee $BUILD_DIR/chr/rw/disk/rc.local
+        touch $BUILD_DIR/chr/rw/REBOOT
+        touch $BUILD_DIR/chr/rw/ENABLE_X86_64
+        touch $BUILD_DIR/chr/rw/autorun.scr
+        touch $BUILD_DIR/chr/UPGRADED
+        touch $BUILD_DIR/chr/SHOW_LICENSE
+        sudo $BUILD_DIR/chr/bin/milo $BUILD_DIR/chr/boot
+        sudo mountpoint -q $BUILD_DIR/chr && sudo umount $BUILD_DIR/chr
+        sudo losetup -d $LOOP_DEV 2>/dev/null || true
+        sudo rm -rf ./chr
+        qemu-img convert -f raw -O qcow2 $BUILD_DIR/chr-$VERSION$ARCH_EXT.img $BUILD_DIR/chr-$VERSION$ARCH_EXT.qcow2
+        qemu-img convert -f raw -O vmdk  $BUILD_DIR/chr-$VERSION$ARCH_EXT.img $BUILD_DIR/chr-$VERSION$ARCH_EXT.vmdk
+        qemu-img convert -f raw -O vpc $BUILD_DIR/chr-$VERSION$ARCH_EXT.img $BUILD_DIR/chr-$VERSION$ARCH_EXT.vhd
+        qemu-img convert -f raw -O vhdx $BUILD_DIR/chr-$VERSION$ARCH_EXT.img $BUILD_DIR/chr-$VERSION$ARCH_EXT.vhdx
+        qemu-img convert -f raw -O vdi $BUILD_DIR/chr-$VERSION$ARCH_EXT.img $BUILD_DIR/chr-$VERSION$ARCH_EXT.vdi
+        echo "✅ CHR created: "
+        ls -la $BUILD_DIR/chr-$VERSION$ARCH_EXT.*
+        (cd $BUILD_DIR && \
+            zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.qcow2.zip chr-$VERSION$ARCH_EXT.qcow2 && \
+            zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.vmdk.zip chr-$VERSION$ARCH_EXT.vmdk && \
+            zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.vhd.zip chr-$VERSION$ARCH_EXT.vhd && \
+            zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.vhdx.zip chr-$VERSION$ARCH_EXT.vhdx && \
+            zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.vdi.zip chr-$VERSION$ARCH_EXT.vdi && 
+            zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.img.zip chr-$VERSION$ARCH_EXT.img )
+        rm $BUILD_DIR/chr-$VERSION$ARCH_EXT.*
+
+    - name: Upload Files as Artifact (No Release)
+      if: needs.Prepare_Build.outputs.RELEASE == 'false'
+      uses: actions/upload-artifact@v7
+      with:
+        name: mikrotik-${{ env.VERSION }}${{ env.ARCH_EXT }}
+        path: |
+          ${{ env.PUBLISH_DIR }}/*.zip
+          ${{ env.PUBLISH_DIR }}/*.iso
+        
+    - name: Generate SHA256 checksum files
+      if: needs.Prepare_Build.outputs.RELEASE == 'true'
+      run: |
+        (
+          cd $PUBLISH_DIR
+          for file in *.zip *.iso *.npk; do
+            if [ -f "$file" ]; then
+              sha256sum "$file" > "$file.sha256"
+              cat "$file.sha256"
+            fi
+          done
+        ) 
+        
+    - name: Delete Release tag ${{ env.VERSION }}${{ env.ARCH_EXT }}
+      if: needs.Prepare_Build.outputs.RELEASE == 'true'
+      run: |
+        sed -i "1i Build Time:$BUILD_TIME" $PUBLISH_DIR/CHANGELOG
+        HEADER="Authorization: token ${{ secrets.GITHUB_TOKEN }}"
+        RELEASE_INFO=$(curl -s -H "$HEADER" https://api.github.com/repos/${{ github.repository }}/releases/tags/$VERSION$ARCH_EXT)
+        RELEASE_ID=$(echo $RELEASE_INFO | jq -r '.id')
+        echo "Release ID: $RELEASE_ID"
+        if [ "$RELEASE_ID" != "null" ]; then
+            curl -X DELETE -H "$HEADER" https://api.github.com/repos/${{ github.repository }}/git/refs/tags/$VERSION$ARCH_EXT
+            echo "Tag $VERSION$ARCH_EXT deleted successfully."
+            curl -X DELETE -H "$HEADER" https://api.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID
+            echo "Release with tag $VERSION$ARCH_EXT deleted successfully."
+            # Wait for a moment to ensure the deletion is complete
+            sleep 3
+        else
+            echo "Release not found for tag: $VERSION$ARCH_EXT)"
+        fi
+        
+    - name: Create Release tag ${{ env.VERSION }}${{ env.ARCH_EXT }}
+      if: needs.Prepare_Build.outputs.RELEASE == 'true'
+      uses: softprops/action-gh-release@v3
+      with:
+        name: "RouterOS ${{ env.VERSION }}${{ env.ARCH_EXT }}"
+        repository: ${{ github.repository }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+        body_path: ${{env.PUBLISH_DIR}}/CHANGELOG
+        tag_name: ${{ env.VERSION }}${{ env.ARCH_EXT }}
+        make_latest: false
+        prerelease:  false
+        files: |
+          ${{env.PUBLISH_DIR}}/*.zip
+          ${{env.PUBLISH_DIR}}/*.iso
+          ${{env.PUBLISH_DIR}}/*.zip.sha256
+          ${{env.PUBLISH_DIR}}/*.iso.sha256
+
+    - name: Upload Files
+      if: needs.Prepare_Build.outputs.RELEASE == 'true'
+      run: |
+        sudo apt-get install -y knockd lftp > /dev/null
+        knock -4  ${{ secrets.SSH_SERVER }} ${{ secrets.SSH_KNOCK_PORT }} 
+        echo "Knocking on server..."
+        for i in 1 2 3; do
+          if knock -4  ${{ secrets.SSH_SERVER }} ${{ secrets.SSH_KNOCK_PORT }} ; then
+            echo "Knock successful"
+            break
+          else
+            echo "Knock attempt $i failed, retrying..."
+            sleep 2
+          fi
+        done
+        echo "Waiting for firewall to open SSH port..."
+        sleep 3
+        rm -f $PUBLISH_DIR/*.zip
+        rm -f $PUBLISH_DIR/*.iso
+        rm -f $PUBLISH_DIR/*.zip.sha256
+        rm -f $PUBLISH_DIR/*.iso.sha256
+        sed -i '1d' $PUBLISH_DIR/CHANGELOG
+        echo $VERSION $BUILD_TIME | tee $PUBLISH_DIR/info
+        touch $PUBLISH_DIR/$CHANNEL
+        REMOTE_PATH=${{ secrets.SSH_DIRECTORY }}/$VERSION
+        SERVER=${{ secrets.SSH_SERVER }}
+        USER=${{ secrets.SSH_USERNAME }}
+        PASS=${{ secrets.SSH_PASSWORD }}
+        PORT=${{ secrets.SSH_PORT }}
+        
+        lftp -u "$USER","$PASS" sftp://$SERVER:$PORT <<EOF
+        set sftp:auto-confirm yes
+        mirror --reverse --verbose --only-newer $PUBLISH_DIR "$REMOTE_PATH"
+        bye
+        EOF
+
+    - name: Clear Cloudflare cache
+      if: needs.Prepare_Build.outputs.RELEASE == 'true'
+      run: |
+        curl --request POST --url "https://api.cloudflare.com/client/v4/zones/096723464400de10b6eb85028baa8372/purge_cache" \
+            --header "Authorization: Bearer 9GDQkzU51QXaqzp1qMjyFKpyeJyOdnNoG9GZQaGP" \
+            --header "Content-Type:application/json" \
+            --data '{"purge_everything": true}'
+
+
+  Update_Release:
+    needs: [Prepare_Build,Build_RouterOS]
+    if: |
+      needs.Prepare_Build.outputs.SKIP_BUILD == 'false' && 
+      needs.Build_RouterOS.result == 'success' &&
+      needs.Prepare_Build.outputs.RELEASE == 'true' 
+    runs-on: ubuntu-24.04
+    env:
+      CHANNEL: ${{ inputs.channel }}
+      VERSION: ${{ needs.Prepare_Build.outputs.VERSION }}
+    steps:
+    - name: Update Release
+      run: |
+        sudo apt-get install -y knockd lftp > /dev/null
+        knock -4  ${{ secrets.SSH_SERVER }} ${{ secrets.SSH_KNOCK_PORT }} 
+        echo "Knocking on server..."
+        for i in 1 2 3; do
+          if knock -4  ${{ secrets.SSH_SERVER }} ${{ secrets.SSH_KNOCK_PORT }} ; then
+            echo "Knock successful"
+            break
+          else
+            echo "Knock attempt $i failed, retrying..."
+            sleep 2
+          fi
+        done
+        echo "Waiting for firewall to open SSH port..."
+        sleep 3
+        REMOTE_PATH=${{ secrets.SSH_DIRECTORY }}
+        SERVER=${{ secrets.SSH_SERVER }}
+        USER=${{ secrets.SSH_USERNAME }}
+        PASS=${{ secrets.SSH_PASSWORD }}
+        PORT=${{ secrets.SSH_PORT }}
+        sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no -p $PORT $USER@$SERVER \
+            ln -sf /root/$REMOTE_PATH/$VERSION/info /rw/disk/$REMOTE_PATH/NEWEST6.$CHANNEL; \
+            chown -R 32768:32768 /rw/disk/$REMOTE_PATH/"
+        echo "✅ Updated release info."
