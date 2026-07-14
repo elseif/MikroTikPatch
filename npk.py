@@ -154,7 +154,7 @@ class NpkFileContainer:
         self._items= items
     def serialize(self)->bytes:
         compressed_data = b''
-        compressor = zlib.compressobj()
+        compressor = zlib.compressobj(level=0)
         for item in self._items:
             data = struct.pack(self._format, item.perm,item.type,item.usr_or_grp, item.modify_time,item.revision,item.rc,item.minor,item.major,item.create_time,item.unknow,len(item.data),len(item.name)) 
             data += item.name + item.data

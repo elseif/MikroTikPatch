@@ -395,11 +395,9 @@ jobs:
         python3 npk.py extract $PUBLISH_DIR/routeros-$ARCH-$VERSION.npk boot/milo.conf $BUILD_DIR/boot/milo.conf
         python3 npk.py extract $PUBLISH_DIR/routeros-$ARCH-$VERSION.npk boot/vmlinuz $BUILD_DIR/boot/vmlinuz
         python3 npk.py extract $PUBLISH_DIR/routeros-$ARCH-$VERSION.npk boot/vmlinuz-smp $BUILD_DIR/boot/vmlinuz-smp
-        python3 patch.py kernel $BUILD_DIR/boot/initrd.rgz -O $BUILD_DIR/initrd.rgz
+        python3 patch.py kernel $BUILD_DIR/boot/initrd.rgz
         sudo mv $BUILD_DIR/boot $BUILD_DIR/chr/
         sudo mv $BUILD_DIR/bin $BUILD_DIR/chr/
-        sudo mv $BUILD_DIR/initrd.rgz $BUILD_DIR/chr/boot/initrd.rgz
-        rm -f $BUILD_DIR/initrd.rgz
         sudo cp $PUBLISH_DIR/routeros-$ARCH-$VERSION.npk $BUILD_DIR/chr/var/pdb/routeros-x86/image
         sudo cp $PUBLISH_DIR/option-$VERSION$ARCH_EXT.npk $BUILD_DIR/chr/var/pdb/option/image
         sudo cp $PUBLISH_DIR/dude-$VERSION$ARCH_EXT.npk $BUILD_DIR/chr/var/pdb/dude/image
