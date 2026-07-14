@@ -1,4 +1,4 @@
-name: Build RouterOS v6
+name: Patch RouterOS v6
 on:
   workflow_dispatch:
     inputs:
@@ -63,7 +63,7 @@ env:
 
 
 jobs:
-  Prepare_Build:
+  Prepare_Patch:
     runs-on: ubuntu-24.04
     outputs:
       VERSION: ${{ steps.prepare.outputs.VERSION }}
@@ -72,7 +72,7 @@ jobs:
       RELEASE: ${{ steps.prepare.outputs.RELEASE }}
       SKIP_BUILD: ${{ steps.prepare.outputs.SKIP_BUILD }}
     steps:
-    - name: Prepare Build for ${{ inputs.channel }}
+    - name: Prepare Patch for ${{ inputs.channel }}
       id: prepare
       run: |
         CHANNEL="${{ inputs.channel }}"
@@ -109,21 +109,21 @@ jobs:
         
 
   Build_RouterOS:
-    needs: Prepare_Build
-    if: needs.Prepare_Build.outputs.SKIP_BUILD == 'false'
+    needs: Prepare_Patch
+    if: needs.Prepare_Patch.outputs.SKIP_BUILD == 'false'
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        arch: ${{ fromJson(needs.Prepare_Build.outputs.ARCHS) }}
+        arch: ${{ fromJson(needs.Prepare_Patch.outputs.ARCHS) }}
       fail-fast: false
     env:
       TZ: 'Asia/Shanghai'
       CHANNEL: ${{ inputs.channel }}
       ARCH: ${{ matrix.arch }}
-      VERSION: ${{ needs.Prepare_Build.outputs.VERSION }}
-      BUILD_TIME: ${{ needs.Prepare_Build.outputs.BUILD_TIME }}
-      BUILD_DIR: "/tmp/build/${{ needs.Prepare_Build.outputs.VERSION }}"
-      PUBLISH_DIR: "${{ github.workspace }}/publish/${{ needs.Prepare_Build.outputs.VERSION }}"
+      VERSION: ${{ needs.Prepare_Patch.outputs.VERSION }}
+      BUILD_TIME: ${{ needs.Prepare_Patch.outputs.BUILD_TIME }}
+      BUILD_DIR: "/tmp/build/${{ needs.Prepare_Patch.outputs.VERSION }}"
+      PUBLISH_DIR: "${{ github.workspace }}/publish/${{ needs.Prepare_Patch.outputs.VERSION }}"
       ARCH_EXT: ""
       PACKAGES: ""
     steps:
@@ -211,7 +211,6 @@ jobs:
             }
         ]
         EOF
-        sudo apt-get install python3-crcmod > /dev/null
         HASH=$(python3 -E <<EOF
         import hashlib, crcmod, sys
         with open('$BUILD_DIR/option.jg','rb') as f:
@@ -260,7 +259,6 @@ jobs:
         mkdir -p $BUILD_DIR/new_iso
         sudo mount -o loop,ro $BUILD_DIR/mikrotik-$VERSION$ARCH_EXT.iso $BUILD_DIR/iso
         cp -r $BUILD_DIR/iso/* $BUILD_DIR/new_iso/
-        rsync -a $BUILD_DIR/iso/ $BUILD_DIR/new_iso/
         mv $BUILD_DIR/new_iso/*.npk $BUILD_DIR/all_packages/
         mv $BUILD_DIR/all_packages/system-$VERSION$ARCH_EXT.npk $BUILD_DIR/
         sudo umount $BUILD_DIR/iso
@@ -419,7 +417,7 @@ jobs:
         rm $BUILD_DIR/chr-$VERSION$ARCH_EXT.*
 
     - name: Upload Files as Artifact (No Release)
-      if: needs.Prepare_Build.outputs.RELEASE == 'false'
+      if: needs.Prepare_Patch.outputs.RELEASE == 'false'
       uses: actions/upload-artifact@v7
       with:
         name: mikrotik-${{ env.VERSION }}${{ env.ARCH_EXT }}
@@ -428,7 +426,7 @@ jobs:
           ${{ env.PUBLISH_DIR }}/*.iso
         
     - name: Generate SHA256 checksum files
-      if: needs.Prepare_Build.outputs.RELEASE == 'true'
+      if: needs.Prepare_Patch.outputs.RELEASE == 'true'
       run: |
         (
           cd $PUBLISH_DIR
@@ -441,7 +439,7 @@ jobs:
         ) 
         
     - name: Delete Release tag ${{ env.VERSION }}${{ env.ARCH_EXT }}
-      if: needs.Prepare_Build.outputs.RELEASE == 'true'
+      if: needs.Prepare_Patch.outputs.RELEASE == 'true'
       run: |
         sed -i "1i Build Time:$BUILD_TIME" $PUBLISH_DIR/CHANGELOG
         HEADER="Authorization: token ${{ secrets.GITHUB_TOKEN }}"
@@ -460,7 +458,7 @@ jobs:
         fi
         
     - name: Create Release tag ${{ env.VERSION }}${{ env.ARCH_EXT }}
-      if: needs.Prepare_Build.outputs.RELEASE == 'true'
+      if: needs.Prepare_Patch.outputs.RELEASE == 'true'
       uses: softprops/action-gh-release@v3
       with:
         name: "RouterOS ${{ env.VERSION }}${{ env.ARCH_EXT }}"
@@ -477,7 +475,7 @@ jobs:
           ${{env.PUBLISH_DIR}}/*.iso.sha256
 
     - name: Upload Files
-      if: needs.Prepare_Build.outputs.RELEASE == 'true'
+      if: needs.Prepare_Patch.outputs.RELEASE == 'true'
       run: |
         sudo apt-get install -y knockd lftp > /dev/null
         knock -4  ${{ secrets.SSH_SERVER }} ${{ secrets.SSH_KNOCK_PORT }} 
@@ -513,7 +511,7 @@ jobs:
         EOF
 
     - name: Clear Cloudflare cache
-      if: needs.Prepare_Build.outputs.RELEASE == 'true'
+      if: needs.Prepare_Patch.outputs.RELEASE == 'true'
       run: |
         curl --request POST --url "https://api.cloudflare.com/client/v4/zones/096723464400de10b6eb85028baa8372/purge_cache" \
             --header "Authorization: Bearer 9GDQkzU51QXaqzp1qMjyFKpyeJyOdnNoG9GZQaGP" \
@@ -522,15 +520,15 @@ jobs:
 
 
   Update_Release:
-    needs: [Prepare_Build,Build_RouterOS]
+    needs: [Prepare_Patch,Build_RouterOS]
     if: |
-      needs.Prepare_Build.outputs.SKIP_BUILD == 'false' && 
+      needs.Prepare_Patch.outputs.SKIP_BUILD == 'false' && 
       needs.Build_RouterOS.result == 'success' &&
-      needs.Prepare_Build.outputs.RELEASE == 'true' 
+      needs.Prepare_Patch.outputs.RELEASE == 'true' 
     runs-on: ubuntu-24.04
     env:
       CHANNEL: ${{ inputs.channel }}
-      VERSION: ${{ needs.Prepare_Build.outputs.VERSION }}
+      VERSION: ${{ needs.Prepare_Patch.outputs.VERSION }}
     steps:
     - name: Update Release
       run: |

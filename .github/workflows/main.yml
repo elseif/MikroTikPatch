@@ -6,35 +6,35 @@ on:
   workflow_dispatch:  
 
 jobs:
-  Build_Stable:
+  Patch_Stable:
     uses: ./.github/workflows/build_v7.yml
     with:
       channel: stable
       release: true
     secrets: inherit
 
-  Build_LongTerm:
+  Patch_LongTerm:
     uses: ./.github/workflows/build_v7.yml
     with:
       channel: long-term
       release: true
     secrets: inherit
 
-  Build_Testing:
+  Patch_Testing:
     uses: ./.github/workflows/build_v7.yml
     with:
       channel: testing
       release: true
     secrets: inherit
 
-  Build_Stable_V6:
+  Patch_Stable_V6:
     uses: ./.github/workflows/build_v6.yml
     with:
       channel: stable
       release: true
     secrets: inherit
 
-  Build_LongTerm_V6:
+  Patch_LongTerm_V6:
     uses: ./.github/workflows/build_v6.yml
     with:
       channel: long-term
