@@ -339,6 +339,7 @@ jobs:
         sudo mount -o loop,uid=$(id -u),gid=$(id -g),umask=000 $LOOP $BUILD_DIR/install
         cp -vf $BUILD_DIR/new_iso/isolinux/linux $BUILD_DIR/install/
         cp -vf /usr/lib/syslinux/modules/bios/ldlinux.c32 $BUILD_DIR/install/
+        cp -vf $BUILD_DIR/new_iso/isolinux/initrd.rgz $BUILD_DIR/install/initrd.rgz
         tee $BUILD_DIR/install/syslinux.cfg > /dev/null << 'EOF'
         default system
         LABEL system
