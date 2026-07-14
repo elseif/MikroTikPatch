@@ -384,7 +384,7 @@ jobs:
         sudo qemu-nbd -d /dev/nbd0
         sudo qemu-nbd -c /dev/nbd0 -f raw $BUILD_DIR/chr-$VERSION$ARCH_EXT.img
         sudo partprobe /dev/nbd0
-        sudo mkfs.ext4 -F -L "system" -m 0 /dev/nbd0p1
+        sudo mkfs.ext3 -F -L "system" -m 0 /dev/nbd0p1
         sudo mount /dev/nbd0p1 $BUILD_DIR/chr
         sudo mkdir -p $BUILD_DIR/chr/{boot,bin,rw/disk,var/pdb/{routeros-x86,option,dude}}
         mkdir -p $BUILD_DIR/{boot,bin}
