@@ -199,6 +199,59 @@ def patch_pe(data: bytes,key_dict:dict):
     new_data = data.replace(vmlinux_xz,new_vmlinux_xz)
     return new_data
 
+def build_efi(input_file, output_file):
+    from package import check_install_package
+    check_install_package(['pyelftools'])
+    from elftools.elf.elffile import ELFFile
+    import pefile
+    def find_xz_streams(data:bytes):
+        streams = []
+        XZ_HEADER_MAGIC = b'\xFD7zXZ\x00\x00\x01'
+        XZ_FOOTER_MAGIC = b'\x00\x00\x00\x00\x01\x59\x5A'
+        i = 0
+        while True:
+            start = data.find(XZ_HEADER_MAGIC, i)
+            if start == -1:
+                break
+            end = data.find(XZ_FOOTER_MAGIC, start)
+            assert end != -1, 'XZ footer not found'
+            end += len(XZ_FOOTER_MAGIC)
+            streams.append((start, end))
+            i = end
+        return streams
+    with open(input_file, 'rb') as f:
+        elf = ELFFile(f)
+        initrd_section =elf.get_section_by_name('initrd')
+        assert initrd_section is not None,'initrd section not found'
+        initrd_data = initrd_section.data()
+        xz_streams = find_xz_streams(initrd_data)
+        assert len(xz_streams) == 2,'only support 2 xz streams'
+        efi_xz = initrd_data[xz_streams[0][0]:xz_streams[0][1]]
+        cpio_xz = initrd_data[xz_streams[1][0]:xz_streams[1][1]]
+        try:
+            efi = lzma.decompress(efi_xz)
+        except Exception as e:
+            print(f'size:{len(efi_xz)},header:{efi_xz[:20].hex().upper()},footer:{efi_xz[-20:].hex().upper()}\n')
+            raise Exception(f'failed to decompress efi: {e}')
+
+        with pefile.PE(data = efi) as pe:
+            data_section =[section for section in pe.sections if section.Name == b'.data\x00\x00\x00'][0]
+            rva = data_section.VirtualAddress
+            addr = data_section.PointerToRawData
+            data = data_section.get_data()
+            size = len(data)
+            alignment = ((rva + size) + 4096 - 1) & ~(4096 - 1) #4096对齐
+            alignment = alignment - (rva+size)
+            new_data = data + b'\x00'*alignment
+            new_data += struct.pack('<I',len(cpio_xz))
+            new_data += cpio_xz
+            data_section.SizeOfRawData = len(new_data)
+            new_file_data = pe.write()
+            new_file_data = new_file_data[:addr]
+            new_file_data += new_data
+            with open(output_file, 'wb') as f:
+                f.write(new_file_data)
+
 def patch_netinstall(key_dict: dict,input_file,output_file=None):
     netinstall = open(input_file,'rb').read()
     if netinstall[:2] == b'MZ':
@@ -451,6 +504,9 @@ if __name__ == '__main__':
     block_parser = subparsers.add_parser('block',help='patch block file')
     block_parser.add_argument('dev',type=str, help='block device')
     block_parser.add_argument('file',type=str, help='file path')
+    buildefi_parser = subparsers.add_parser('buildefi',help='build efi file')
+    buildefi_parser.add_argument('input',type=str, help='kernel file')
+    buildefi_parser.add_argument('output',type=str,help='Output to file')
     netinstall_parser = subparsers.add_parser('netinstall',help='patch netinstall file')
     netinstall_parser.add_argument('input',type=str, help='Input file')
     netinstall_parser.add_argument('-O','--output',type=str,help='Output file')
@@ -471,6 +527,9 @@ if __name__ == '__main__':
     elif args.command == 'block':
         print(f'patching {args.file} in {args.dev} ...')
         patch_block(args.dev,args.file,key_dict)
+    elif args.command == 'buildefi':
+        print(f'building EFI from {args.input} ...')
+        build_efi(args.input,args.output)
     elif args.command == 'netinstall':
         print(f'patching {args.input} ...')
         patch_netinstall(key_dict,args.input,args.output)

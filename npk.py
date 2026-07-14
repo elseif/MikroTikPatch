@@ -1,6 +1,6 @@
 
 import struct,zlib
-import argparse,os
+import argparse,os,tempfile
 from datetime import datetime
 from dataclasses import dataclass
 from enum import IntEnum
@@ -51,7 +51,45 @@ class NpkInfo:
     def name(self,value:str):
         self._name = value[:16].encode().ljust(16,b'\x00')
     @staticmethod
-    def decode_version(value:bytes):
+    def encode_version(version: str) -> bytes:
+        numbers = []
+        build = None
+        i = 0
+        n = len(version)
+        while i < n:
+            if version[i].isdigit():
+                num_str = ''
+                while i < n and version[i].isdigit():
+                    num_str += version[i]
+                    i += 1
+                numbers.append(int(num_str))
+            elif version[i] == '.':
+                i += 1
+            elif version[i].isalpha():
+                build = ''
+                while i < n and version[i].isalpha():
+                    build += version[i]
+                    i += 1
+            else:
+                i += 1
+        major = numbers[0] if len(numbers) > 0 else 0
+        minor = numbers[1] if len(numbers) > 1 else 0
+        revision = numbers[2] if len(numbers) > 2 else 0
+        if build == 'alpha':
+            build = 97
+        elif build == 'beta':
+            build = 98
+        elif build == 'rc':
+            build = 99
+        elif build == 'test':
+            build = 102
+            revision |= 0x80
+        else:# 'final'
+            build = 102
+            revision &= 0x7f
+        return struct.pack('4B',revision,build,minor,major)
+    @staticmethod
+    def decode_version(value:bytes)->str:
         revision,build,minor,major = struct.unpack_from('4B',value)
         if build == 97:
             build = 'alpha'
@@ -64,31 +102,10 @@ class NpkInfo:
                 build = 'test'
                 revision &= 0x7f
             else:
-                build = 'final'
+                build = ''
         else:
-            build = 'unknown'
-        return f'{major}.{minor}.{revision}.{build}'
-    @staticmethod
-    def encode_version(value:str):
-        s = value.split('.')
-        if 4 != len(s) and s[3] in [ 'alpha', 'beta', 'rc','final', 'test']:
-            raise ValueError('Invalid version string')
-        major = int(s[0])
-        minor = int(s[1])
-        revision = int(s[2])
-        if s[3] == 'alpha':
-            build = 97
-        elif s[3] == 'beta':
-            build = 98
-        elif s[3] == 'rc':
-            build = 99
-        elif s[3] == 'final':
-            build = 102
-            revision &= 0x7f
-        else: #'test'
-            build = 102
-            revision |= 0x80
-        return struct.pack('4B',revision,build,minor,major)
+            build = 'unknown'        
+        return f'{major}.{minor}{build + str(revision) if build !="" else "." + str(revision) if revision != 0 else ""}'
     @property
     def version(self)->str:
         return self.decode_version(self._version)
@@ -210,14 +227,16 @@ class NovaPackage(Package):
 
     def set_null_block(self):
         def rebuild_squashfs(data):
-            with open('squashfs.sfs', 'wb') as f:
-                f.write(data)
-            os.system('unsquashfs -d squashfs-root squashfs.sfs')
-            os.system('rm squashfs.sfs')
-            os.system('mksquashfs squashfs-root squashfs.sfs -comp xz -no-xattrs -b 256k')
-            os.system('rm -rf squashfs-root')
-            with open('squashfs.sfs', 'rb') as f:
-                return f.read()
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                squashfs_file = os.path.join(tmp_dir, 'squashfs.sfs')
+                squashfs_root = os.path.join(tmp_dir, 'squashfs-root')
+                with open(squashfs_file, 'wb') as f:
+                    f.write(data)
+                os.system(f'unsquashfs -d {squashfs_root} {squashfs_file}')
+                os.remove(squashfs_file)
+                os.system(f'mksquashfs {squashfs_root} {squashfs_file} -no-recovery -noappend -exit-on-error -quiet -comp xz -no-xattrs -b 256k -all-root')
+                with open(squashfs_file, 'rb') as f:
+                    return f.read()
         def get_size(package,size):
             for part in package._parts:
                 size += 6
@@ -272,14 +291,28 @@ class NovaPackage(Package):
         if len(self._packages) > 0:
             if build_time:
                 self[NpkPartID.PKG_INFO].data._build_time = int(build_time)
+            else:
+                build_time = self[NpkPartID.PKG_INFO].data._build_time
+                os.environ['BUILD_TIME'] = str(build_time)
+                github_env = os.getenv('GITHUB_ENV')
+                if github_env:
+                    with open(github_env, 'a') as f:
+                        f.write(f"BUILD_TIME={build_time}\n")
             for package in self._packages:
                 if len(package[NpkPartID.SIGNATURE].data) != 20+48+64:
                     package[NpkPartID.SIGNATURE].data = b'\0'*(20+48+64)
                 if build_time:
                     package[NpkPartID.NAME_INFO].data._build_time = int(build_time)
+                else:
+                    build_time = self[NpkPartID.NAME_INFO].data._build_time
+                    os.environ['BUILD_TIME'] = str(build_time)
+                    github_env = os.getenv('GITHUB_ENV')
+                    if github_env:
+                        with open(github_env, 'a') as f:
+                            f.write(f"BUILD_TIME={build_time}\n")
                 sha1_digest = self.get_digest(hashlib.new('SHA1'),package)
                 sha256_digest = self.get_digest(hashlib.new('SHA256'),package)
-                kcdsa_signature = mikro_kcdsa_sign(sha256_digest[:20],kcdsa_private_key)
+                kcdsa_signature = mikro_kcdsa_sign(sha1_digest,kcdsa_private_key)
                 eddsa_signature = mikro_eddsa_sign(sha256_digest,eddsa_private_key)
                 package[NpkPartID.SIGNATURE].data = sha1_digest + kcdsa_signature + eddsa_signature
         else:
@@ -287,9 +320,16 @@ class NovaPackage(Package):
                 self[NpkPartID.SIGNATURE].data = b'\0'*(20+48+64)
             if build_time:
                 self[NpkPartID.NAME_INFO].data._build_time = int(build_time)
+            else:
+                build_time = self[NpkPartID.NAME_INFO].data._build_time
+                os.environ['BUILD_TIME'] = str(build_time)
+                github_env = os.getenv('GITHUB_ENV')
+                if github_env:
+                    with open(github_env, 'a') as f:
+                        f.write(f"BUILD_TIME={build_time}\n")
             sha1_digest = self.get_digest(hashlib.new('SHA1'))
             sha256_digest = self.get_digest(hashlib.new('SHA256'))
-            kcdsa_signature = mikro_kcdsa_sign(sha256_digest[:20],kcdsa_private_key)
+            kcdsa_signature = mikro_kcdsa_sign(sha1_digest,kcdsa_private_key)
             eddsa_signature = mikro_eddsa_sign(sha256_digest,eddsa_private_key)
             self[NpkPartID.SIGNATURE].data = sha1_digest + kcdsa_signature + eddsa_signature
 
@@ -303,9 +343,9 @@ class NovaPackage(Package):
                 signature = package[NpkPartID.SIGNATURE].data
                 if sha1_digest != signature[:20]: 
                     return False
-                if not mikro_kcdsa_verify(sha256_digest[:20],signature[20:68],kcdsa_public_key):
+                if not mikro_kcdsa_verify(sha1_digest,signature[20:68],kcdsa_public_key):
                     return False
-                if not mikro_eddsa_verify(sha256_digest,signature[68:132],eddsa_public_key):
+                if len(signature) == 132 and not mikro_eddsa_verify(sha256_digest,signature[68:132],eddsa_public_key):
                     return False
         else:
             sha1_digest = self.get_digest(hashlib.new('SHA1'))
@@ -313,11 +353,10 @@ class NovaPackage(Package):
             signature = self[NpkPartID.SIGNATURE].data
             if sha1_digest != signature[:20]: 
                 return False
-            if not mikro_kcdsa_verify(sha256_digest[:20],signature[20:68],kcdsa_public_key):
+            if not mikro_kcdsa_verify(sha1_digest,signature[20:68],kcdsa_public_key):
                 return False
-            if not mikro_eddsa_verify(sha256_digest,signature[68:132],eddsa_public_key):
+            if len(signature) == 132 and not mikro_eddsa_verify(sha256_digest,signature[68:132],eddsa_public_key):
                 return False
-
         return True
             
     def save(self,file):
@@ -365,6 +404,10 @@ if __name__=='__main__':
     create_option_parser.add_argument('name',type=str,help='NPK name')
     create_option_parser.add_argument('squashfs',type=str,help='NPK squashfs file')
     create_option_parser.add_argument('-desc','--description',type=str,help='NPK description')
+    extract_parser = subparsers.add_parser('extract',help='Extract npk file')
+    extract_parser.add_argument('input',type=str, help='Input file')
+    extract_parser.add_argument('name',type=str,help='File to extract')
+    extract_parser.add_argument('output',type=str,help='Output to file')
     args = parser.parse_args()
     kcdsa_private_key = bytes.fromhex(os.environ['CUSTOM_LICENSE_PRIVATE_KEY'])
     eddsa_private_key = bytes.fromhex(os.environ['CUSTOM_NPK_SIGN_PRIVATE_KEY'])
@@ -395,5 +438,23 @@ if __name__=='__main__':
         option_npk.sign(kcdsa_private_key,eddsa_private_key)
         option_npk.save(args.output)
         print(f'Created {args.output}')
+    elif args.command =='extract':    
+        print(f'Extracting {args.name} from {args.input}')
+        npk = NovaPackage.load(args.input)
+        file_container = None
+        if len(npk._packages) > 0:
+            for package in npk._packages:
+                if package[NpkPartID.NAME_INFO].data.name == 'system':
+                    file_container = NpkFileContainer.unserialize_from(package[NpkPartID.FILE_CONTAINER].data)
+        else:
+            if npk[NpkPartID.NAME_INFO].data.name == 'system':
+                file_container = NpkFileContainer.unserialize_from(npk[NpkPartID.FILE_CONTAINER].data)          
+        if file_container:
+            for item in file_container:
+                if item.name == args.name.encode():
+                    with open(args.output,'wb') as f:
+                        f.write(item.data)
+                    print(f'Extracted {args.name} to {args.output}')
+                    break
     else:
         parser.print_help()

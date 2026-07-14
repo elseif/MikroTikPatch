@@ -2,8 +2,8 @@ name: Patch Mikrotik RouterOS 7.x
 on:
   # push:
   #   branches: [ "main" ]
-  schedule:
-    - cron: "0 0 * * *" # At UTC 00:00 on every day
+  # schedule:
+  #   - cron: "0 0 * * *" # At UTC 00:00 on every day
   workflow_dispatch:
     inputs:
       arch:
@@ -209,7 +209,7 @@ jobs:
                             {name:'Patch',type:'tab',inline: 1},
                             {name:'Author',type:'string',def:'elseif@live.cn'},
                             {name:'GitHub',type:'string',def:'https://github.com/elseif/MikroTikPatch', url:1},
-                            {name:'Telegram',type:'string',def:'https://t.me/mikrotikpatch', url:1},
+                            {name:'Telegram',type:'string',def:'https://telegram.me/mikrotikpatch', url:1},
                             {name:'Homepage',type:'string',def:'https://mikrotik.ltd', url:1},
                             {name:'Busybox',type:'string',def:'$BUSYBOX'},
                             {name:'System',type:'tab',inline: 1},

@@ -1,0 +1,956 @@
+name: Build RouterOS v7
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: 'Channel (stable, long-term, testing)'
+        required: true
+        default: 'stable'
+        type: choice
+        options:
+        - stable
+        - long-term
+        - testing
+      arch:
+        description: 'Architecture (x86, arm64)'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+        - all
+        - x86
+        - arm64
+      version:
+        description: "Specify version (e.g., 7.19.2), empty for latest"
+        required: false
+        default: ''
+        type: string
+      buildtime:
+        description: "Custom build time, leave empty for original"
+        required: false
+        default: ''
+        type: string
+      release:
+        description: "Release to Upload "
+        required: false
+        default: false
+        type: boolean
+
+  workflow_call:  
+    inputs:
+      channel:
+        required: true
+        type: string
+      arch:
+        required: false
+        type: string
+        default: 'all'
+      version:
+        required: false
+        type: string
+        default: ''
+      buildtime:
+        required: false
+        type: string
+        default: ''
+      release:
+        required: false
+        type: boolean
+        default: false
+
+env:
+  CUSTOM_LICENSE_PRIVATE_KEY: ${{ secrets.CUSTOM_LICENSE_PRIVATE_KEY }}
+  CUSTOM_LICENSE_PUBLIC_KEY: ${{ secrets.CUSTOM_LICENSE_PUBLIC_KEY }}
+  CUSTOM_NPK_SIGN_PRIVATE_KEY: ${{ secrets.CUSTOM_NPK_SIGN_PRIVATE_KEY }}
+  CUSTOM_NPK_SIGN_PUBLIC_KEY: ${{ secrets.CUSTOM_NPK_SIGN_PUBLIC_KEY }}
+  CUSTOM_CLOUD_PUBLIC_KEY: ${{ secrets.CUSTOM_CLOUD_PUBLIC_KEY }}
+  MIKRO_LICENSE_PUBLIC_KEY: ${{ secrets.MIKRO_LICENSE_PUBLIC_KEY }}
+  MIKRO_NPK_SIGN_PUBLIC_KEY: ${{ secrets.MIKRO_NPK_SIGN_PUBLIC_KEY }}
+  MIKRO_CLOUD_PUBLIC_KEY: ${{ secrets.MIKRO_CLOUD_PUBLIC_KEY }}
+  MIKRO_LICENCE_URL: ${{ secrets.MIKRO_LICENCE_URL }}
+  CUSTOM_LICENCE_URL: ${{ secrets.CUSTOM_LICENCE_URL }}
+  MIKRO_UPGRADE_URL: ${{ secrets.MIKRO_UPGRADE_URL }}
+  CUSTOM_UPGRADE_URL: ${{ secrets.CUSTOM_UPGRADE_URL }}
+  MIKRO_RENEW_URL: ${{ secrets.MIKRO_RENEW_URL }}
+  CUSTOM_RENEW_URL: ${{ secrets.CUSTOM_RENEW_URL }}
+  MIKRO_CLOUD_URL: ${{ secrets.MIKRO_CLOUD_URL }}
+  CUSTOM_CLOUD_URL: ${{ secrets.CUSTOM_CLOUD_URL }}
+
+jobs:
+  Prepare_Build:
+    runs-on: ubuntu-24.04
+    outputs:
+      VERSION: ${{ steps.prepare.outputs.VERSION }}
+      BUILD_TIME: ${{ steps.prepare.outputs.BUILD_TIME }}
+      ARCHS: ${{ steps.prepare.outputs.ARCHS }}
+      RELEASE: ${{ steps.prepare.outputs.RELEASE }}
+      SKIP_BUILD: ${{ steps.prepare.outputs.SKIP_BUILD }}
+    steps:
+    - name: Prepare Build for ${{ inputs.channel }}
+      id: prepare
+      run: |
+        CHANNEL="${{ inputs.channel }}"
+        ARCH_INPUT="${{ inputs.arch }}"
+        VERSION="${{ inputs.version }}"
+        RELEASE="${{ inputs.release }}"
+        BUILD_TIME="${{ inputs.buildtime }}"
+
+        if [ "$ARCH_INPUT" == "all" ]; then
+          ARCHS='["x86", "arm64"]'
+        else
+          ARCHS=$(jq -c -n --arg arch "$ARCH_INPUT" '[$arch]')
+        fi
+
+        SKIP_BUILD=false
+        if [ -z "$VERSION" ]; then
+          echo "Checking latest version from $CHANNEL channel..."
+          TIMESTAMP=$(date +%s)
+          NEWEST=$(wget -nv -O - "https://${{ env.MIKRO_UPGRADE_URL }}/routeros/NEWESTa7.$CHANNEL?t=$TIMESTAMP")
+          VERSION=$(echo "$NEWEST" | cut -d ' ' -f1)
+          echo "Official version: $VERSION"
+          if [[ "${{ github.event_name }}" != "workflow_dispatch" ]]; then
+            PATCH_NEWEST=$(wget -nv -O - "https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/NEWESTa7.$CHANNEL?t=$TIMESTAMP" 2>/dev/null || echo "")
+            PATCH_VERSION=$(echo "$PATCH_NEWEST" | cut -d ' ' -f1)
+            echo "Patch version: ${PATCH_VERSION:-none}"
+            if [ "$PATCH_VERSION" == "$VERSION" ]; then
+              echo "No new version for $CHANNEL, skipping..."
+              SKIP_BUILD=true
+            else
+              echo "New version $VERSION available, building..."
+            fi
+          fi
+        fi
+        echo "SKIP_BUILD=$SKIP_BUILD" >> $GITHUB_OUTPUT
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        echo "BUILD_TIME=$BUILD_TIME" >> $GITHUB_OUTPUT
+        echo "ARCHS=$ARCHS" >> $GITHUB_OUTPUT
+        echo "RELEASE=$RELEASE" >> $GITHUB_OUTPUT
+        echo "Version: $VERSION, Archs: $ARCHS"
+
+  Build_RouterOS:
+    needs: Prepare_Build
+    if: needs.Prepare_Build.outputs.SKIP_BUILD == 'false'
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        arch: ${{ fromJson(needs.Prepare_Build.outputs.ARCHS) }}
+      fail-fast: false
+    env:
+      TZ: 'Asia/Shanghai'
+      CHANNEL: ${{ inputs.channel }}
+      ARCH: ${{ matrix.arch }}
+      VERSION: ${{ needs.Prepare_Build.outputs.VERSION }}
+      BUILD_TIME: ${{ needs.Prepare_Build.outputs.BUILD_TIME }}
+      BUILD_DIR: "/tmp/build/${{ needs.Prepare_Build.outputs.VERSION }}"
+      PUBLISH_DIR: "${{ github.workspace }}/publish/${{ needs.Prepare_Build.outputs.VERSION }}"
+      ARCH_EXT: ""
+      PACKAGES: ""
+    steps:
+    - uses: actions/checkout@v6
+    - name: Setup environment
+      run: |
+        sudo apt-get update > /dev/null
+        sudo apt-get install -y zip unzip squashfs-tools jq > /dev/null
+  
+        if [ "$ARCH" == "x86" ]; then
+            ARCH_EXT=""
+        else
+            ARCH_EXT="-$ARCH"
+        fi
+        echo "ARCH_EXT=$ARCH_EXT" >> $GITHUB_ENV
+        echo "ARCH_EXT: $ARCH_EXT"
+
+        sudo rm -rf "$BUILD_DIR"
+        mkdir -p "$BUILD_DIR"
+        echo "BUILD_DIR: $BUILD_DIR"
+
+        sudo rm -rf "$PUBLISH_DIR"
+        mkdir -p "$PUBLISH_DIR"
+        echo "PUBLISH_DIR: $PUBLISH_DIR"
+
+        wget -nv -O $PUBLISH_DIR/CHANGELOG "https://${{ env.MIKRO_UPGRADE_URL }}/routeros/$VERSION/CHANGELOG"
+        cat $PUBLISH_DIR/CHANGELOG
+
+        wget -nv -O $BUILD_DIR/packages.csv "https://${{ env.MIKRO_UPGRADE_URL }}/routeros/$VERSION/packages.csv"
+        PACKAGES=$(grep "^$ARCH," $BUILD_DIR/packages.csv | cut -d',' -f2 | tr '\n' ' ')
+        rm $BUILD_DIR/packages.csv
+        echo "PACKAGES=$PACKAGES" >> $GITHUB_ENV
+        echo "PACKAGES: $PACKAGES"
+
+    - name: Create Squashfs for Option Package
+      run: |
+        echo "Creating Option Package Squashfs for channel: $CHANNEL, arch: $ARCH"
+        mkdir -p $BUILD_DIR/option-root/bin/
+        cp ./busybox/busybox_$ARCH $BUILD_DIR/option-root/bin/busybox
+        chmod +x $BUILD_DIR/option-root/bin/busybox
+        chmod +x ./busybox/busybox_x86
+        COMMANDS=$(./busybox/busybox_x86 --list)
+        for cmd in $COMMANDS; do
+            ln -sf /pckg/option/bin/busybox $BUILD_DIR/option-root/bin/$cmd
+        done
+        mkdir -p $BUILD_DIR/option-root/home/web/webfig/
+        BUSYBOX=$(./busybox/busybox_x86 | head -1 | cut -d' ' -f2)
+        tee $BUILD_DIR/option.jg  > /dev/null << EOF
+        [
+            {
+                name:'Patch About',
+                title:'Patch About',
+                icon: 30,
+                prio: 2000,
+                c:[
+                    {
+                        title:'Patch About',
+                        type:'item',
+                        path:[24, 2],
+                        autorefresh: 1000, 
+                        ro: 1,
+                        c: [
+                            {type:'gridcell'},
+                            {name:'Patch',type:'tab',inline: 1},
+                            {name:'Author',type:'string',def:'elseif@live.cn'},
+                            {name:'GitHub',type:'string',def:'https://github.com/elseif/MikroTikPatch', url:1},
+                            {name:'Telegram',type:'string',def:'https://telegram.me/mikrotikpatch', url:1},
+                            {name:'Homepage',type:'string',def:'https://mikrotik.ltd', url:1},
+                            {name:'Busybox',type:'string',def:'$BUSYBOX'},
+                            {name:'System',type:'tab',inline: 1},
+                            {name:'Uptime',type:'interval',id:'u1'},
+                            {name:'Architecture Name',type:'string',id:'s1a'},
+                            {name:'Board Name',type:'string',id:'s2c'},
+                            {name:'Version',type:'version',id:'s16'},
+                            {name:'Build Time',type:'string',id:'s27'},
+                            {type:'separator'},
+                            {type:'toolbar',
+                                c: [
+                                    {title:'Terminal',type:'contextmenu',autostart: 1,group:'Tools',link: [{conv:'put',dst:'Type',val: 0}],open:'Telnet',tab:'Telnet'},
+                                    {name:'License',type:'contextmenu',autostart: 1,group:'System',link: [],open:'License',tab:'License'},
+                                    {name:'Check For Updates',type:'contextmenu',autostart: 1,group:'System',link: [],open:'Packages',tab:'Check For Updates'}
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+        EOF
+        sudo apt-get install python3-crcmod > /dev/null
+        HASH=$(python3 -E <<EOF
+        import hashlib, crcmod, sys
+        with open('$BUILD_DIR/option.jg','rb') as f:
+            data = f.read()
+            sha1 = hashlib.sha1(data).hexdigest()[:12]
+            crc = crcmod.mkCrcFun(0x104C11DB7, initCrc=0xFFFFFFFF, rev=False, xorOut=0xFFFFFFFF)(data)
+            print(f"{sha1} {crc}")
+        EOF
+        )
+        SHA1_PREFIX=$(echo "$HASH" | awk '{print $1}')
+        CRC=$(echo "$HASH" | awk '{print $2}')
+        mv $BUILD_DIR/option.jg $BUILD_DIR/option-$SHA1_PREFIX.jg
+        python3 -E << EOF
+        import gzip
+        gzip.open('$BUILD_DIR/option-$SHA1_PREFIX.jg.gz', 'wb', compresslevel=0).write(open('$BUILD_DIR/option-$SHA1_PREFIX.jg', 'rb').read())
+        EOF
+        SIZE=$(stat -c %s $BUILD_DIR/option-$SHA1_PREFIX.jg.gz)
+        mv $BUILD_DIR/option-$SHA1_PREFIX.jg.gz $BUILD_DIR/option-root/home/web/webfig/
+        tee $BUILD_DIR/option-root/home/web/webfig/option.info > /dev/null << EOF
+        { crc: $CRC, size: $SIZE, name: "option.jg", unique: "option-$SHA1_PREFIX.jg",version: "$LATEST_VERSION" },
+        EOF
+        ln -sf option-$SHA1_PREFIX.jg.gz $BUILD_DIR/option-root/home/web/webfig/option.jg.gz
+        mksquashfs $BUILD_DIR/option-root $BUILD_DIR/option.sfs -no-recovery -noappend -exit-on-error -quiet -comp xz -no-xattrs -b 256k -all-root  
+        rm -rf $BUILD_DIR/option-root
+        echo "✅ Option Package Squashfs created: $BUILD_DIR/option.sfs"
+        ls -la "$BUILD_DIR/option.sfs"
+
+    - name: Cache mikrotik-${{ env.VERSION }}${{ env.ARCH_EXT }}.iso
+      id: cache-mikrotik-iso
+      uses: actions/cache@v5
+      with:
+        path: ${{ env.BUILD_DIR }}/mikrotik-${{ env.VERSION }}${{ env.ARCH_EXT }}.iso
+        key: mikrotik-${{ env.VERSION }}${{ env.ARCH_EXT }}
+
+    - name: Get mikrotik-${{ env.VERSION }}${{ env.ARCH_EXT }}.iso
+      if: steps.cache-mikrotik-iso.outputs.cache-hit != 'true' 
+      run: |
+        wget -nv -O $BUILD_DIR/mikrotik-$VERSION$ARCH_EXT.iso \
+            https://download.mikrotik.com/routeros/$VERSION/mikrotik-$VERSION$ARCH_EXT.iso
+
+    - name: Unpack ISO
+      run: |
+        mkdir -p $BUILD_DIR/all_packages
+        mkdir -p $BUILD_DIR/iso
+        mkdir -p $BUILD_DIR/new_iso
+        sudo mount -o loop,ro $BUILD_DIR/mikrotik-$VERSION$ARCH_EXT.iso $BUILD_DIR/iso
+        cp -v $BUILD_DIR/iso/*.npk $BUILD_DIR/all_packages/
+        mv $BUILD_DIR/all_packages/routeros-$VERSION$ARCH_EXT.npk $BUILD_DIR/
+        cp -v $BUILD_DIR/iso/efiboot.img $BUILD_DIR/new_iso/
+        cp -v $BUILD_DIR/iso/defpacks $BUILD_DIR/new_iso/ 
+        sudo umount $BUILD_DIR/iso
+        rm -rf $BUILD_DIR/iso
+
+    - name: Check and download missing packages
+      run: |
+        for pkg in $PACKAGES; do
+            PKG_FILE="${pkg}-$VERSION$ARCH_EXT.npk"
+            PKG_PATH="$BUILD_DIR/all_packages/$PKG_FILE"
+            if [ ! -f "$PKG_PATH" ]; then
+                wget -nv -O "$PKG_PATH" "https://download.mikrotik.com/routeros/$VERSION/$PKG_FILE"
+                echo "✅ Package downloaded: $PKG_FILE"
+            fi
+        done
+
+    - name: Patch NPK files
+      run: |
+        sudo apt-get install build-essential binutils-arm-linux-gnueabi binutils-mips-linux-gnu binutils-powerpc-linux-gnu -y > /dev/null
+        chmod +w $BUILD_DIR/all_packages/*.npk
+        NPK_FILES=$(find $BUILD_DIR/all_packages/*.npk)
+        for file in $NPK_FILES; do
+            python3 npk.py sign $file $file
+        done
+        OPTION_FROM_NPK=gps-$VERSION$ARCH_EXT.npk
+        OPTION_NPK=option-$VERSION$ARCH_EXT.npk
+        python3 npk.py create $BUILD_DIR/all_packages/$OPTION_FROM_NPK $BUILD_DIR/all_packages/$OPTION_NPK option $BUILD_DIR/option.sfs -desc="busybox"
+        rm -rf $BUILD_DIR/option.sfs
+        echo "✅ all package npk patched: "
+        ls -la $BUILD_DIR/all_packages/*.npk
+        (cd $BUILD_DIR/all_packages && zip -r $PUBLISH_DIR/all_packages-$ARCH-$VERSION.zip .)
+        mv $BUILD_DIR/all_packages/*.npk $PUBLISH_DIR/
+        python3 patch.py npk $BUILD_DIR/routeros-$VERSION$ARCH_EXT.npk -O $PUBLISH_DIR/routeros-$VERSION$ARCH_EXT.npk
+        echo "✅ Main package npk patched: "
+        ls -la $PUBLISH_DIR/routeros-$VERSION$ARCH_EXT.npk
+        rm -rf $BUILD_DIR/all_packages
+
+    - name: Cache NetInstall ${{ env.VERSION }}
+      if: matrix.arch == 'x86' && needs.Prepare_Build.outputs.RELEASE == 'true'
+      id: cache-netinstall
+      uses: actions/cache@v5
+      with:
+        path: ${{ env.BUILD_DIR }}/netinstall-${{ env.VERSION }}.zip
+        key: netinstall-${{ env.VERSION }}
+
+    - name: Get netinstall ${{ env.VERSION }}
+      if: |
+        steps.cache-netinstall.outputs.cache-hit != 'true' && 
+        matrix.arch == 'x86' && needs.Prepare_Build.outputs.RELEASE == 'true'
+      run: |
+        wget -nv -O $BUILD_DIR/netinstall-$VERSION.zip https://download.mikrotik.com/routeros/$VERSION/netinstall-$VERSION.zip
+    
+    - name: Patch netinstall ${{ env.VERSION }}
+      if: matrix.arch == 'x86' && needs.Prepare_Build.outputs.RELEASE == 'true'
+      run: |
+        unzip $BUILD_DIR/netinstall-$VERSION.zip -d $BUILD_DIR/
+        python3 patch.py netinstall $BUILD_DIR/netinstall.exe
+        (cd $BUILD_DIR && zip -r $PUBLISH_DIR/netinstall-$VERSION.zip netinstall.exe)
+        rm $BUILD_DIR/netinstall.exe
+
+    - name: Create ISO & INSTALL image files
+      run: |
+        set -e
+        sudo modprobe nbd
+        sudo apt-get install isolinux syslinux syslinux-common xorriso dosfstools qemu-utils -y > /dev/null
+        cp -v $PUBLISH_DIR/routeros-$VERSION$ARCH_EXT.npk $BUILD_DIR/new_iso/
+        unzip $PUBLISH_DIR/all_packages-$ARCH-$VERSION.zip -d $BUILD_DIR/new_iso/
+        mkdir $BUILD_DIR/efiboot
+        if [ "$ARCH" == "x86" ]; then
+            echo "Creating x86 ISO..."
+            mkdir -p $BUILD_DIR/new_iso/isolinux
+            cp /usr/lib/ISOLINUX/isolinux.bin $BUILD_DIR/new_iso/isolinux/
+            cp /usr/lib/syslinux/modules/bios/ldlinux.c32 $BUILD_DIR/new_iso/isolinux/
+            echo -e 'default system\n\nlabel system\n\tkernel linux\n\tappend load_ramdisk=1 root=/dev/ram0 -install -cdrom' | tee $BUILD_DIR/new_iso/isolinux/isolinux.cfg
+            sudo mount -o loop $BUILD_DIR/new_iso/efiboot.img $BUILD_DIR/efiboot
+            python3 patch.py kernel $BUILD_DIR/efiboot/linux.x86_64 -O $BUILD_DIR/new_iso/isolinux/linux
+            sudo umount $BUILD_DIR/efiboot
+            #修改为16M,减小镜像体积
+            rm -f $BUILD_DIR/new_iso/efiboot.img
+            truncate --size 16M $BUILD_DIR/new_iso/efiboot.img
+            mkfs.vfat -n "Boot" $BUILD_DIR/new_iso/efiboot.img
+            sudo mount -o loop,uid=$(id -u),gid=$(id -g) $BUILD_DIR/new_iso/efiboot.img $BUILD_DIR/efiboot
+            mkdir -p $BUILD_DIR/efiboot/EFI/BOOT
+            unzip -j ./refind/refind-bin-0.14.2.zip "refind-bin-0.14.2/refind/refind_x64.efi" -d $BUILD_DIR/efiboot/EFI/BOOT/
+            mv $BUILD_DIR/efiboot/EFI/BOOT/refind_x64.efi $BUILD_DIR/efiboot/EFI/BOOT/BOOTX64.EFI
+            tee $BUILD_DIR/efiboot/EFI/BOOT/refind.conf > /dev/null << 'EOF'
+        timeout 0
+        textonly
+        textmode 0
+        showtools shutdown, reboot, exit
+        menuentry "Install RouterOS" {
+            loader /linux.x86_64
+            options "load_ramdisk=1 root=/dev/ram0 -install -cdrom debug"
+        }
+        default_selection /EFI/BOOT/BOOTX64.EFI
+        EOF
+            cp -v $BUILD_DIR/new_iso/isolinux/linux $BUILD_DIR/efiboot/linux.x86_64 
+            sync
+            sudo umount $BUILD_DIR/efiboot
+            xorriso -as mkisofs -o $PUBLISH_DIR/mikrotik-$VERSION$ARCH_EXT.iso \
+                        -V 'MikroTik' \
+                        -publisher "WWW.MIKROTIK.COM" \
+                        -preparer "MIKROTIK" \
+                        -A "MIKROTIK_ROUTER" \
+                        -sysid "" \
+                        -b 'isolinux/isolinux.bin' \
+                        -c 'isolinux/boot.cat' \
+                        -no-emul-boot \
+                        -boot-load-size 4 \
+                        -eltorito-alt-boot \
+                        -e efiboot.img \
+                        -no-emul-boot \
+                        -boot-load-size 2048 \
+                        -R -J \
+                        -input-charset utf-8 \
+                        -iso-level 3 \
+                        $BUILD_DIR/new_iso
+            echo "✅ ISO created: "
+            ls -la $PUBLISH_DIR/mikrotik-$VERSION$ARCH_EXT.iso
+
+            echo "Creating x86 install..."
+            truncate --size 128M $BUILD_DIR/install-image-$VERSION.img
+            mkfs.vfat -I -F 32 -n "Install" $BUILD_DIR/install-image-$VERSION.img
+            LOOP=$(sudo losetup -f --show $BUILD_DIR/install-image-$VERSION.img)
+            sudo syslinux --install $LOOP
+            mkdir -p $BUILD_DIR/install
+            sudo mount -o loop,uid=$(id -u),gid=$(id -g),umask=000 $LOOP $BUILD_DIR/install
+            cp -vf $BUILD_DIR/new_iso/isolinux/linux $BUILD_DIR/install/
+            cp -vf /usr/lib/syslinux/modules/bios/ldlinux.c32 $BUILD_DIR/install/
+            mkdir -p $BUILD_DIR/install/EFI/BOOT
+            unzip -j ./refind/refind-bin-0.14.2.zip "refind-bin-0.14.2/refind/refind_x64.efi" -d $BUILD_DIR/install/EFI/BOOT
+            mv $BUILD_DIR/install/EFI/BOOT/refind_x64.efi $BUILD_DIR/install/EFI/BOOT/BOOTX64.EFI
+            tee $BUILD_DIR/install/EFI/BOOT/refind.conf > /dev/null << 'EOF'
+        timeout 0
+        textonly
+        textmode 0
+        showtools shutdown, reboot, exit
+        menuentry "Install RouterOS" {
+        	loader /linux
+        	options "load_ramdisk=1 root=/dev/ram0 -install -hdd"
+        }
+        default_selection /EFI/BOOT/BOOTX64.EFI
+        EOF
+            tee $BUILD_DIR/install/syslinux.cfg > /dev/null << 'EOF'
+        default system
+        LABEL system
+        	KERNEL linux
+        	APPEND load_ramdisk=1 -install -hdd
+        EOF
+            NPK_FILES=($(find $BUILD_DIR/new_iso/*.npk))
+            for ((i=1; i<=${#NPK_FILES[@]}; i++))
+            do
+                echo "${NPK_FILES[$i-1]}=>$i.npk" 
+                cp ${NPK_FILES[$i-1]} $BUILD_DIR/install/$i.npk
+            done
+            touch $BUILD_DIR/install/CHOOSE
+            touch $BUILD_DIR/install/autorun.scr 
+            sync
+            sudo umount $BUILD_DIR/install
+            sudo losetup -d $LOOP
+            rm -rf $BUILD_DIR/install
+            echo "✅ install imgage created: "
+            ls -la $BUILD_DIR/install-image-$VERSION.img
+            (cd $BUILD_DIR && zip $PUBLISH_DIR/install-image-$VERSION.zip install-image-$VERSION.img)
+            rm $BUILD_DIR/install-image-$VERSION.img
+        elif [ "$ARCH" == "arm64" ]; then
+            echo "Creating arm64 ISO..."
+            sudo mount -o loop $BUILD_DIR/new_iso/efiboot.img $BUILD_DIR/efiboot
+            python3 patch.py kernel $BUILD_DIR/efiboot/EFI/BOOT/BOOTAA64.EFI -O $BUILD_DIR/BOOTAA64.EFI
+            sudo umount $BUILD_DIR/efiboot
+            #修改为16M,减小镜像体积
+            rm -f $BUILD_DIR/new_iso/efiboot.img
+            truncate --size 16M $BUILD_DIR/new_iso/efiboot.img
+            mkfs.vfat -n "Boot" $BUILD_DIR/new_iso/efiboot.img
+            sudo mount -o loop,uid=$(id -u),gid=$(id -g) $BUILD_DIR/new_iso/efiboot.img $BUILD_DIR/efiboot
+            mkdir -p $BUILD_DIR/efiboot/EFI/BOOT
+            mv $BUILD_DIR/BOOTAA64.EFI $BUILD_DIR/efiboot/EFI/BOOT/BOOTAA64.EFI
+            sync
+            sudo umount $BUILD_DIR/efiboot
+            xorriso -as mkisofs -o $PUBLISH_DIR/mikrotik-$VERSION$ARCH_EXT.iso \
+                        -V 'MikroTik' \
+                        -publisher "WWW.MIKROTIK.COM" \
+                        -preparer "MIKROTIK" \
+                        -A "MIKROTIK_ROUTER" \
+                        -sysid "" \
+                        -e '/efiboot.img' \
+                        -no-emul-boot \
+                        -boot-load-size 2048 \
+                        -R -J \
+                        -input-charset utf-8 \
+                        -iso-level 3 \
+                        $BUILD_DIR/new_iso
+            echo "✅ ISO created: "
+            ls -la $PUBLISH_DIR/mikrotik-$VERSION$ARCH_EXT.iso
+        fi
+        rm -rf $BUILD_DIR/new_iso
+        rm -rf $BUILD_DIR/efiboot
+
+    - name: Create CHR image files
+      run: |
+        set -e
+        OVF_TEMPLATE='<?xml version="1.0" encoding="UTF-8"?>
+        <Envelope vmw:buildId="build-18663434" xmlns="http://schemas.dmtf.org/ovf/envelope/1" xmlns:cim="http://schemas.dmtf.org/wbem/wscim/1/common" xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1" xmlns:rasd="http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_ResourceAllocationSettingData" xmlns:vmw="http://www.vmware.com/schema/ovf" xmlns:vssd="http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_VirtualSystemSettingData" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+          <References>
+            <File ovf:href="{VMDK_FILE}" ovf:id="file1" ovf:size="{FILE_SIZE}"/>
+          </References>
+          <DiskSection>
+            <Info>Virtual disk information</Info>
+            <Disk ovf:capacity="128" ovf:capacityAllocationUnits="byte * 2^20" ovf:diskId="vmdisk1" ovf:fileRef="file1" ovf:format="http://www.vmware.com/interfaces/specifications/vmdk.html#streamOptimized"/>
+          </DiskSection>
+          <NetworkSection>
+            <Info>The list of logical networks</Info>
+            <Network ovf:name="VM Network">
+              <Description>The VM Network network</Description>
+            </Network>
+          </NetworkSection>
+          <VirtualSystem ovf:id="vm">
+            <Info>A virtual machine</Info>
+            <Name>MikroTik_RouterOS_CHR</Name>
+            <OperatingSystemSection ovf:id="100" vmw:osType="other3xLinux64Guest">
+              <Info>The kind of installed guest operating system</Info>
+            </OperatingSystemSection>
+            <VirtualHardwareSection>
+              <Info>Virtual hardware requirements</Info>
+              <System>
+                <vssd:ElementName>Virtual Hardware Family</vssd:ElementName>
+                <vssd:InstanceID>0</vssd:InstanceID>
+                <vssd:VirtualSystemIdentifier>MikroTik_RouterOS_CHR</vssd:VirtualSystemIdentifier>
+                <vssd:VirtualSystemType>vmx-10</vssd:VirtualSystemType>
+              </System>
+              <Item>
+                <rasd:AllocationUnits>hertz * 10^6</rasd:AllocationUnits>
+                <rasd:Description>Number of Virtual CPUs</rasd:Description>
+                <rasd:ElementName>1 virtual CPU(s)</rasd:ElementName>
+                <rasd:InstanceID>1</rasd:InstanceID>
+                <rasd:ResourceType>3</rasd:ResourceType>
+                <rasd:VirtualQuantity>1</rasd:VirtualQuantity>
+              </Item>
+              <Item>
+                <rasd:AllocationUnits>byte * 2^20</rasd:AllocationUnits>
+                <rasd:Description>Memory Size</rasd:Description>
+                <rasd:ElementName>1024MB of memory</rasd:ElementName>
+                <rasd:InstanceID>2</rasd:InstanceID>
+                <rasd:ResourceType>4</rasd:ResourceType>
+                <rasd:VirtualQuantity>1024</rasd:VirtualQuantity>
+              </Item>
+              <Item>
+                <rasd:Address>0</rasd:Address>
+                <rasd:Description>IDE Controller</rasd:Description>
+                <rasd:ElementName>ideController0</rasd:ElementName>
+                <rasd:InstanceID>3</rasd:InstanceID>
+                <rasd:ResourceType>5</rasd:ResourceType>
+              </Item>
+              <Item>
+                <rasd:AddressOnParent>0</rasd:AddressOnParent>
+                <rasd:ElementName>disk0</rasd:ElementName>
+                <rasd:HostResource>ovf:/disk/vmdisk1</rasd:HostResource>
+                <rasd:InstanceID>4</rasd:InstanceID>
+                <rasd:Parent>3</rasd:Parent>
+                <rasd:ResourceType>17</rasd:ResourceType>
+              </Item>
+              <Item>
+                <rasd:AddressOnParent>1</rasd:AddressOnParent>
+                <rasd:AutomaticAllocation>true</rasd:AutomaticAllocation>
+                <rasd:Connection>VM Network</rasd:Connection>
+                <rasd:Description>VmxNet3 ethernet adapter on &quot;VM Network&quot;</rasd:Description>
+                <rasd:ElementName>ethernet0</rasd:ElementName>
+                <rasd:InstanceID>5</rasd:InstanceID>
+                <rasd:ResourceSubType>VmxNet3</rasd:ResourceSubType>
+                <rasd:ResourceType>10</rasd:ResourceType>
+                <vmw:Config ovf:required="false" vmw:key="slotInfo.pciSlotNumber" vmw:value="160"/>
+                <vmw:Config ovf:required="false" vmw:key="connectable.allowGuestControl" vmw:value="true"/>
+              </Item>
+              <Item ovf:required="false">
+                <rasd:AutomaticAllocation>false</rasd:AutomaticAllocation>
+                <rasd:ElementName>video</rasd:ElementName>
+                <rasd:InstanceID>6</rasd:InstanceID>
+                <rasd:ResourceType>24</rasd:ResourceType>
+              </Item>
+              <Item ovf:required="false">
+                <rasd:AutomaticAllocation>false</rasd:AutomaticAllocation>
+                <rasd:ElementName>vmci</rasd:ElementName>
+                <rasd:InstanceID>7</rasd:InstanceID>
+                <rasd:ResourceSubType>vmware.vmci</rasd:ResourceSubType>
+                <rasd:ResourceType>1</rasd:ResourceType>
+              </Item>
+              <vmw:Config ovf:required="false" vmw:key="firmware" vmw:value="{FIRMWARE_TYPE}"/>
+            </VirtualHardwareSection>
+            <AnnotationSection ovf:required="false">
+              <Info>A human-readable annotation</Info>
+              <Annotation>MikroTik RouterOS CHR</Annotation>
+            </AnnotationSection>
+          </VirtualSystem>
+        </Envelope>' 
+        sudo apt-get install -y parted > /dev/null
+        mkdir -p $BUILD_DIR/chr/{boot,routeros}
+        if [ "$ARCH" == "x86" ]; then
+            FIRMWARE_TYPE="efi" 
+            echo "Creating x86 $FIRMWARE_TYPE CHR..."
+            python3 npk.py extract $PUBLISH_DIR/routeros-$VERSION$ARCH_EXT.npk boot/EFI/BOOT/BOOTX64.EFI $BUILD_DIR/chr/BOOTX64.EFI
+            python3 npk.py extract $PUBLISH_DIR/routeros-$VERSION$ARCH_EXT.npk bin/milo $BUILD_DIR/chr/milo
+            chmod +x $BUILD_DIR/chr/milo
+            #要求MBR分区表第一个分区类型必须为0x8300,否则ERROR: could not find disk!
+            truncate --size 128M $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img
+            sgdisk \
+                --zap-all \
+                --set-alignment=1 \
+                --new=1:34:+32M --typecode=1:8300 --change-name=1:"RouterOS Boot" \
+                --new=2:0:0 --typecode=2:8300 --change-name=2:"RouterOS" \
+                --gpttombr=1:2 \
+                $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img
+            dd if=$BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img of=$BUILD_DIR/mbr.bin bs=1 count=512 conv=notrunc
+            printf '\x01' | dd of=$BUILD_DIR/mbr.bin bs=1 count=1 seek=336 conv=notrunc
+            sgdisk \
+                --zap-all \
+                --set-alignment=1 \
+                --new=1:34:+32M --typecode=1:EF00 --change-name=1:"RouterOS Boot" \
+                --new=2:0:0 --typecode=2:8300 --change-name=2:"RouterOS" \
+                $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img
+            dd if=$BUILD_DIR/mbr.bin of=$BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img bs=1 count=512 conv=notrunc
+            rm $BUILD_DIR/mbr.bin
+
+            sudo qemu-nbd -d /dev/nbd0
+            sudo qemu-nbd -c /dev/nbd0 -f raw $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img
+            sudo partprobe /dev/nbd0
+            sudo mkfs.vfat -n "Boot" /dev/nbd0p1
+            sudo mkfs.ext4 -F -L "RouterOS"  -m 0 /dev/nbd0p2
+            sudo mount -o uid=$(id -u),gid=$(id -g) /dev/nbd0p1 $BUILD_DIR/chr/boot
+            mkdir -p $BUILD_DIR/chr/boot/EFI/BOOT
+            cp -v $BUILD_DIR/chr/BOOTX64.EFI $BUILD_DIR/chr/boot/EFI/BOOT/BOOTX64.EFI
+            sudo umount /dev/nbd0p1
+
+            sudo mount /dev/nbd0p2 $BUILD_DIR/chr/routeros
+            sudo mkdir -p $BUILD_DIR/chr/routeros/{var/pdb/{system,option},boot,bin,rw/disk}
+            # cmdStartVerify bin/milo
+            sudo cp -v $BUILD_DIR/chr/milo $BUILD_DIR/chr/routeros/bin/milo
+            sudo cp -v $PUBLISH_DIR/option-$VERSION$ARCH_EXT.npk $BUILD_DIR/chr/routeros/var/pdb/option/image
+            sudo cp -v $PUBLISH_DIR/routeros-$VERSION$ARCH_EXT.npk $BUILD_DIR/chr/routeros/var/pdb/system/image
+            echo -e '#!/bin/sh\n# This script will be executed *before* RouterOS *loader* start.\n# You can put your own initialization stuff in here\n' | sudo tee $BUILD_DIR/chr/routeros/rw/disk/rc.local
+            sudo umount /dev/nbd0p2
+            sudo qemu-nbd -d /dev/nbd0
+
+            qemu-img convert -f raw -O qcow2 $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.qcow2
+            qemu-img convert -f raw -O vmdk  $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vmdk
+            qemu-img convert -f raw -O vpc $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vhd
+            qemu-img convert -f raw -O vhdx $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vhdx
+            qemu-img convert -f raw -O vdi $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vdi
+
+            VMDK_FILE=chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE-disk1.vmdk
+            qemu-img convert -f raw -O vmdk -o subformat=streamOptimized \
+                $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img \
+                $BUILD_DIR/$VMDK_FILE
+            FILE_SIZE=$(stat -c %s "$BUILD_DIR/$VMDK_FILE")
+            OVF_FILE=chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.ovf
+            OVA_FILE=chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.ova
+            echo "$OVF_TEMPLATE" | sed -e "s|{VMDK_FILE}|$VMDK_FILE|g" \
+                    -e "s|{FILE_SIZE}|$FILE_SIZE|g" \
+                    -e "s|{FIRMWARE_TYPE}|$FIRMWARE_TYPE|g" | tee $BUILD_DIR/$OVF_FILE
+            (cd $BUILD_DIR && tar -cvf "$OVA_FILE" "$OVF_FILE" "$VMDK_FILE")
+            rm $BUILD_DIR/$VMDK_FILE
+            rm $BUILD_DIR/$OVF_FILE
+            
+            echo "✅ UEFI CHR created: "
+            ls -la $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.*
+
+            (cd $BUILD_DIR && \
+                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.ova.zip chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.ova && \
+                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.qcow2.zip chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.qcow2 && \
+                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.vmdk.zip chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vmdk && \
+                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.vhd.zip chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vhd && \
+                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.vhdx.zip chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vhdx && \
+                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.vdi.zip chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vdi && 
+                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.img.zip chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img )
+            rm $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.*
+
+
+            FIRMWARE_TYPE="bios" 
+            echo "Creating x86 $FIRMWARE_TYPE CHR..."
+
+            truncate --size 128M $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img
+            sgdisk \
+                --zap-all \
+                --set-alignment=1 \
+                --new=1:34:+32M --typecode=1:8300 --change-name=1:"RouterOS Boot" --attributes=1:set:2 \
+                --new=2:0:-4096 --typecode=2:8300 --change-name=2:"RouterOS" \
+                --gpttombr=1:2 \
+                $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img
+            dd if=$BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img of=$BUILD_DIR/mbr.bin bs=1 count=512  conv=notrunc
+            echo "FA31C08ED0BC007C89E65007501FFBFCBF0006B90001F2A5EA1D060000BEBE07B304803C807423803C00750983C610FECB75EFCD18BE9B06AC3C00740B56BB0700B40ECD105EEBF0EBFE8B148B4C0289F5BF0500BB007CB8010257CD135F730C31C0CD134F75EDBE7C06EBCCBFFE7D813D55AA75C289EEEA007C00004572726F72206C6F6164696E67206F7065726174696E672073797374656D004D697373696E67206F7065726174696E672073797374656D0000000000" | xxd -r -p | sudo dd of=$BUILD_DIR/mbr.bin bs=1 count=440 conv=notrunc
+            printf '\x01' | dd of=$BUILD_DIR/mbr.bin bs=1 count=1 seek=336 conv=notrunc
+            printf '\x80' | dd of=$BUILD_DIR/mbr.bin bs=1 count=1 seek=446 conv=notrunc
+            sgdisk \
+                --zap-all \
+                --set-alignment=1 \
+                --new=1:34:+32M --typecode=1:8300 --change-name=1:"RouterOS Boot" --attributes=1:set:2 \
+                --new=2:0:-4096 --typecode=2:8300 --change-name=2:"RouterOS" \
+                $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img
+            dd if=$BUILD_DIR/mbr.bin of=$BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img bs=1 count=512 conv=notrunc
+            rm $BUILD_DIR/mbr.bin
+            sudo qemu-nbd -d /dev/nbd0
+            sudo qemu-nbd -c /dev/nbd0 -f raw $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img
+            sudo partprobe /dev/nbd0
+            sudo mkfs.ext2 -F -m 0 -L "RouterOS Boot" /dev/nbd0p1
+            sudo mkfs.ext4 -F -m 0 -L "RouterOS"  /dev/nbd0p2
+            sudo mount /dev/nbd0p1 $BUILD_DIR/chr/boot
+            sudo mkdir -p $BUILD_DIR/chr/boot/EFI/BOOT
+            sudo cp -vf $BUILD_DIR/chr/BOOTX64.EFI $BUILD_DIR/chr/boot/EFI/BOOT/BOOTX64.EFI
+            sudo $BUILD_DIR/chr/milo $BUILD_DIR/chr/boot
+            sudo umount /dev/nbd0p1
+
+            sudo mount /dev/nbd0p2 $BUILD_DIR/chr/routeros
+            sudo mkdir -p $BUILD_DIR/chr/routeros/{var/pdb/{system,option},boot,bin,rw/disk}
+            sudo cp -v $BUILD_DIR/chr/milo $BUILD_DIR/chr/routeros/bin/milo
+            sudo cp -v $PUBLISH_DIR/option-$VERSION$ARCH_EXT.npk $BUILD_DIR/chr/routeros/var/pdb/option/image
+            sudo cp -v $PUBLISH_DIR/routeros-$VERSION$ARCH_EXT.npk $BUILD_DIR/chr/routeros/var/pdb/system/image
+            echo -e '#!/bin/sh\n# This script will be executed *before* RouterOS *loader* start.\n# You can put your own initialization stuff in here\n' | sudo tee $BUILD_DIR/chr/routeros/rw/disk/rc.local
+            sudo umount /dev/nbd0p2
+            sudo qemu-nbd -d /dev/nbd0
+
+            qemu-img convert -f raw -O qcow2 $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.qcow2
+            qemu-img convert -f raw -O vmdk  $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vmdk
+            qemu-img convert -f raw -O vpc $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vhd
+            qemu-img convert -f raw -O vhdx $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vhdx
+            qemu-img convert -f raw -O vdi $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vdi
+
+            VMDK_FILE=chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE-disk1.vmdk
+            qemu-img convert -f raw -O vmdk -o subformat=streamOptimized \
+                $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img \
+                $BUILD_DIR/$VMDK_FILE
+            FILE_SIZE=$(stat -c %s "$BUILD_DIR/$VMDK_FILE")
+            OVF_FILE=chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.ovf
+            OVA_FILE=chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.ova
+            echo "$OVF_TEMPLATE" | sed -e "s|{VMDK_FILE}|$VMDK_FILE|g" \
+                    -e "s|{FILE_SIZE}|$FILE_SIZE|g" \
+                    -e "s|{FIRMWARE_TYPE}|$FIRMWARE_TYPE|g" | tee $BUILD_DIR/$OVF_FILE
+            (cd $BUILD_DIR && tar -cvf "$OVA_FILE" "$OVF_FILE" "$VMDK_FILE")
+            rm $BUILD_DIR/$VMDK_FILE
+            rm $BUILD_DIR/$OVF_FILE
+
+
+            echo "✅ legacy BIOS CHR created: "
+            ls -la $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.*
+
+            (cd $BUILD_DIR && \
+                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.ova.zip chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.ova && \
+                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.qcow2.zip chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.qcow2 && \
+                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vmdk.zip chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vmdk && \
+                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vhd.zip chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vhd && \
+                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vhdx.zip chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vhdx && \
+                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vdi.zip chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vdi && 
+                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img.zip chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img )
+            rm $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.*
+            rm $BUILD_DIR/chr/BOOTX64.EFI
+            rm $BUILD_DIR/chr/milo
+
+        elif [ "$ARCH" == "arm64" ]; then
+            echo "Creating arm64 CHR..."
+            python3 npk.py extract $PUBLISH_DIR/routeros-$VERSION$ARCH_EXT.npk boot/kernel $BUILD_DIR/chr/kernel
+            python3 patch.py buildefi $BUILD_DIR/chr/kernel $BUILD_DIR/chr/BOOTAA64.EFI
+            rm -r $BUILD_DIR/chr/kernel
+
+            #要求MBR分区表第一个分区类型必须为0x8300,否则ERROR: could not find disk!
+            truncate --size 128M $BUILD_DIR/chr-$VERSION$ARCH_EXT.img
+            sgdisk \
+                --zap-all \
+                --set-alignment=1 \
+                --new=1:34:+32M --typecode=1:8300 --change-name=1:"RouterOS Boot" \
+                --new=2:0:0 --typecode=2:8300 --change-name=2:"RouterOS" \
+                --gpttombr=1:2 \
+                $BUILD_DIR/chr-$VERSION$ARCH_EXT.img
+            dd if=$BUILD_DIR/chr-$VERSION$ARCH_EXT.img of=$BUILD_DIR/mbr.bin bs=1 count=512 conv=notrunc
+            printf '\x01' | dd of=$BUILD_DIR/mbr.bin bs=1 count=1 seek=336 conv=notrunc
+            sgdisk \
+                --zap-all \
+                --set-alignment=1 \
+                --new=1:34:+32M --typecode=1:EF00 --change-name=1:"RouterOS Boot" \
+                --new=2:0:0 --typecode=2:8300 --change-name=2:"RouterOS" \
+                $BUILD_DIR/chr-$VERSION$ARCH_EXT.img
+            dd if=$BUILD_DIR/mbr.bin of=$BUILD_DIR/chr-$VERSION$ARCH_EXT.img bs=1 count=512 conv=notrunc
+            rm $BUILD_DIR/mbr.bin
+            sudo qemu-nbd -d /dev/nbd0
+            sudo qemu-nbd -c /dev/nbd0 -f raw $BUILD_DIR/chr-$VERSION$ARCH_EXT.img
+            sudo partprobe /dev/nbd0
+            sudo mkfs.vfat -n "Boot" "/dev/nbd0p1"
+            sudo mkfs.ext4 -F -m 0 -L "RouterOS" "/dev/nbd0p2"
+            sudo mount -o uid=$(id -u),gid=$(id -g) /dev/nbd0p1 $BUILD_DIR/chr/boot
+            mkdir -p $BUILD_DIR/chr/boot/EFI/BOOT
+            mv -v $BUILD_DIR/chr/BOOTAA64.EFI $BUILD_DIR/chr/boot/EFI/BOOT/BOOTAA64.EFI
+            sudo umount /dev/nbd0p1
+
+            sudo mount /dev/nbd0p2 $BUILD_DIR/chr/routeros
+            sudo mkdir -p $BUILD_DIR/chr/routeros/{var/pdb/{system,option},boot,rw/disk}
+            sudo cp -v $PUBLISH_DIR/option-$VERSION$ARCH_EXT.npk $BUILD_DIR/chr/routeros/var/pdb/option/image
+            sudo cp -v $PUBLISH_DIR/routeros-$VERSION$ARCH_EXT.npk $BUILD_DIR/chr/routeros/var/pdb/system/image
+            echo -e '#!/bin/sh\n# This script will be executed *before* RouterOS *loader* start.\n# You can put your own initialization stuff in here\n' | sudo tee $BUILD_DIR/chr/routeros/rw/disk/rc.local
+            sudo umount /dev/nbd0p2
+            sudo qemu-nbd -d /dev/nbd0
+
+            qemu-img convert -f raw -O qcow2 $BUILD_DIR/chr-$VERSION$ARCH_EXT.img $BUILD_DIR/chr-$VERSION$ARCH_EXT.qcow2
+            qemu-img convert -f raw -O vmdk  $BUILD_DIR/chr-$VERSION$ARCH_EXT.img $BUILD_DIR/chr-$VERSION$ARCH_EXT.vmdk
+            qemu-img convert -f raw -O vpc $BUILD_DIR/chr-$VERSION$ARCH_EXT.img $BUILD_DIR/chr-$VERSION$ARCH_EXT.vhd
+            qemu-img convert -f raw -O vhdx $BUILD_DIR/chr-$VERSION$ARCH_EXT.img $BUILD_DIR/chr-$VERSION$ARCH_EXT.vhdx
+            qemu-img convert -f raw -O vdi $BUILD_DIR/chr-$VERSION$ARCH_EXT.img $BUILD_DIR/chr-$VERSION$ARCH_EXT.vdi
+
+            VMDK_FILE=chr-$VERSION$ARCH_EXT-disk1.vmdk
+            qemu-img convert -f raw -O vmdk -o subformat=streamOptimized \
+                $BUILD_DIR/chr-$VERSION$ARCH_EXT.img \
+                $BUILD_DIR/$VMDK_FILE
+            FILE_SIZE=$(stat -c %s "$BUILD_DIR/$VMDK_FILE")
+            OVF_FILE=chr-$VERSION$ARCH_EXT.ovf
+            OVA_FILE=chr-$VERSION$ARCH_EXT.ova
+            echo "$OVF_TEMPLATE" | sed -e "s|{VMDK_FILE}|$VMDK_FILE|g" \
+                    -e "s|{FILE_SIZE}|$FILE_SIZE|g" \
+                    -e "s|{FIRMWARE_TYPE}|efi|g" | tee $BUILD_DIR/$OVF_FILE
+            (cd $BUILD_DIR && tar -cvf "$OVA_FILE" "$OVF_FILE" "$VMDK_FILE")
+            rm $BUILD_DIR/$VMDK_FILE
+            rm $BUILD_DIR/$OVF_FILE
+
+
+            echo "✅ CHR created: "
+            ls -la $BUILD_DIR/chr-$VERSION$ARCH_EXT.*
+
+            (cd $BUILD_DIR && \
+                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.ova.zip chr-$VERSION$ARCH_EXT.ova && \
+                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.qcow2.zip chr-$VERSION$ARCH_EXT.qcow2 && \
+                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.vmdk.zip chr-$VERSION$ARCH_EXT.vmdk && \
+                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.vhd.zip chr-$VERSION$ARCH_EXT.vhd && \
+                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.vhdx.zip chr-$VERSION$ARCH_EXT.vhdx && \
+                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.vdi.zip chr-$VERSION$ARCH_EXT.vdi && 
+                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.img.zip chr-$VERSION$ARCH_EXT.img )
+            rm $BUILD_DIR/chr-$VERSION$ARCH_EXT.*
+        fi
+        rm -rf $BUILD_DIR/chr
+
+    - name: Upload Files as Artifact (No Release)
+      if: needs.Prepare_Build.outputs.RELEASE == 'false'
+      uses: actions/upload-artifact@v7
+      with:
+        name: mikrotik-${{ env.VERSION }}${{ env.ARCH_EXT }}
+        path: |
+          ${{ env.PUBLISH_DIR }}/*.zip
+          ${{ env.PUBLISH_DIR }}/*.iso
+
+    - name: Generate SHA256 checksum files
+      if: needs.Prepare_Build.outputs.RELEASE == 'true'
+      run: |
+        (
+          cd $PUBLISH_DIR
+          for file in *.zip *.iso *.npk; do
+            if [ -f "$file" ]; then
+              sha256sum "$file" > "$file.sha256"
+              cat "$file.sha256"
+            fi
+          done
+        )
+
+    - name: Delete Release tag ${{ env.VERSION }}${{ env.ARCH_EXT }}
+      if: needs.Prepare_Build.outputs.RELEASE == 'true'
+      run: |
+        sed -i "1i Build Time:$BUILD_TIME" $PUBLISH_DIR/CHANGELOG
+        HEADER="Authorization: token ${{ secrets.GITHUB_TOKEN }}"
+        RELEASE_INFO=$(curl -s -H "$HEADER" https://api.github.com/repos/${{ github.repository }}/releases/tags/$VERSION$ARCH_EXT)
+        RELEASE_ID=$(echo $RELEASE_INFO | jq -r '.id')
+        echo "Release ID: $RELEASE_ID"
+        if [ "$RELEASE_ID" != "null" ]; then
+            curl -X DELETE -H "$HEADER" https://api.github.com/repos/${{ github.repository }}/git/refs/tags/$VERSION$ARCH_EXT
+            echo "Tag $VERSION$ARCH_EXT deleted successfully."
+            curl -X DELETE -H "$HEADER" https://api.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID
+            echo "Release with tag $VERSION$ARCH_EXT deleted successfully."
+            # Wait for a moment to ensure the deletion is complete
+            sleep 3
+        else
+            echo "Release not found for tag: $VERSION$ARCH_EXT)"
+        fi
+
+    - name: Create Release tag ${{ env.VERSION }}${{ env.ARCH_EXT }}
+      if: needs.Prepare_Build.outputs.RELEASE == 'true'
+      uses: softprops/action-gh-release@v3
+      with:
+        name: "RouterOS ${{ env.VERSION }}${{ env.ARCH_EXT }}"
+        repository: ${{ github.repository }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+        body_path: ${{env.PUBLISH_DIR}}/CHANGELOG
+        tag_name: ${{ env.VERSION }}${{ env.ARCH_EXT }}
+        make_latest:  ${{ env.CHANNEL == 'stable' && matrix.arch == 'x86'}} 
+        prerelease:  ${{ env.CHANNEL == 'testing'}} 
+        files: |
+          ${{env.PUBLISH_DIR}}/*.zip
+          ${{env.PUBLISH_DIR}}/*.iso
+          ${{env.PUBLISH_DIR}}/*.zip.sha256
+          ${{env.PUBLISH_DIR}}/*.iso.sha256
+
+    - name: Upload Files
+      if: needs.Prepare_Build.outputs.RELEASE == 'true'
+      run: |
+        sudo apt-get install -y knockd lftp > /dev/null
+        knock -4  ${{ secrets.SSH_SERVER }} ${{ secrets.SSH_KNOCK_PORT }} 
+        echo "Knocking on server..."
+        for i in 1 2 3; do
+          if knock -4  ${{ secrets.SSH_SERVER }} ${{ secrets.SSH_KNOCK_PORT }} ; then
+            echo "Knock successful"
+            break
+          else
+            echo "Knock attempt $i failed, retrying..."
+            sleep 2
+          fi
+        done
+        echo "Waiting for firewall to open SSH port..."
+        sleep 3
+        rm -f $PUBLISH_DIR/*.zip
+        rm -f $PUBLISH_DIR/*.iso
+        rm -f $PUBLISH_DIR/*.zip.sha256
+        rm -f $PUBLISH_DIR/*.iso.sha256
+        sed -i '1d' $PUBLISH_DIR/CHANGELOG
+        echo $VERSION $BUILD_TIME | tee $PUBLISH_DIR/info
+        touch $PUBLISH_DIR/$CHANNEL
+        REMOTE_PATH=${{ secrets.SSH_DIRECTORY }}/$VERSION
+        SERVER=${{ secrets.SSH_SERVER }}
+        USER=${{ secrets.SSH_USERNAME }}
+        PASS=${{ secrets.SSH_PASSWORD }}
+        PORT=${{ secrets.SSH_PORT }}
+        
+        lftp -u "$USER","$PASS" sftp://$SERVER:$PORT <<EOF
+        set sftp:auto-confirm yes
+        mirror --reverse --verbose --only-newer $PUBLISH_DIR "$REMOTE_PATH"
+        bye
+        EOF
+
+    - name: Clear Cloudflare cache
+      if: needs.Prepare_Build.outputs.RELEASE == 'true'
+      run: |
+        curl --request POST --url "https://api.cloudflare.com/client/v4/zones/096723464400de10b6eb85028baa8372/purge_cache" \
+            --header "Authorization: Bearer 9GDQkzU51QXaqzp1qMjyFKpyeJyOdnNoG9GZQaGP" \
+            --header "Content-Type:application/json" \
+            --data '{"purge_everything": true}'
+
+  Update_Release:
+    needs: [Prepare_Build,Build_RouterOS]
+    if: |
+      needs.Prepare_Build.outputs.SKIP_BUILD == 'false' && 
+      needs.Build_RouterOS.result == 'success' &&
+      needs.Prepare_Build.outputs.RELEASE == 'true' 
+    runs-on: ubuntu-24.04
+    env:
+      CHANNEL: ${{ inputs.channel }}
+      VERSION: ${{ needs.Prepare_Build.outputs.VERSION }}
+    steps:
+    - name: Update Release
+      run: |
+        sudo apt-get install -y knockd lftp > /dev/null
+        knock -4  ${{ secrets.SSH_SERVER }} ${{ secrets.SSH_KNOCK_PORT }} 
+        echo "Knocking on server..."
+        for i in 1 2 3; do
+          if knock -4  ${{ secrets.SSH_SERVER }} ${{ secrets.SSH_KNOCK_PORT }} ; then
+            echo "Knock successful"
+            break
+          else
+            echo "Knock attempt $i failed, retrying..."
+            sleep 2
+          fi
+        done
+        echo "Waiting for firewall to open SSH port..."
+        sleep 3
+        REMOTE_PATH=${{ secrets.SSH_DIRECTORY }}
+        SERVER=${{ secrets.SSH_SERVER }}
+        USER=${{ secrets.SSH_USERNAME }}
+        PASS=${{ secrets.SSH_PASSWORD }}
+        PORT=${{ secrets.SSH_PORT }}
+        sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no -p $PORT $USER@$SERVER \
+            "bash /rw/disk/$REMOTE_PATH/packages.sh /rw/disk/$REMOTE_PATH/$VERSION; \
+            ln -sf /root/$REMOTE_PATH/$VERSION/info /rw/disk/$REMOTE_PATH/NEWESTa7.$CHANNEL; \
+            chown -R 32768:32768 /rw/disk/$REMOTE_PATH/"
+        echo "✅ Updated: packages.csv"

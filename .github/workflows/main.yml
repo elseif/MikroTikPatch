@@ -1,0 +1,28 @@
+
+name: Patch Mikrotik RouterOS
+on:
+  schedule:
+    - cron: "0 0 * * *" # At UTC 00:00 on every day
+  workflow_dispatch:  
+
+jobs:
+  Build_Stable:
+    uses: ./.github/workflows/build_v7.yml
+    with:
+      channel: stable
+      release: true
+    secrets: inherit
+
+  Build_LongTerm:
+    uses: ./.github/workflows/build_v7.yml
+    with:
+      channel: long-term
+      release: true
+    secrets: inherit
+
+  Build_Testing:
+    uses: ./.github/workflows/build_v7.yml
+    with:
+      channel: testing
+      release: true
+    secrets: inherit
