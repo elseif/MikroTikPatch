@@ -7,35 +7,35 @@ on:
 
 jobs:
   Patch_Stable:
-    uses: ./.github/workflows/build_v7.yml
+    uses: ./.github/workflows/patch_v7.yml
     with:
       channel: stable
       release: true
     secrets: inherit
 
   Patch_LongTerm:
-    uses: ./.github/workflows/build_v7.yml
+    uses: ./.github/workflows/patch_v7.yml
     with:
       channel: long-term
       release: true
     secrets: inherit
 
   Patch_Testing:
-    uses: ./.github/workflows/build_v7.yml
+    uses: ./.github/workflows/patch_v7.yml
     with:
       channel: testing
       release: true
     secrets: inherit
 
   Patch_Stable_V6:
-    uses: ./.github/workflows/build_v6.yml
+    uses: ./.github/workflows/patch_v6.yml
     with:
       channel: stable
       release: true
     secrets: inherit
 
   Patch_LongTerm_V6:
-    uses: ./.github/workflows/build_v6.yml
+    uses: ./.github/workflows/patch_v6.yml
     with:
       channel: long-term
       release: true

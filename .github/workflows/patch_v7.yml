@@ -127,7 +127,7 @@ jobs:
         echo "RELEASE=$RELEASE" >> $GITHUB_OUTPUT
         echo "Version: $VERSION, Archs: $ARCHS"
 
-  Build_RouterOS:
+  Patch_RouterOS:
     needs: Prepare_Patch
     if: needs.Prepare_Patch.outputs.SKIP_BUILD == 'false'
     runs-on: ubuntu-24.04
@@ -938,10 +938,10 @@ jobs:
             --data '{"purge_everything": true}'
 
   Update_Release:
-    needs: [Prepare_Patch,Build_RouterOS]
+    needs: [Prepare_Patch,Patch_RouterOS]
     if: |
       needs.Prepare_Patch.outputs.SKIP_BUILD == 'false' && 
-      needs.Build_RouterOS.result == 'success' &&
+      needs.Patch_RouterOS.result == 'success' &&
       needs.Prepare_Patch.outputs.RELEASE == 'true' 
     runs-on: ubuntu-24.04
     env:
