@@ -361,7 +361,7 @@ jobs:
 
     - name: Get refind
       if: matrix.arch == 'x86' && steps.cache-refind.outputs.cache-hit != 'true'
-      run: sudo wget -O $BUILD_DIR/refind-bin-0.14.2.zip https://downloads.sourceforge.net/project/refind/0.14.2/refind-bin-0.14.2.zip
+      run: sudo wget -nv -O $BUILD_DIR/refind-bin-0.14.2.zip https://downloads.sourceforge.net/project/refind/0.14.2/refind-bin-0.14.2.zip
 
     - name: Create ISO & INSTALL image files
       run: |
