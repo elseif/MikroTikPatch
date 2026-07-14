@@ -376,32 +376,39 @@ jobs:
         unit: sectors
         start=1, size=, type=83, bootable
         EOF
+        dd if=$BUILD_DIR/chr-$VERSION$ARCH_EXT.img of=$BUILD_DIR/mbr.bin bs=1 count=512  conv=notrunc
+        echo "FA31C08ED0BC007C89E65007501FFBFCBF0006B90001F2A5EA1D060000BEBE07B304803C807423803C00750983C610FECB75EFCD18BE9B06AC3C00740B56BB0700B40ECD105EEBF0EBFE8B148B4C0289F5BF0500BB007CB8010257CD135F730C31C0CD134F75EDBE7C06EBCCBFFE7D813D55AA75C289EEEA007C00004572726F72206C6F6164696E67206F7065726174696E672073797374656D004D697373696E67206F7065726174696E672073797374656D0000000000" | xxd -r -p | sudo dd of=$BUILD_DIR/mbr.bin bs=1 count=440 conv=notrunc
+        printf '\x01' | sudo dd of=$BUILD_DIR/mbr.bin bs=1 count=1 seek=336 conv=notrunc
+        dd if=$BUILD_DIR/mbr.bin of=$BUILD_DIR/chr-$VERSION$ARCH_EXT.img bs=1 count=512 conv=notrunc
         sudo qemu-nbd -d /dev/nbd0
         sudo qemu-nbd -c /dev/nbd0 -f raw $BUILD_DIR/chr-$VERSION$ARCH_EXT.img
         sudo partprobe /dev/nbd0
-        sudo mkfs.ext4 -F -L "system"  -m 0 /dev/nbd0p1
-        sudo mount -o uid=$(id -u),gid=$(id -g) /dev/nbd0p1 $BUILD_DIR/chr
-        mkdir -p $BUILD_DIR/chr/{boot,bin,rw/disk,var/pdb/{routeros-x86,option,dude}}
-        python3 npk.py extract $PUBLISH_DIR/routeros-$ARCH-$VERSION.npk bin/milo $BUILD_DIR/chr/bin/milo
-        chmod +x $BUILD_DIR/chr/bin/milo
-        python3 npk.py extract $PUBLISH_DIR/routeros-$ARCH-$VERSION.npk boot/vmlinuz-64 $BUILD_DIR/chr/boot/vmlinuz-64
-        python3 npk.py extract $PUBLISH_DIR/routeros-$ARCH-$VERSION.npk boot/initrd.rgz $BUILD_DIR/chr/boot/initrd.rgz
-        python3 npk.py extract $PUBLISH_DIR/routeros-$ARCH-$VERSION.npk boot/map $BUILD_DIR/chr/boot/map
-        python3 npk.py extract $PUBLISH_DIR/routeros-$ARCH-$VERSION.npk boot/milo.conf $BUILD_DIR/chr/boot/milo.conf
-        python3 npk.py extract $PUBLISH_DIR/routeros-$ARCH-$VERSION.npk boot/vmlinuz $BUILD_DIR/chr/boot/vmlinuz
-        python3 npk.py extract $PUBLISH_DIR/routeros-$ARCH-$VERSION.npk boot/vmlinuz-smp $BUILD_DIR/chr/boot/vmlinuz-smp
-        mv $BUILD_DIR/chr/boot/initrd.rgz $BUILD_DIR/initrd.rgz
-        python3 patch.py kernel $BUILD_DIR/initrd.rgz -O $BUILD_DIR/chr/boot/initrd.rgz
+        sudo mkfs.ext4 -F -L "system" -m 0 /dev/nbd0p1
+        sudo mount /dev/nbd0p1 $BUILD_DIR/chr
+        sudo mkdir -p $BUILD_DIR/chr/{boot,bin,rw/disk,var/pdb/{routeros-x86,option,dude}}
+        mkdir -p $BUILD_DIR/{boot,bin}
+        python3 npk.py extract $PUBLISH_DIR/routeros-$ARCH-$VERSION.npk bin/milo $BUILD_DIR/bin/milo
+        chmod +x $BUILD_DIR/bin/milo
+        python3 npk.py extract $PUBLISH_DIR/routeros-$ARCH-$VERSION.npk boot/vmlinuz-64 $BUILD_DIR/boot/vmlinuz-64
+        python3 npk.py extract $PUBLISH_DIR/routeros-$ARCH-$VERSION.npk boot/initrd.rgz $BUILD_DIR/boot/initrd.rgz
+        python3 npk.py extract $PUBLISH_DIR/routeros-$ARCH-$VERSION.npk boot/map $BUILD_DIR/boot/map
+        python3 npk.py extract $PUBLISH_DIR/routeros-$ARCH-$VERSION.npk boot/milo.conf $BUILD_DIR/boot/milo.conf
+        python3 npk.py extract $PUBLISH_DIR/routeros-$ARCH-$VERSION.npk boot/vmlinuz $BUILD_DIR/boot/vmlinuz
+        python3 npk.py extract $PUBLISH_DIR/routeros-$ARCH-$VERSION.npk boot/vmlinuz-smp $BUILD_DIR/boot/vmlinuz-smp
+        python3 patch.py kernel $BUILD_DIR/boot/initrd.rgz -O $BUILD_DIR/initrd.rgz
+        sudo mv $BUILD_DIR/boot $BUILD_DIR/chr/
+        sudo mv $BUILD_DIR/bin $BUILD_DIR/chr/
+        sudo mv $BUILD_DIR/initrd.rgz $BUILD_DIR/chr/boot/initrd.rgz
         rm -f $BUILD_DIR/initrd.rgz
-        cp $PUBLISH_DIR/routeros-$ARCH-$VERSION.npk $BUILD_DIR/chr/var/pdb/routeros-x86/image
-        cp $PUBLISH_DIR/option-$VERSION$ARCH_EXT.npk $BUILD_DIR/chr/var/pdb/option/image
-        cp $PUBLISH_DIR/dude-$VERSION$ARCH_EXT.npk $BUILD_DIR/chr/var/pdb/dude/image
-        echo -e '#!/bin/sh\n# This script will be executed *before* RouterOS *loader* start.\n# You can put your own initialization stuff in here\n' | tee $BUILD_DIR/chr/rw/disk/rc.local
-        touch $BUILD_DIR/chr/rw/REBOOT
-        touch $BUILD_DIR/chr/rw/ENABLE_X86_64
-        touch $BUILD_DIR/chr/rw/autorun.scr
-        touch $BUILD_DIR/chr/UPGRADED
-        touch $BUILD_DIR/chr/SHOW_LICENSE
+        sudo cp $PUBLISH_DIR/routeros-$ARCH-$VERSION.npk $BUILD_DIR/chr/var/pdb/routeros-x86/image
+        sudo cp $PUBLISH_DIR/option-$VERSION$ARCH_EXT.npk $BUILD_DIR/chr/var/pdb/option/image
+        sudo cp $PUBLISH_DIR/dude-$VERSION$ARCH_EXT.npk $BUILD_DIR/chr/var/pdb/dude/image
+        echo -e '#!/bin/sh\n# This script will be executed *before* RouterOS *loader* start.\n# You can put your own initialization stuff in here\n' |sudo tee $BUILD_DIR/chr/rw/disk/rc.local
+        sudo touch $BUILD_DIR/chr/rw/REBOOT
+        sudo touch $BUILD_DIR/chr/rw/ENABLE_X86_64
+        sudo touch $BUILD_DIR/chr/rw/autorun.scr
+        sudo touch $BUILD_DIR/chr/UPGRADED
+        sudo touch $BUILD_DIR/chr/SHOW_LICENSE
         sudo $BUILD_DIR/chr/bin/milo $BUILD_DIR/chr/boot
         sudo mountpoint -q $BUILD_DIR/chr && sudo umount $BUILD_DIR/chr
         sudo qemu-nbd -d /dev/nbd0 2>/dev/null 
