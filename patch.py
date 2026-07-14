@@ -201,7 +201,7 @@ def patch_pe(data: bytes,key_dict:dict):
 
 def build_efi(input_file, output_file):
     from package import check_install_package
-    check_install_package(['pyelftools'])
+    check_install_package(['pyelftools','pefile'])
     from elftools.elf.elffile import ELFFile
     import pefile
     def find_xz_streams(data:bytes):
