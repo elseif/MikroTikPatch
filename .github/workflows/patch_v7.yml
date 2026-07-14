@@ -599,33 +599,32 @@ jobs:
         sudo apt-get install -y parted > /dev/null
         mkdir -p $BUILD_DIR/chr/{boot,routeros}
         if [ "$ARCH" == "x86" ]; then
-            FIRMWARE_TYPE="efi" 
-            echo "Creating x86 $FIRMWARE_TYPE CHR..."
+            echo "Creating x86 uefi CHR..."
             python3 npk.py extract $PUBLISH_DIR/routeros-$VERSION$ARCH_EXT.npk boot/EFI/BOOT/BOOTX64.EFI $BUILD_DIR/chr/BOOTX64.EFI
             python3 npk.py extract $PUBLISH_DIR/routeros-$VERSION$ARCH_EXT.npk bin/milo $BUILD_DIR/chr/milo
             chmod +x $BUILD_DIR/chr/milo
             #要求MBR分区表第一个分区类型必须为0x8300,否则ERROR: could not find disk!
-            truncate --size 128M $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img
+            truncate --size 128M $BUILD_DIR/chr-$VERSION$ARCH_EXT.img
             sgdisk \
                 --zap-all \
                 --set-alignment=1 \
                 --new=1:34:+32M --typecode=1:8300 --change-name=1:"RouterOS Boot" \
                 --new=2:0:0 --typecode=2:8300 --change-name=2:"RouterOS" \
                 --gpttombr=1:2 \
-                $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img
-            dd if=$BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img of=$BUILD_DIR/mbr.bin bs=1 count=512 conv=notrunc
+                $BUILD_DIR/chr-$VERSION$ARCH_EXT.img
+            dd if=$BUILD_DIR/chr-$VERSION$ARCH_EXT.img of=$BUILD_DIR/mbr.bin bs=1 count=512 conv=notrunc
             printf '\x01' | dd of=$BUILD_DIR/mbr.bin bs=1 count=1 seek=336 conv=notrunc
             sgdisk \
                 --zap-all \
                 --set-alignment=1 \
                 --new=1:34:+32M --typecode=1:EF00 --change-name=1:"RouterOS Boot" \
                 --new=2:0:0 --typecode=2:8300 --change-name=2:"RouterOS" \
-                $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img
-            dd if=$BUILD_DIR/mbr.bin of=$BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img bs=1 count=512 conv=notrunc
+                $BUILD_DIR/chr-$VERSION$ARCH_EXT.img
+            dd if=$BUILD_DIR/mbr.bin of=$BUILD_DIR/chr-$VERSION$ARCH_EXT.img bs=1 count=512 conv=notrunc
             rm $BUILD_DIR/mbr.bin
 
             sudo qemu-nbd -d /dev/nbd0
-            sudo qemu-nbd -c /dev/nbd0 -f raw $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img
+            sudo qemu-nbd -c /dev/nbd0 -f raw $BUILD_DIR/chr-$VERSION$ARCH_EXT.img
             sudo partprobe /dev/nbd0
             sudo mkfs.vfat -n "Boot" /dev/nbd0p1
             sudo mkfs.ext4 -F -L "RouterOS"  -m 0 /dev/nbd0p2
@@ -644,52 +643,52 @@ jobs:
             sudo umount /dev/nbd0p2
             sudo qemu-nbd -d /dev/nbd0
 
-            qemu-img convert -f raw -O qcow2 $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.qcow2
-            qemu-img convert -f raw -O vmdk  $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vmdk
-            qemu-img convert -f raw -O vpc $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vhd
-            qemu-img convert -f raw -O vhdx $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vhdx
-            qemu-img convert -f raw -O vdi $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vdi
+            qemu-img convert -f raw -O qcow2 $BUILD_DIR/chr-$VERSION$ARCH_EXT.img $BUILD_DIR/chr-$VERSION$ARCH_EXT.qcow2
+            qemu-img convert -f raw -O vmdk  $BUILD_DIR/chr-$VERSION$ARCH_EXT.img $BUILD_DIR/chr-$VERSION$ARCH_EXT.vmdk
+            qemu-img convert -f raw -O vpc $BUILD_DIR/chr-$VERSION$ARCH_EXT.img $BUILD_DIR/chr-$VERSION$ARCH_EXT.vhd
+            qemu-img convert -f raw -O vhdx $BUILD_DIR/chr-$VERSION$ARCH_EXT.img $BUILD_DIR/chr-$VERSION$ARCH_EXT.vhdx
+            qemu-img convert -f raw -O vdi $BUILD_DIR/chr-$VERSION$ARCH_EXT.img $BUILD_DIR/chr-$VERSION$ARCH_EXT.vdi
 
-            VMDK_FILE=chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE-disk1.vmdk
+            VMDK_FILE=chr-$VERSION$ARCH_EXT-disk1.vmdk
             qemu-img convert -f raw -O vmdk -o subformat=streamOptimized \
-                $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img \
+                $BUILD_DIR/chr-$VERSION$ARCH_EXT.img \
                 $BUILD_DIR/$VMDK_FILE
             FILE_SIZE=$(stat -c %s "$BUILD_DIR/$VMDK_FILE")
-            OVF_FILE=chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.ovf
-            OVA_FILE=chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.ova
+            OVF_FILE=chr-$VERSION$ARCH_EXT.ovf
+            OVA_FILE=chr-$VERSION$ARCH_EXT.ova
             echo "$OVF_TEMPLATE" | sed -e "s|{VMDK_FILE}|$VMDK_FILE|g" \
                     -e "s|{FILE_SIZE}|$FILE_SIZE|g" \
-                    -e "s|{FIRMWARE_TYPE}|$FIRMWARE_TYPE|g" | tee $BUILD_DIR/$OVF_FILE
+                    -e "s|{FIRMWARE_TYPE}|efi|g" | tee $BUILD_DIR/$OVF_FILE
             (cd $BUILD_DIR && tar -cvf "$OVA_FILE" "$OVF_FILE" "$VMDK_FILE")
             rm $BUILD_DIR/$VMDK_FILE
             rm $BUILD_DIR/$OVF_FILE
             
             echo "✅ UEFI CHR created: "
-            ls -la $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.*
+            ls -la $BUILD_DIR/chr-$VERSION$ARCH_EXT.*
 
             (cd $BUILD_DIR && \
-                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.ova.zip chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.ova && \
-                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.qcow2.zip chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.qcow2 && \
-                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.vmdk.zip chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vmdk && \
-                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.vhd.zip chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vhd && \
-                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.vhdx.zip chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vhdx && \
-                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.vdi.zip chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vdi && 
-                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.img.zip chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img )
-            rm $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.*
+                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.ova.zip chr-$VERSION$ARCH_EXT.ova && \
+                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.qcow2.zip chr-$VERSION$ARCH_EXT.qcow2 && \
+                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.vmdk.zip chr-$VERSION$ARCH_EXT.vmdk && \
+                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.vhd.zip chr-$VERSION$ARCH_EXT.vhd && \
+                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.vhdx.zip chr-$VERSION$ARCH_EXT.vhdx && \
+                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.vdi.zip chr-$VERSION$ARCH_EXT.vdi && 
+                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.img.zip chr-$VERSION$ARCH_EXT.img )
+            rm $BUILD_DIR/chr-$VERSION$ARCH_EXT.*
 
 
             FIRMWARE_TYPE="bios" 
-            echo "Creating x86 $FIRMWARE_TYPE CHR..."
+            echo "Creating x86 legacy bios CHR..."
 
-            truncate --size 128M $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img
+            truncate --size 128M $BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img
             sgdisk \
                 --zap-all \
                 --set-alignment=1 \
                 --new=1:34:+32M --typecode=1:8300 --change-name=1:"RouterOS Boot" --attributes=1:set:2 \
                 --new=2:0:-4096 --typecode=2:8300 --change-name=2:"RouterOS" \
                 --gpttombr=1:2 \
-                $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img
-            dd if=$BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img of=$BUILD_DIR/mbr.bin bs=1 count=512  conv=notrunc
+                $BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img
+            dd if=$BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img of=$BUILD_DIR/mbr.bin bs=1 count=512  conv=notrunc
             echo "FA31C08ED0BC007C89E65007501FFBFCBF0006B90001F2A5EA1D060000BEBE07B304803C807423803C00750983C610FECB75EFCD18BE9B06AC3C00740B56BB0700B40ECD105EEBF0EBFE8B148B4C0289F5BF0500BB007CB8010257CD135F730C31C0CD134F75EDBE7C06EBCCBFFE7D813D55AA75C289EEEA007C00004572726F72206C6F6164696E67206F7065726174696E672073797374656D004D697373696E67206F7065726174696E672073797374656D0000000000" | xxd -r -p | dd of=$BUILD_DIR/mbr.bin bs=1 count=440 conv=notrunc
             printf '\x01' | dd of=$BUILD_DIR/mbr.bin bs=1 count=1 seek=336 conv=notrunc
             printf '\x80' | dd of=$BUILD_DIR/mbr.bin bs=1 count=1 seek=446 conv=notrunc
@@ -698,11 +697,11 @@ jobs:
                 --set-alignment=1 \
                 --new=1:34:+32M --typecode=1:8300 --change-name=1:"RouterOS Boot" --attributes=1:set:2 \
                 --new=2:0:-4096 --typecode=2:8300 --change-name=2:"RouterOS" \
-                $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img
-            dd if=$BUILD_DIR/mbr.bin of=$BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img bs=1 count=512 conv=notrunc
+                $BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img
+            dd if=$BUILD_DIR/mbr.bin of=$BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img bs=1 count=512 conv=notrunc
             rm $BUILD_DIR/mbr.bin
             sudo qemu-nbd -d /dev/nbd0
-            sudo qemu-nbd -c /dev/nbd0 -f raw $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img
+            sudo qemu-nbd -c /dev/nbd0 -f raw $BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img
             sudo partprobe /dev/nbd0
             sudo mkfs.ext2 -F -m 0 -L "RouterOS Boot" /dev/nbd0p1
             sudo mkfs.ext4 -F -m 0 -L "RouterOS"  /dev/nbd0p2
@@ -721,39 +720,39 @@ jobs:
             sudo umount /dev/nbd0p2
             sudo qemu-nbd -d /dev/nbd0
 
-            qemu-img convert -f raw -O qcow2 $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.qcow2
-            qemu-img convert -f raw -O vmdk  $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vmdk
-            qemu-img convert -f raw -O vpc $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vhd
-            qemu-img convert -f raw -O vhdx $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vhdx
-            qemu-img convert -f raw -O vdi $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vdi
+            qemu-img convert -f raw -O qcow2 $BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img $BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.qcow2
+            qemu-img convert -f raw -O vmdk  $BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img $BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.vmdk
+            qemu-img convert -f raw -O vpc $BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img $BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.vhd
+            qemu-img convert -f raw -O vhdx $BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img $BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.vhdx
+            qemu-img convert -f raw -O vdi $BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img $BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.vdi
 
-            VMDK_FILE=chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE-disk1.vmdk
+            VMDK_FILE=chr-$VERSION$ARCH_EXT-disk1.vmdk
             qemu-img convert -f raw -O vmdk -o subformat=streamOptimized \
-                $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img \
+                $BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img \
                 $BUILD_DIR/$VMDK_FILE
             FILE_SIZE=$(stat -c %s "$BUILD_DIR/$VMDK_FILE")
-            OVF_FILE=chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.ovf
-            OVA_FILE=chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.ova
+            OVF_FILE=chr-$VERSION$ARCH_EXT-legacy-bios.ovf
+            OVA_FILE=chr-$VERSION$ARCH_EXT-legacy-bios.ova
             echo "$OVF_TEMPLATE" | sed -e "s|{VMDK_FILE}|$VMDK_FILE|g" \
                     -e "s|{FILE_SIZE}|$FILE_SIZE|g" \
-                    -e "s|{FIRMWARE_TYPE}|$FIRMWARE_TYPE|g" | tee $BUILD_DIR/$OVF_FILE
+                    -e "s|{FIRMWARE_TYPE}|bios|g" | tee $BUILD_DIR/$OVF_FILE
             (cd $BUILD_DIR && tar -cvf "$OVA_FILE" "$OVF_FILE" "$VMDK_FILE")
             rm $BUILD_DIR/$VMDK_FILE
             rm $BUILD_DIR/$OVF_FILE
 
 
             echo "✅ legacy BIOS CHR created: "
-            ls -la $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.*
+            ls -la $BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.*
 
             (cd $BUILD_DIR && \
-                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.ova.zip chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.ova && \
-                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.qcow2.zip chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.qcow2 && \
-                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vmdk.zip chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vmdk && \
-                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vhd.zip chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vhd && \
-                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vhdx.zip chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vhdx && \
-                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vdi.zip chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.vdi && 
-                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img.zip chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.img )
-            rm $BUILD_DIR/chr-$VERSION$ARCH_EXT-$FIRMWARE_TYPE.*
+                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.ova.zip chr-$VERSION$ARCH_EXT-legacy-bios.ova && \
+                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.qcow2.zip chr-$VERSION$ARCH_EXT-legacy-bios.qcow2 && \
+                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.vmdk.zip chr-$VERSION$ARCH_EXT-legacy-bios.vmdk && \
+                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.vhd.zip chr-$VERSION$ARCH_EXT-legacy-bios.vhd && \
+                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.vhdx.zip chr-$VERSION$ARCH_EXT-legacy-bios.vhdx && \
+                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.vdi.zip chr-$VERSION$ARCH_EXT-legacy-bios.vdi && \
+                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img.zip chr-$VERSION$ARCH_EXT-legacy-bios.img )
+            rm $BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.*
             rm $BUILD_DIR/chr/BOOTX64.EFI
             rm $BUILD_DIR/chr/milo
 
