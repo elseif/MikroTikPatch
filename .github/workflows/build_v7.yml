@@ -299,7 +299,7 @@ jobs:
 
     - name: Patch NPK files
       run: |
-        sudo apt-get install build-essential binutils-arm-linux-gnueabi binutils-mips-linux-gnu binutils-powerpc-linux-gnu -y > /dev/null
+        sudo apt-get install build-essential binutils-arm-linux-gnueabi -y > /dev/null
         chmod +w $BUILD_DIR/all_packages/*.npk
         NPK_FILES=$(find $BUILD_DIR/all_packages/*.npk)
         for file in $NPK_FILES; do
@@ -341,6 +341,19 @@ jobs:
         (cd $BUILD_DIR && zip -r $PUBLISH_DIR/netinstall-$VERSION.zip netinstall.exe)
         rm $BUILD_DIR/netinstall.exe
 
+    - name: Cache refind
+      if: matrix.arch == 'x86'
+      id: cache-refind
+      uses: actions/cache@v5
+      with:
+        path: refind-bin-0.14.2.zip
+        key: refind
+        restore-keys: refind
+
+    - name: Get refind
+      if: matrix.arch == 'x86' && steps.cache-refind.outputs.cache-hit != 'true'
+      run: sudo wget -O $BUILD_DIR/refind-bin-0.14.2.zip https://downloads.sourceforge.net/project/refind/0.14.2/refind-bin-0.14.2.zip
+
     - name: Create ISO & INSTALL image files
       run: |
         set -e
@@ -364,7 +377,7 @@ jobs:
             mkfs.vfat -n "Boot" $BUILD_DIR/new_iso/efiboot.img
             sudo mount -o loop,uid=$(id -u),gid=$(id -g) $BUILD_DIR/new_iso/efiboot.img $BUILD_DIR/efiboot
             mkdir -p $BUILD_DIR/efiboot/EFI/BOOT
-            unzip -j ./refind/refind-bin-0.14.2.zip "refind-bin-0.14.2/refind/refind_x64.efi" -d $BUILD_DIR/efiboot/EFI/BOOT/
+            unzip -j $BUILD_DIR/refind-bin-0.14.2.zip "refind-bin-0.14.2/refind/refind_x64.efi" -d $BUILD_DIR/efiboot/EFI/BOOT/
             mv $BUILD_DIR/efiboot/EFI/BOOT/refind_x64.efi $BUILD_DIR/efiboot/EFI/BOOT/BOOTX64.EFI
             tee $BUILD_DIR/efiboot/EFI/BOOT/refind.conf > /dev/null << 'EOF'
         timeout 0
