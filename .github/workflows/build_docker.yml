@@ -197,12 +197,8 @@ jobs:
           
       - name: Create multi arch manifest
         run: |
-          cat amd64.json
-          cat arm64.json
           AMD64_DIGEST=$(jq -r '."containerimage.digest"' amd64.json)
           ARM64_DIGEST=$(jq -r '."containerimage.digest"' arm64.json)
-          echo $AMD64_DIGEST
-          echo $ARM64_DIGEST
           docker buildx imagetools create \
             -t ${IMAGE}:${VERSION} \
             ${IMAGE}@${AMD64_DIGEST} \
