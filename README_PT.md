@@ -1,11 +1,10 @@
-[![Patch Mikrotik RouterOS 6.x](https://github.com/elseif/MikroTikPatch/actions/workflows/main.yml/badge.svg)](https://github.com/elseif/MikroTikPatch/actions/workflows/patch_v6.yml)
-[![Patch Mikrotik RouterOS 7.x](https://github.com/elseif/MikroTikPatch/actions/workflows/main.yml/badge.svg)](https://github.com/elseif/MikroTikPatch/actions/workflows/patch_v6.yml)
+[![Patch Mikrotik RouterOS](https://github.com/elseif/MikroTikPatch/actions/workflows/main.yml/badge.svg)](https://github.com/elseif/MikroTikPatch/actions/workflows/main.yml)
 
 # Patch para MikroTik RouterOS [[中文](README.md)]
 [![License: WTFPL](https://img.shields.io/badge/License-WTFPL-brightgreen.svg)](./LICENSE)
 [![CoC:WTFCoC](https://img.shields.io/badge/CoC-WTFCoC-brightgreen.svg)](./CODE_OF_CONDUCT.md)
 
-### [[Discord](https://discord.gg/keV6MWQFtX)] [[Telegram](https://t.me/mikrotikpatch)] [[Keygen (Bot do Telegram)](https://t.me/ROS_Keygen_Bot)]
+### [[Discord](https://discord.gg/keV6MWQFtX)] [[Telegram](https://telegram.me/mikrotikpatch)] [[Keygen (Bot do Telegram)](https://telegram.me/ROS_Keygen_Bot)]
 
 ### Baixe a [ISO modificada mais recente](https://github.com/elseif/MikroTikPatch/releases/latest), instale e aproveite.
 ### A imagem CHR suporta modo de boot tanto BIOS quanto UEFI.

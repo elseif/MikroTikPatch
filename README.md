@@ -1,5 +1,5 @@
-[![Patch Mikrotik RouterOS 6.x](https://github.com/elseif/MikroTikPatch/actions/workflows/main.yml/badge.svg)](https://github.com/elseif/MikroTikPatch/actions/workflows/patch_v6.yml)
-[![Patch Mikrotik RouterOS 7.x](https://github.com/elseif/MikroTikPatch/actions/workflows/main.yml/badge.svg)](https://github.com/elseif/MikroTikPatch/actions/workflows/patch_v6.yml)
+[![Patch Mikrotik RouterOS](https://github.com/elseif/MikroTikPatch/actions/workflows/main.yml/badge.svg)](https://github.com/elseif/MikroTikPatch/actions/workflows/main.yml)
+
 
 ### 感谢赞助
 [![DigitalOcean Referral Badge](https://web-platforms.sfo2.cdn.digitaloceanspaces.com/WWW/Badge%201.svg)](https://www.digitalocean.com/?refcode=dbf6ed365068&utm_campaign=Referral_Invite&utm_medium=Referral_Program&utm_source=badge)
@@ -16,12 +16,11 @@
 [![License: WTFPL](https://img.shields.io/badge/License-WTFPL-brightgreen.svg)](./LICENSE)
 [![CoC:WTFCoC](https://img.shields.io/badge/CoC-WTFCoC-brightgreen.svg)](./CODE_OF_CONDUCT.md)
 
-### [[Discord](https://discord.gg/keV6MWQFtX)] [[Telegram](https://t.me/mikrotikpatch)] [[Keygen(Telegram Bot)](https://t.me/ROS_Keygen_Bot)]
+### [[Discord](https://discord.gg/keV6MWQFtX)] [[Telegram](https://telegram.me/mikrotikpatch)] [[Keygen(Telegram Bot)](https://telegram.me/ROS_Keygen_Bot)]
 
 支持:在线更新、在线授权、云备份、DDNS
 
 ![Cloud Status](https://img.shields.io/endpoint?url=https://mikrotik.ltd/status/cloud)
-![VPS Status](https://img.shields.io/endpoint?url=https://mikrotik.ltd/status/dartnode)
 
 *如果云服务或部署云服务的虚拟主机都不在线，那么在线更新、在线授权、云备份、DDNS以及ROS_Keygen_Bot都暂时不能使用*
 
