@@ -1,0 +1,201 @@
+name: Build CHR Docker
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: 'Channel (stable, long-term, testing, development)'
+        required: true
+        default: 'stable'
+        type: choice
+        options:
+        - stable
+        - long-term
+        - testing
+        - development
+      version:
+        description: "Specify version (e.g., 7.19.2), empty for latest"
+        required: false
+        default: ''
+        type: string
+
+jobs:
+  Build:
+    runs-on: ubuntu-24.04
+    env:
+      TZ: 'Asia/Shanghai'
+      CHANNEL: ${{ inputs.channel }}
+      VERSION: ${{ inputs.version }}
+      IMAGE: ghcr.io/${{ github.repository }}
+    steps:
+      - name: Check Version
+        id: version
+        run: |
+          if [ -z "$VERSION" ]; then
+            echo "Checking latest version from $CHANNEL channel..."
+            TIMESTAMP=$(date +%s)
+            NEWEST=$(wget -nv -O - "https://upgrade.mikrotik.ltd/routeros/NEWESTa7.$CHANNEL?t=$TIMESTAMP")
+            VERSION=$(echo "$NEWEST" | cut -d ' ' -f1)
+            echo "Latest version: $VERSION"
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          
+      - name: Download CHR image
+        run: |
+          # x86 架构
+          mkdir -p "amd64"
+          wget -nv -O "amd64/chr-$VERSION.img.zip" \
+            "https://github.com/elseif/MikroTikPatch/releases/download/$VERSION/chr-$VERSION.img.zip"
+          unzip "amd64/chr-$VERSION.img.zip" -d "amd64/"
+          rm "amd64/chr-$VERSION.img.zip"
+
+          # arm64 架构
+          mkdir -p "arm64"
+          wget -nv -O "arm64/chr-$VERSION-arm64.img.zip" \
+            "https://github.com/elseif/MikroTikPatch/releases/download/$VERSION-arm64/chr-$VERSION-arm64.img.zip"
+          unzip "arm64/chr-$VERSION-arm64.img.zip" -d "arm64/"
+          rm "arm64/chr-$VERSION-arm64.img.zip"
+          
+          echo "CHR images downloaded:"
+          ls -la "amd64/"
+          ls -la "arm64/"
+          
+      - name: Create start.sh
+        run: |
+          cat <<'EOF' > start.sh
+          #!/bin/sh
+          set -e
+          
+          MEM="${MEM:=512m}"
+          DISK="${DISK:=128M}"
+          CPUS="${CPUS:=1}"
+          bridge_index=0
+          
+          get_mac_address() {
+              ifname="$1"
+              ip link show "$ifname" 2>/dev/null | awk '/link\/ether/ {print $2}'
+          }
+          
+          increment_mac() {
+              mac=$1
+              mac_no_colons=$(echo "$mac" | tr -d ':' | tr '[:lower:]' '[:upper:]')
+              mac_dec=$((16#${mac_no_colons}))
+              mac_dec=$((mac_dec + 1))
+              mac_hex=$(printf "%012X" "$mac_dec")
+              echo "$mac_hex" | sed 's/.\{2\}/&:/g;s/:$//'
+          }
+          
+          echo "" > /etc/qemu/bridge.conf
+          
+          qemu="qemu-system-x86_64"
+          if [[ `uname -m` == "aarch64" ]]; then
+             qemu="qemu-system-aarch64 -pflash /usr/share/qemu/edk2-aarch64-code.fd -M virt"
+          fi
+          
+          if [ -e /dev/kvm ]; then
+              qemu="$qemu -enable-kvm -cpu host"
+          else
+              if [[ `uname -m` == "aarch64" ]]; then
+                  qemu="$qemu -cpu cortex-a57"
+              fi
+          fi
+          
+          img=`ls /diskimage/*.img`
+          qemu="$qemu -nographic -m $MEM -smp cpus=$CPUS -drive file=$img,format=raw"
+          truncate -s $DISK $img
+          
+          while read -r line; do
+              iface=$(echo "$line" | sed "s/ *\([a-z0-9]*\):.*/\1/")
+              if [[ "$iface" =~ " " ]]; then
+                  continue
+              fi
+              if [[ "$iface" =~ ^br ]]; then
+                  continue
+              fi
+              if [[ "$iface" == "lo" ]]; then
+                  continue
+              fi
+              if [[ "$iface" == "" ]]; then
+                  continue
+              fi
+              echo "iface: $iface"
+              bridge="br$bridge_index"
+              ip link add name "$bridge" type bridge
+              ip link set dev "$bridge" up
+              ip link set "$iface" master "$bridge"
+              echo "allow $bridge" >> /etc/qemu/bridge.conf
+          
+              veth_mac=$(get_mac_address "$iface")
+              tap_mac=$(increment_mac "$veth_mac")
+          
+              bridge_index=$((bridge_index + 1))
+              qemu="$qemu -netdev bridge,id=$bridge,br=$bridge -device virtio-net,netdev=$bridge,mac=$tap_mac "
+          done < /proc/net/dev
+          
+          echo "qemu: $qemu"
+          exec $qemu
+          EOF
+          chmod +x start.sh
+          cp start.sh amd64/start.sh
+          cp start.sh arm64/start.sh
+          rm start.sh
+      - name: Create Dockerfile
+        run: |
+          cat <<'EOF' > Dockerfile
+          FROM alpine:latest
+          ARG TARGETARCH
+          RUN case "$TARGETARCH" in \
+                amd64) apk add --no-cache qemu-system-x86_64 ;; \
+                arm64) apk add --no-cache qemu-system-aarch64 ;; \
+              esac \
+              && rm -rf /var/cache/apk/*
+          RUN mkdir -p /diskimage
+          COPY *.img /diskimage
+          COPY start.sh /start.sh
+          ENTRYPOINT ["/start.sh"]
+          EOF
+          cp Dockerfile amd64/Dockerfile
+          cp Dockerfile arm64/Dockerfile
+          rm Dockerfile
+
+      - name: Setup Buildx
+        uses: docker/setup-buildx-action@v3
+          
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+          
+      - name: Build amd64 digest
+        run: |
+          docker buildx build \
+            --platform linux/amd64 \
+            --push \
+            --output=type=image,push-by-digest=true,name=${IMAGE} \
+            --metadata-file amd64.json \
+            ./amd64
+
+      - name: Build arm64 digest
+        run: |
+          docker buildx build \
+            --platform linux/arm64 \
+            --push \
+            --output=type=image,push-by-digest=true,name=${IMAGE} \
+            --metadata-file arm64.json \
+            ./arm64
+          
+      - name: Create multi arch manifest
+        run: |
+          AMD64_DIGEST=$(jq -r '."containerimage.digest"' amd64.json)
+          ARM64_DIGEST=$(jq -r '."containerimage.digest"' arm64.json)
+          docker buildx imagetools create \
+            -t ${IMAGE}:${VERSION} \
+            ${IMAGE}@${AMD64_DIGEST} \
+            ${IMAGE}@${ARM64_DIGEST}
+          
+
+
+
+            
