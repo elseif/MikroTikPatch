@@ -15,7 +15,7 @@ on:
           - v6
           - v7
 jobs:
-  Patch_Stable:
+  Patch_Stable_V7:
     if: |
       (github.event_name == 'schedule') || 
       (github.event_name == 'workflow_dispatch' && (github.event.inputs.version == 'all' || github.event.inputs.version == 'v7'))
@@ -25,7 +25,7 @@ jobs:
       release: true
     secrets: inherit
 
-  Patch_LongTerm:
+  Patch_LongTerm_V7:
     if: |
       (github.event_name == 'schedule') || 
       (github.event_name == 'workflow_dispatch' && (github.event.inputs.version == 'all' || github.event.inputs.version == 'v7'))
@@ -35,7 +35,7 @@ jobs:
       release: true
     secrets: inherit
 
-  Patch_Testing:
+  Patch_Testing_V7:
     if: |
       (github.event_name == 'schedule') || 
       (github.event_name == 'workflow_dispatch' && (github.event.inputs.version == 'all' || github.event.inputs.version == 'v7'))
