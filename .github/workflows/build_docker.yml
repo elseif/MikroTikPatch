@@ -20,7 +20,6 @@ on:
         
 permissions:
   packages: write
-  
 jobs:
   Build:
     runs-on: ubuntu-24.04
@@ -28,6 +27,7 @@ jobs:
       TZ: 'Asia/Shanghai'
       CHANNEL: ${{ inputs.channel }}
       VERSION: ${{ inputs.version }}
+      IMAGE: "ghcr.io/${{ github.repository_owner }}/chr"
     steps:
       - name: Check Version
         id: version
@@ -40,7 +40,7 @@ jobs:
             echo "Latest version: $VERSION"
           fi
           echo "VERSION=$VERSION" >> $GITHUB_ENV
-          IMAGE=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          
           echo "IMAGE=$IMAGE" >> $GITHUB_ENV
           
       - name: Download CHR image
@@ -176,6 +176,7 @@ jobs:
         run: |
           docker buildx build \
             --platform linux/amd64 \
+            --provenance=false \
             --push \
             --output=type=image,push-by-digest=true,name=${IMAGE} \
             --metadata-file amd64.json \
@@ -185,6 +186,7 @@ jobs:
         run: |
           docker buildx build \
             --platform linux/arm64 \
+            --provenance=false \
             --push \
             --output=type=image,push-by-digest=true,name=${IMAGE} \
             --metadata-file arm64.json \
