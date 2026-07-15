@@ -4,9 +4,21 @@ on:
   schedule:
     - cron: "00 10 * * *"   # At UTC 10:00 (Beijing 18:00) on every day
   workflow_dispatch:  
-
+    inputs:
+      version:
+        description: 'Select Version (v6/v7/all)'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - v6
+          - v7
 jobs:
   Patch_Stable:
+    if: |
+      (github.event_name == 'schedule') || 
+      (github.event_name == 'workflow_dispatch' && (github.event.inputs.version == 'all' || github.event.inputs.version == 'v7'))
     uses: ./.github/workflows/patch_v7.yml
     with:
       channel: stable
@@ -14,6 +26,9 @@ jobs:
     secrets: inherit
 
   Patch_LongTerm:
+    if: |
+      (github.event_name == 'schedule') || 
+      (github.event_name == 'workflow_dispatch' && (github.event.inputs.version == 'all' || github.event.inputs.version == 'v7'))
     uses: ./.github/workflows/patch_v7.yml
     with:
       channel: long-term
@@ -21,6 +36,9 @@ jobs:
     secrets: inherit
 
   Patch_Testing:
+    if: |
+      (github.event_name == 'schedule') || 
+      (github.event_name == 'workflow_dispatch' && (github.event.inputs.version == 'all' || github.event.inputs.version == 'v7'))
     uses: ./.github/workflows/patch_v7.yml
     with:
       channel: testing
@@ -28,6 +46,9 @@ jobs:
     secrets: inherit
 
   Patch_Stable_V6:
+    if: |
+      (github.event_name == 'schedule') || 
+      (github.event_name == 'workflow_dispatch' && (github.event.inputs.version == 'all' || github.event.inputs.version == 'v6'))
     uses: ./.github/workflows/patch_v6.yml
     with:
       channel: stable
@@ -35,6 +56,9 @@ jobs:
     secrets: inherit
 
   Patch_LongTerm_V6:
+    if: |
+      (github.event_name == 'schedule') || 
+      (github.event_name == 'workflow_dispatch' && (github.event.inputs.version == 'all' || github.event.inputs.version == 'v6'))
     uses: ./.github/workflows/patch_v6.yml
     with:
       channel: long-term
