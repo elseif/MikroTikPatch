@@ -498,7 +498,7 @@
                     title:"RouterOS v6",
                     versions:[ { title:"Long-Term", version:routeros6_longterm }, { title:"Stable", version:routeros6_stable } ],
                     groups: [
-                        { title:"X86", arch:"x86", downloads:[ { title:"Extra packages", type:"extra" }, { title:"CD Image", type:"iso" }, { title:"Install image", type:"install" }, { title:"Changelog", type:"changlog" } ] }
+                        { title:"X86", arch:"x86", downloads:[ { title:"Main package", type:"main" },{ title:"Extra packages", type:"extra" }, { title:"CD Image", type:"iso" }, { title:"Install image", type:"install" }, { title:"Changelog", type:"changlog" } ] }
                     ]
                 },
                 {
@@ -518,6 +518,8 @@
                 if (version.charAt(0) === "6" && arch !== "x86") return files;
                 // Main package for RouterOS v7
                 if (type === "main" && version.charAt(0) === "7") files.push(`routeros-${version}${arch === "x86" ? "" : "-" + arch}.npk`);
+                // Main package for RouterOS v6
+                if (type === "main" && version.charAt(0) === "6") files.push(`routeros-x86-${version}.npk`);
                 // ISO images
                 if (type === "iso") files.push(`mikrotik-${version}${arch === "x86" ? "" : "-" + arch}.iso`);
                 // Extra packages
