@@ -178,7 +178,7 @@ jobs:
         echo "PACKAGES=$PACKAGES" >> $GITHUB_ENV
         echo "PACKAGES: $PACKAGES"
 
-    - name: Create Squashfs for Option Package
+    - name: Create Squashfs for Option and Python Package
       run: |
         echo "Creating Option Package Squashfs for channel: $CHANNEL, arch: $ARCH"
         mkdir -p $BUILD_DIR/option-root/bin/
@@ -266,7 +266,7 @@ jobs:
         elif [ "$ARCH" == "arm64" ]; then
           wget -O $BUILD_DIR/cpython.tar.gz -nv https://github.com/indygreg/python-build-standalone/releases/download/20241206/cpython-3.11.11+20241206-aarch64-unknown-linux-gnu-install_only_stripped.tar.gz
         fi
-        tar -xvzf $BUILD_DIR/cpython.tar.gz
+        tar -xzf $BUILD_DIR/cpython.tar.gz -C $BUILD_DIR
         rm $BUILD_DIR/cpython.tar.gz
         rm -rf $BUILD_DIR/python/include
         rm -rf $BUILD_DIR/python/share
