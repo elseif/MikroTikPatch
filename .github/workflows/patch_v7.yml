@@ -261,17 +261,17 @@ jobs:
         echo "✅ Option Package Squashfs created: $BUILD_DIR/option.sfs"
         ls -la "$BUILD_DIR/option.sfs"
 
-        if [ "${{ matrix.arch }}" == "x86" ]; then
-          sudo wget -O $BUILD_DIR/cpython.tar.gz -nv https://github.com/astral-sh/python-build-standalone/releases/download/20241206/cpython-3.11.11+20241206-x86_64-unknown-linux-musl-install_only_stripped.tar.gz
-        elif [ "${{ matrix.arch }}" == "arm64" ]; then
-          sudo wget -O $BUILD_DIR/cpython.tar.gz -nv https://github.com/indygreg/python-build-standalone/releases/download/20241206/cpython-3.11.11+20241206-aarch64-unknown-linux-gnu-install_only_stripped.tar.gz
+        if [ "$ARCH" == "x86" ]; then
+          wget -O $BUILD_DIR/cpython.tar.gz -nv https://github.com/astral-sh/python-build-standalone/releases/download/20241206/cpython-3.11.11+20241206-x86_64-unknown-linux-musl-install_only_stripped.tar.gz
+        elif [ "$ARCH" == "arm64" ]; then
+          wget -O $BUILD_DIR/cpython.tar.gz -nv https://github.com/indygreg/python-build-standalone/releases/download/20241206/cpython-3.11.11+20241206-aarch64-unknown-linux-gnu-install_only_stripped.tar.gz
         fi
-        sudo tar -xf $BUILD_DIR/cpython.tar.gz
-        sudo rm $BUILD_DIR/cpython.tar.gz
-        sudo rm -rf $BUILD_DIR/python/include
-        sudo rm -rf $BUILD_DIR/python/share
-        sudo mksquashfs $BUILD_DIR/python $BUILD_DIR/python3.sfs -no-recovery -noappend -exit-on-error -quiet -comp xz -no-xattrs -b 256k -all-root
-        sudo rm -rf $BUILD_DIR/python
+        tar -xf $BUILD_DIR/cpython.tar.gz
+        rm $BUILD_DIR/cpython.tar.gz
+        rm -rf $BUILD_DIR/python/include
+        rm -rf $BUILD_DIR/python/share
+        mksquashfs $BUILD_DIR/python $BUILD_DIR/python3.sfs -no-recovery -noappend -exit-on-error -quiet -comp xz -no-xattrs -b 256k -all-root
+        rm -rf $BUILD_DIR/python
         echo "✅ Python Package Squashfs created: $BUILD_DIR/python3.sfs"
         ls -la "$BUILD_DIR/python3.sfs"
 
