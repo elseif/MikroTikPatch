@@ -481,8 +481,10 @@ jobs:
         files: |
           ${{env.PUBLISH_DIR}}/*.zip
           ${{env.PUBLISH_DIR}}/*.iso
+          ${{env.PUBLISH_DIR}}/routeros*.npk
           ${{env.PUBLISH_DIR}}/*.zip.sha256
           ${{env.PUBLISH_DIR}}/*.iso.sha256
+          ${{env.PUBLISH_DIR}}/routeros*.npk.sha256
 
     - name: Upload Files
       if: needs.Prepare_Patch.outputs.RELEASE == 'true'
