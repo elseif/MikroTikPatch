@@ -44,7 +44,17 @@ jobs:
       channel: testing
       release: true
     secrets: inherit
-
+    
+  Patch_Development_V7:
+    if: |
+      (github.event_name == 'schedule') || 
+      (github.event_name == 'workflow_dispatch' && (github.event.inputs.version == 'all' || github.event.inputs.version == 'v7'))
+    uses: ./.github/workflows/patch_v7.yml
+    with:
+      channel: development
+      release: true
+    secrets: inherit
+    
   Patch_Stable_V6:
     if: |
       (github.event_name == 'schedule') || 
