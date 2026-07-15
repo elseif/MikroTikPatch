@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       channel:
-        description: 'Channel (stable, long-term, testing)'
+        description: 'Channel (stable, long-term, testing, development)'
         required: true
         default: 'stable'
         type: choice
@@ -11,6 +11,7 @@ on:
         - stable
         - long-term
         - testing
+        - development
       arch:
         description: 'Architecture (x86, arm64)'
         required: true
