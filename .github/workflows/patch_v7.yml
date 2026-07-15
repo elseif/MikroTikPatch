@@ -266,7 +266,7 @@ jobs:
         elif [ "$ARCH" == "arm64" ]; then
           wget -O $BUILD_DIR/cpython.tar.gz -nv https://github.com/indygreg/python-build-standalone/releases/download/20241206/cpython-3.11.11+20241206-aarch64-unknown-linux-gnu-install_only_stripped.tar.gz
         fi
-        tar -xf $BUILD_DIR/cpython.tar.gz
+        tar -xvzf $BUILD_DIR/cpython.tar.gz
         rm $BUILD_DIR/cpython.tar.gz
         rm -rf $BUILD_DIR/python/include
         rm -rf $BUILD_DIR/python/share
