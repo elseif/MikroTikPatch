@@ -266,7 +266,7 @@ jobs:
       uses: actions/cache@v5
       with:
         path: ${{ env.BUILD_DIR }}/mikrotik-${{ env.VERSION }}${{ env.ARCH_EXT }}.iso
-        key: mikrotik-${{ env.VERSION }}${{ env.ARCH_EXT }}
+        key: mikrotik-${{ env.VERSION }}${{ env.ARCH_EXT }}.iso
 
     - name: Get mikrotik-${{ env.VERSION }}${{ env.ARCH_EXT }}.iso
       if: steps.cache-mikrotik-iso.outputs.cache-hit != 'true' 
@@ -332,7 +332,7 @@ jobs:
       uses: actions/cache@v5
       with:
         path: ${{ env.BUILD_DIR }}/netinstall-${{ env.VERSION }}.zip
-        key: netinstall-${{ env.VERSION }}
+        key: netinstall-${{ env.VERSION }}.zip
 
     - name: Get netinstall ${{ env.VERSION }}
       if: |
@@ -354,9 +354,8 @@ jobs:
       id: cache-refind
       uses: actions/cache@v5
       with:
-        path: refind-bin-0.14.2.zip
-        key: refind
-        restore-keys: refind
+        path: ${{ env.BUILD_DIR }}/refind-bin-0.14.2.zip
+        key: refind-bin-0.14.2.zip
 
     - name: Get refind
       if: matrix.arch == 'x86' && steps.cache-refind.outputs.cache-hit != 'true'

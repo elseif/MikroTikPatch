@@ -243,7 +243,7 @@ jobs:
       uses: actions/cache@v5
       with:
         path: ${{ env.BUILD_DIR }}/mikrotik-${{ env.VERSION }}${{ env.ARCH_EXT }}.iso
-        key: mikrotik-${{ env.VERSION }}${{ env.ARCH_EXT }}
+        key: mikrotik-${{ env.VERSION }}${{ env.ARCH_EXT }}.iso
 
     - name: Get mikrotik-${{ env.VERSION }}${{ env.ARCH_EXT }}.iso
       if: steps.cache-mikrotik-iso.outputs.cache-hit != 'true' 
