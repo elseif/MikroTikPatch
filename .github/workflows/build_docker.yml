@@ -17,7 +17,10 @@ on:
         required: false
         default: ''
         type: string
-
+        
+permissions:
+  packages: write
+  
 jobs:
   Build:
     runs-on: ubuntu-24.04
@@ -25,7 +28,6 @@ jobs:
       TZ: 'Asia/Shanghai'
       CHANNEL: ${{ inputs.channel }}
       VERSION: ${{ inputs.version }}
-      IMAGE: ghcr.io/${{ github.repository }}
     steps:
       - name: Check Version
         id: version
@@ -38,6 +40,8 @@ jobs:
             echo "Latest version: $VERSION"
           fi
           echo "VERSION=$VERSION" >> $GITHUB_ENV
+          IMAGE=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "IMAGE=$IMAGE" >> $GITHUB_ENV
           
       - name: Download CHR image
         run: |
@@ -138,6 +142,7 @@ jobs:
           cp start.sh amd64/start.sh
           cp start.sh arm64/start.sh
           rm start.sh
+          
       - name: Create Dockerfile
         run: |
           cat <<'EOF' > Dockerfile
@@ -167,7 +172,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-          
       - name: Build amd64 digest
         run: |
           docker buildx build \
@@ -194,8 +198,3 @@ jobs:
             -t ${IMAGE}:${VERSION} \
             ${IMAGE}@${AMD64_DIGEST} \
             ${IMAGE}@${ARM64_DIGEST}
-          
-
-
-
-            
