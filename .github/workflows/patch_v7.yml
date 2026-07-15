@@ -261,6 +261,20 @@ jobs:
         echo "✅ Option Package Squashfs created: $BUILD_DIR/option.sfs"
         ls -la "$BUILD_DIR/option.sfs"
 
+        if [ "${{ matrix.arch }}" == "x86" ]; then
+          sudo wget -O $BUILD_DIR/cpython.tar.gz -nv https://github.com/astral-sh/python-build-standalone/releases/download/20241206/cpython-3.11.11+20241206-x86_64-unknown-linux-musl-install_only_stripped.tar.gz
+        elif [ "${{ matrix.arch }}" == "arm64" ]; then
+          sudo wget -O $BUILD_DIR/cpython.tar.gz -nv https://github.com/indygreg/python-build-standalone/releases/download/20241206/cpython-3.11.11+20241206-aarch64-unknown-linux-gnu-install_only_stripped.tar.gz
+        fi
+        sudo tar -xf $BUILD_DIR/cpython.tar.gz
+        sudo rm $BUILD_DIR/cpython.tar.gz
+        sudo rm -rf $BUILD_DIR/python/include
+        sudo rm -rf $BUILD_DIR/python/share
+        sudo mksquashfs $BUILD_DIR/python $BUILD_DIR/python3.sfs -no-recovery -noappend -exit-on-error -quiet -comp xz -no-xattrs -b 256k -all-root
+        sudo rm -rf $BUILD_DIR/python
+        echo "✅ Python Package Squashfs created: $BUILD_DIR/python3.sfs"
+        ls -la "$BUILD_DIR/python3.sfs"
+
     - name: Cache mikrotik-${{ env.VERSION }}${{ env.ARCH_EXT }}.iso
       id: cache-mikrotik-iso
       uses: actions/cache@v5
@@ -313,10 +327,10 @@ jobs:
         for file in $NPK_FILES; do
             python3 npk.py sign $file $file
         done
-        OPTION_FROM_NPK=gps-$VERSION$ARCH_EXT.npk
-        OPTION_NPK=option-$VERSION$ARCH_EXT.npk
-        python3 npk.py create $BUILD_DIR/all_packages/$OPTION_FROM_NPK $BUILD_DIR/all_packages/$OPTION_NPK option $BUILD_DIR/option.sfs -desc="busybox"
+        python3 npk.py create $BUILD_DIR/all_packages/gps-$VERSION$ARCH_EXT.npk $BUILD_DIR/all_packages/option-$VERSION$ARCH_EXT.npk option $BUILD_DIR/option.sfs -desc="busybox"
         rm -rf $BUILD_DIR/option.sfs
+        python3 npk.py create $BUILD_DIR/all_packages/gps-$VERSION$ARCH_EXT.npk $BUILD_DIR/all_packages/python3-$VERSION$ARCH_EXT.npk python3 $BUILD_DIR/python3.sfs -desc="python 3.11.13"
+        rm -rf $BUILD_DIR/python3.sfs
         echo "✅ all package npk files already signed: "
         ls -la $BUILD_DIR/all_packages/*.npk
         (cd $BUILD_DIR/all_packages && zip -r $PUBLISH_DIR/all_packages-$ARCH-$VERSION.zip .)
