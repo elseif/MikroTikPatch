@@ -210,11 +210,12 @@ jobs:
           cache-to: type=gha,mode=max
           provenance: false
           sbom: false
-          annotations: |
-            org.opencontainers.image.title=MikroTik CHR RouterOS
-            org.opencontainers.image.description=MikroTik CHR (Cloud Hosted Router) running on QEMU with Docker
-            org.opencontainers.image.version=${{ env.VERSION }}
-            org.opencontainers.image.url=https://mikrotik.ltd
+          outputs: |
+            type=image,\
+            annotation-index.org.opencontainers.image.title=MikroTik CHR RouterOS,\
+            annotation-index.org.opencontainers.image.description=MikroTik CHR (Cloud Hosted Router) running on QEMU with Docker,\
+            annotation-index.org.opencontainers.image.version=${{ env.VERSION }},\
+            annotation-index.org.opencontainers.image.url=https://mikrotik.ltd
 
       - name: Update channel tags
         if: env.CHANNEL != ''
