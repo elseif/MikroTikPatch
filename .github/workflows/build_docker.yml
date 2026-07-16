@@ -203,6 +203,6 @@ jobs:
       - name: Upload tar artifact
         uses: actions/upload-artifact@v7
         with:
-          name: chr-docker-image
+          name: chr-docker-image-${{ env.VERSION }}
           path: artifacts/*.tar
-          archive: false
+
