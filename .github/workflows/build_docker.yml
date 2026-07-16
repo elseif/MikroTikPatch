@@ -2,16 +2,6 @@ name: Build CHR Docker
 on:
   workflow_dispatch:
     inputs:
-      channel:
-        description: 'Channel (stable, long-term, testing, development)'
-        required: true
-        default: 'stable'
-        type: choice
-        options:
-        - stable
-        - long-term
-        - testing
-        - development
       version:
         description: "Specify version (e.g., 7.19.2), empty for latest"
         required: false
@@ -21,30 +11,71 @@ on:
 permissions:
   packages: write
 jobs:
+  Prepare:
+    runs-on: ubuntu-24.04
+    outputs:
+      LONG_TERM_VERSION: ${{ steps.get_versions.outputs.LONG_TERM_VERSION }}
+      STABLE_VERSION: ${{ steps.get_versions.outputs.STABLE_VERSION }}
+      VERSION: ${{ steps.get_versions.outputs.VERSION }}
+    steps:
+      - name: Get versions
+        id: get_versions
+        run: |
+          VERSION="${{ inputs.version }}"
+          if [ -n "$VERSION" ]; then
+            echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+            echo "LONG_TERM_VERSION=" >> $GITHUB_OUTPUT
+            echo "STABLE_VERSION=" >> $GITHUB_OUTPUT
+            echo "User version: $VERSION"
+          else
+            TIMESTAMP=$(date +%s)
+            LONG_TERM=$(wget -nv -O - "https://upgrade.mikrotik.ltd/routeros/NEWESTa7.long-term?t=$TIMESTAMP" | cut -d ' ' -f1)
+            echo "LONG_TERM_VERSION=$LONG_TERM" >> $GITHUB_OUTPUT
+            STABLE=$(wget -nv -O - "https://upgrade.mikrotik.ltd/routeros/NEWESTa7.stable?t=$TIMESTAMP" | cut -d ' ' -f1)
+            echo "STABLE_VERSION=$STABLE" >> $GITHUB_OUTPUT
+            echo "VERSION=" >> $GITHUB_OUTPUT
+            echo "Long-term version: $LONG_TERM"
+            echo "Stable version: $STABLE"
+          fi
+
   Build:
     runs-on: ubuntu-24.04
+    needs: Prepare
+    if: |
+      needs.Prepare.outputs.LONG_TERM_VERSION != '' ||
+      needs.Prepare.outputs.STABLE_VERSION != '' ||
+      needs.Prepare.outputs.VERSION != ''
+    strategy:
+      max-parallel: 1
+      matrix:
+        include:
+          - name: long-term
+            version: ${{ needs.Prepare.outputs.LONG_TERM_VERSION }}
+            channel: long-term
+            order: 1  
+          - name: stable
+            version: ${{ needs.Prepare.outputs.STABLE_VERSION }}
+            channel: stable
+            order: 2  
+          - name: specified
+            version: ${{ needs.Prepare.outputs.VERSION }}
+            channel: specified
+            order: 0  
     env:
       TZ: 'Asia/Shanghai'
-      CHANNEL: ${{ inputs.channel }}
-      VERSION: ${{ inputs.version }}
+      VERSION: ${{ matrix.version }}
+      CHANNEL: ${{ matrix.channel }}
       IMAGE: "ghcr.io/${{ github.repository_owner }}/chr"
-      IS_LATEST: 'false'
       DOCKER_BUILD_CHECKS_ANNOTATIONS: 'false'
       DOCKER_BUILD_SUMMARY: 'false'
       DOCKER_BUILD_RECORD_UPLOAD: 'false'
+
     steps:
-      - name: Check Version
-        id: version
+      - name: Show build info
         run: |
-          if [ -z "$VERSION" ]; then
-            echo "Checking latest version from $CHANNEL channel..."
-            TIMESTAMP=$(date +%s)
-            NEWEST=$(wget -nv -O - "https://upgrade.mikrotik.ltd/routeros/NEWESTa7.$CHANNEL?t=$TIMESTAMP")
-            VERSION=$(echo "$NEWEST" | cut -d ' ' -f1)
-            echo "Latest version: $VERSION"
-            echo "IS_LATEST=true" >> $GITHUB_ENV
-          fi
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Building: ${{ matrix.name }}"
+          echo "Version: ${{ env.VERSION }}"
+          echo "Channel: ${{ env.CHANNEL }}"
 
       - name: Download CHR image
         run: |
@@ -185,13 +216,14 @@ jobs:
           provenance: false
           sbom: false
 
-      - name: Update :latest tag for stable channel
-        if: env.IS_LATEST == 'true'
+      - name: Update channel tags
+        if: matrix.name != 'specified'
         run: |
           TAGS="-t ${{ env.IMAGE }}:${{ env.CHANNEL }}"
           if [ "$CHANNEL" = "stable" ]; then
             TAGS="$TAGS -t ${{ env.IMAGE }}:latest"
           fi
+          echo "Creating tags: $TAGS"
           docker buildx imagetools create $TAGS ${{ env.IMAGE }}:${{ env.VERSION }}
 
       - name: Save Docker Image as tar
@@ -205,9 +237,16 @@ jobs:
           docker save ${{ env.IMAGE }}:${{ env.VERSION }} -o artifacts/chr-${{ env.VERSION }}-arm64.tar
           ls -lh artifacts/
 
-      - name: Upload tar artifact
+      - name: Upload amd64 tar artifact
         uses: actions/upload-artifact@v7
         with:
-          name: chr-docker-image-${{ env.VERSION }}
-          path: artifacts/*.tar
+          name: chr-${{ env.VERSION }}-amd64
+          path: artifacts/chr-${{ env.VERSION }}-amd64.tar
+          archive: false   # 关键：关闭压缩
 
+      - name: Upload arm64 tar artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: chr-${{ env.VERSION }}-arm64
+          path: artifacts/chr-${{ env.VERSION }}-arm64.tar
+          archive: false   
