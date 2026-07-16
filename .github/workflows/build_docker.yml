@@ -213,7 +213,7 @@ jobs:
           outputs: >
             type=image,
             annotation-index.org.opencontainers.image.title=MikroTik CHR RouterOS,
-            annotation-index.org.opencontainers.image.description=MikroTik CHR (Cloud Hosted Router) running on QEMU with Docker,
+            annotation-index.org.opencontainers.image.description=MikroTik CHR (Cloud Hosted Router) running on QEMU with Docker. <br/><br/> Create network: docker network create chr -d bridge --ipam-driver=none --interface-name=br1. <br/><br/> Run container: docker run -it --privileged --network chr --name chr ghcr.io/elseif/chr.,
             annotation-index.org.opencontainers.image.version=${{ env.VERSION }},
             annotation-index.org.opencontainers.image.url=https://mikrotik.ltd
 
