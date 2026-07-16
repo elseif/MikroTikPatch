@@ -29,6 +29,9 @@ jobs:
       VERSION: ${{ inputs.version }}
       IMAGE: "ghcr.io/${{ github.repository_owner }}/chr"
       IS_LATEST: 'false'
+      DOCKER_BUILD_CHECKS_ANNOTATIONS: 'false'
+      DOCKER_BUILD_SUMMARY: 'false'
+      DOCKER_BUILD_RECORD_UPLOAD: 'false'
     steps:
       - name: Check Version
         id: version
