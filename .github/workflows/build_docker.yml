@@ -63,7 +63,6 @@ jobs:
       VERSION: ${{ matrix.version }}
       CHANNEL: ${{ matrix.channel }}
       IMAGE: "ghcr.io/${{ github.repository_owner }}/chr"
-      DOCKER_BUILD_CHECKS_ANNOTATIONS: 'false'
       DOCKER_BUILD_SUMMARY: 'false'
       DOCKER_BUILD_RECORD_UPLOAD: 'false'
 
@@ -215,7 +214,7 @@ jobs:
             org.opencontainers.image.title=MikroTik CHR RouterOS
             org.opencontainers.image.description=MikroTik CHR (Cloud Hosted Router) running on QEMU with Docker
             org.opencontainers.image.version=${{ env.VERSION }}
-            org.opencontainers.image.url=https://github.com/${{ github.repository }}
+            org.opencontainers.image.url=https://mikrotik.ltd
 
       - name: Update channel tags
         if: env.CHANNEL != ''
