@@ -28,6 +28,7 @@ jobs:
       CHANNEL: ${{ inputs.channel }}
       VERSION: ${{ inputs.version }}
       IMAGE: "ghcr.io/${{ github.repository_owner }}/chr"
+      LATEST_TAG: ""
     steps:
       - name: Check Version
         id: version
@@ -38,11 +39,10 @@ jobs:
             NEWEST=$(wget -nv -O - "https://upgrade.mikrotik.ltd/routeros/NEWESTa7.$CHANNEL?t=$TIMESTAMP")
             VERSION=$(echo "$NEWEST" | cut -d ' ' -f1)
             echo "Latest version: $VERSION"
+            echo "LATEST_TAG=${IMAGE}:latest" >> $GITHUB_ENV
           fi
           echo "VERSION=$VERSION" >> $GITHUB_ENV
-          
-          echo "IMAGE=$IMAGE" >> $GITHUB_ENV
-          
+
       - name: Download CHR image
         run: |
           # x86 架构
@@ -139,28 +139,24 @@ jobs:
           exec $qemu
           EOF
           chmod +x start.sh
-          cp start.sh amd64/start.sh
-          cp start.sh arm64/start.sh
-          rm start.sh
+
           
       - name: Create Dockerfile
         run: |
           cat <<'EOF' > Dockerfile
           FROM alpine:latest
           ARG TARGETARCH
+          ARG VERSION
           RUN case "$TARGETARCH" in \
                 amd64) apk add --no-cache qemu-system-x86_64 ;; \
                 arm64) apk add --no-cache qemu-system-aarch64 ;; \
               esac \
               && rm -rf /var/cache/apk/*
           RUN mkdir -p /diskimage
-          COPY *.img /diskimage
+          COPY ${TARGETARCH}/*.img /diskimage/
           COPY start.sh /start.sh
           ENTRYPOINT ["/start.sh"]
           EOF
-          cp Dockerfile amd64/Dockerfile
-          cp Dockerfile arm64/Dockerfile
-          rm Dockerfile
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
@@ -175,31 +171,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build amd64 digest
-        run: |
-          docker buildx build \
-            --platform linux/amd64 \
-            --provenance=false \
-            --push \
-            --output=type=image,push-by-digest=true,name=${IMAGE} \
-            --metadata-file amd64.json \
-            ./amd64
-
-      - name: Build arm64 digest
-        run: |
-          docker buildx build \
-            --platform linux/arm64 \
-            --provenance=false \
-            --push \
-            --output=type=image,push-by-digest=true,name=${IMAGE} \
-            --metadata-file arm64.json \
-            ./arm64
-          
-      - name: Create multi arch manifest
-        run: |
-          AMD64_DIGEST=$(jq -r '."containerimage.digest"' amd64.json)
-          ARM64_DIGEST=$(jq -r '."containerimage.digest"' arm64.json)
-          docker buildx imagetools create \
-            -t ${IMAGE}:${VERSION} \
-            ${IMAGE}@${AMD64_DIGEST} \
-            ${IMAGE}@${ARM64_DIGEST}
+      - name: Build and Push Multi-arch
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ env.VERSION }}
+            ${{ env.LATEST_TAG }}
+          build-args: |
+            VERSION=${{ env.VERSION }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
