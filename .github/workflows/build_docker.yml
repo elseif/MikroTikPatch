@@ -25,7 +25,7 @@ jobs:
               [
                 {
                   "name": "specified",
-                  "version": env.SPECIFIED_VERSION,
+                  "version": $SPECIFIED_VERSION,
                   "channel": "specified"
                 }
               ]
@@ -49,12 +49,12 @@ jobs:
               [
                 {
                   "name": "long-term",
-                  "version": env.LONG_TERM,
+                  "version": $LONG_TERM,
                   "channel": "long-term"
                 },
                 {
                   "name": "stable",
-                  "version": env.STABLE,
+                  "version": $STABLE,
                   "channel": "stable"
                 }
               ]
