@@ -42,9 +42,7 @@ jobs:
             NEWEST=$(wget -nv -O - "https://upgrade.mikrotik.ltd/routeros/NEWESTa7.$CHANNEL?t=$TIMESTAMP")
             VERSION=$(echo "$NEWEST" | cut -d ' ' -f1)
             echo "Latest version: $VERSION"
-            if [ "$CHANNEL" = "stable" ]; then
-              echo "IS_LATEST=true" >> $GITHUB_ENV
-            fi
+            echo "IS_LATEST=true" >> $GITHUB_ENV
           fi
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
@@ -190,7 +188,11 @@ jobs:
       - name: Update :latest tag for stable channel
         if: env.IS_LATEST == 'true'
         run: |
-          docker buildx imagetools create -t ${{ env.IMAGE }}:latest  ${{ env.IMAGE }}:${{ env.VERSION }}
+          TAGS="-t ${{ env.IMAGE }}:${{ env.CHANNEL }}"
+          if [ "$CHANNEL" = "stable" ]; then
+            TAGS="$TAGS -t ${{ env.IMAGE }}:latest"
+          fi
+          docker buildx imagetools create $TAGS ${{ env.IMAGE }}:${{ env.VERSION }}
 
       - name: Save Docker Image as tar
         run: |
