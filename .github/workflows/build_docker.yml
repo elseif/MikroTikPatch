@@ -188,3 +188,21 @@ jobs:
         if: env.IS_LATEST == 'true'
         run: |
           docker buildx imagetools create -t ${{ env.IMAGE }}:latest  ${{ env.IMAGE }}:${{ env.VERSION }}
+
+      - name: Save Docker Image as tar
+        run: |
+          mkdir -p artifacts
+          echo "Exporting amd64 tar..."
+          docker pull --platform linux/amd64 ${{ env.IMAGE }}:${{ env.VERSION }}
+          docker save ${{ env.IMAGE }}:${{ env.VERSION }} -o artifacts/chr-${{ env.VERSION }}-amd64.tar
+          echo "Exporting arm64 tar..."
+          docker pull --platform linux/arm64 ${{ env.IMAGE }}:${{ env.VERSION }}
+          docker save ${{ env.IMAGE }}:${{ env.VERSION }} -o artifacts/chr-${{ env.VERSION }}-arm64.tar
+          ls -lh artifacts/
+
+      - name: Upload tar artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: chr-docker-image
+          path: artifacts/*.tar
+          archive: false
