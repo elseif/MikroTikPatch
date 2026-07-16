@@ -23,11 +23,7 @@ jobs:
           if [ -n "$SPECIFIED_VERSION" ]; then
             MATRIX=$(jq -c -n '
               [
-                {
-                  "name": "specified",
-                  "version": $SPECIFIED_VERSION,
-                  "channel": "specified"
-                }
+                { "name": "specified", "version": $SPECIFIED_VERSION, "channel": "specified"}
               ]
             ' --arg SPECIFIED_VERSION "$SPECIFIED_VERSION")
           else
@@ -47,16 +43,8 @@ jobs:
             fi
             MATRIX=$(jq -c -n '
               [
-                {
-                  "name": "long-term",
-                  "version": $LONG_TERM,
-                  "channel": "long-term"
-                },
-                {
-                  "name": "stable",
-                  "version": $STABLE,
-                  "channel": "stable"
-                }
+                {name: "long-term", version: $LONG_TERM, channel: "long-term"},
+                {name: "stable", version: $STABLE, channel: "stable"}
               ]
             ' --arg LONG_TERM "$LONG_TERM" --arg STABLE "$STABLE")
           fi
