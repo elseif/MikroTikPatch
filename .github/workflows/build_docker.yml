@@ -242,7 +242,7 @@ jobs:
         with:
           name: chr-${{ env.VERSION }}-amd64
           path: artifacts/chr-${{ env.VERSION }}-amd64.tar
-          archive: false   # 关键：关闭压缩
+          archive: false  
 
       - name: Upload arm64 tar artifact
         uses: actions/upload-artifact@v7
