@@ -14,53 +14,62 @@ jobs:
   Prepare:
     runs-on: ubuntu-24.04
     outputs:
-      LONG_TERM_VERSION: ${{ steps.get_versions.outputs.LONG_TERM_VERSION }}
-      STABLE_VERSION: ${{ steps.get_versions.outputs.STABLE_VERSION }}
-      VERSION: ${{ steps.get_versions.outputs.VERSION }}
+      MATRIX: ${{ steps.get_versions.outputs.MATRIX }}
     steps:
-      - name: Get versions
+      - name: Get versions and generate matrix
         id: get_versions
         run: |
-          VERSION="${{ inputs.version }}"
-          if [ -n "$VERSION" ]; then
-            echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-            echo "LONG_TERM_VERSION=" >> $GITHUB_OUTPUT
-            echo "STABLE_VERSION=" >> $GITHUB_OUTPUT
-            echo "User version: $VERSION"
+          SPECIFIED_VERSION="${{ inputs.version }}"
+          if [ -n "$SPECIFIED_VERSION" ]; then
+            MATRIX=$(jq -c -n '
+              [
+                {
+                  "name": "specified",
+                  "version": env.SPECIFIED_VERSION,
+                  "channel": "specified"
+                }
+              ]
+            ' --arg SPECIFIED_VERSION "$SPECIFIED_VERSION")
           else
             TIMESTAMP=$(date +%s)
             LONG_TERM=$(wget -nv -O - "https://upgrade.mikrotik.ltd/routeros/NEWESTa7.long-term?t=$TIMESTAMP" | cut -d ' ' -f1)
-            echo "LONG_TERM_VERSION=$LONG_TERM" >> $GITHUB_OUTPUT
             STABLE=$(wget -nv -O - "https://upgrade.mikrotik.ltd/routeros/NEWESTa7.stable?t=$TIMESTAMP" | cut -d ' ' -f1)
-            echo "STABLE_VERSION=$STABLE" >> $GITHUB_OUTPUT
-            echo "VERSION=" >> $GITHUB_OUTPUT
+
             echo "Long-term version: $LONG_TERM"
             echo "Stable version: $STABLE"
+            if [ -z "$LONG_TERM" ]; then
+              echo "Failed to get long-term version"
+              exit 1
+            fi
+            if [ -z "$STABLE" ]; then
+              echo "Failed to get stable version"
+              exit 1
+            fi
+            MATRIX=$(jq -c -n '
+              [
+                {
+                  "name": "long-term",
+                  "version": env.LONG_TERM,
+                  "channel": "long-term"
+                },
+                {
+                  "name": "stable",
+                  "version": env.STABLE,
+                  "channel": "stable"
+                }
+              ]
+            ' --arg LONG_TERM "$LONG_TERM" --arg STABLE "$STABLE")
           fi
+          echo "Generated matrix: $MATRIX"
+          echo "MATRIX=$MATRIX" >> $GITHUB_OUTPUT
 
   Build:
     runs-on: ubuntu-24.04
     needs: Prepare
-    if: |
-      needs.Prepare.outputs.LONG_TERM_VERSION != '' ||
-      needs.Prepare.outputs.STABLE_VERSION != '' ||
-      needs.Prepare.outputs.VERSION != ''
     strategy:
       max-parallel: 1
       matrix:
-        include:
-          - name: long-term
-            version: ${{ needs.Prepare.outputs.LONG_TERM_VERSION }}
-            channel: long-term
-            order: 1  
-          - name: stable
-            version: ${{ needs.Prepare.outputs.STABLE_VERSION }}
-            channel: stable
-            order: 2  
-          - name: specified
-            version: ${{ needs.Prepare.outputs.VERSION }}
-            channel: specified
-            order: 0  
+        include: ${{ fromJson(needs.Prepare.outputs.MATRIX) }}
     env:
       TZ: 'Asia/Shanghai'
       VERSION: ${{ matrix.version }}
@@ -220,7 +229,7 @@ jobs:
         if: matrix.name != 'specified'
         run: |
           TAGS="-t ${{ env.IMAGE }}:${{ env.CHANNEL }}"
-          if [ "$CHANNEL" = "stable" ]; then
+          if [ "${{ env.CHANNEL }}" = "stable" ]; then
             TAGS="$TAGS -t ${{ env.IMAGE }}:latest"
           fi
           echo "Creating tags: $TAGS"
