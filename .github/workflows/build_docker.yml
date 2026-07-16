@@ -28,7 +28,7 @@ jobs:
       CHANNEL: ${{ inputs.channel }}
       VERSION: ${{ inputs.version }}
       IMAGE: "ghcr.io/${{ github.repository_owner }}/chr"
-      LATEST_TAG: ""
+      IS_LATEST: 'false'
     steps:
       - name: Check Version
         id: version
@@ -39,7 +39,9 @@ jobs:
             NEWEST=$(wget -nv -O - "https://upgrade.mikrotik.ltd/routeros/NEWESTa7.$CHANNEL?t=$TIMESTAMP")
             VERSION=$(echo "$NEWEST" | cut -d ' ' -f1)
             echo "Latest version: $VERSION"
-            echo "LATEST_TAG=${IMAGE}:latest" >> $GITHUB_ENV
+            if [ "$CHANNEL" = "stable" ]; then
+              echo "IS_LATEST=true" >> $GITHUB_ENV
+            fi
           fi
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
@@ -59,9 +61,7 @@ jobs:
           unzip "arm64/chr-$VERSION-arm64.img.zip" -d "arm64/"
           rm "arm64/chr-$VERSION-arm64.img.zip"
           
-          echo "CHR images downloaded:"
-          ls -la "amd64/"
-          ls -la "arm64/"
+          ls -la amd64/ arm64/
           
       - name: Create start.sh
         run: |
@@ -143,7 +143,7 @@ jobs:
           
       - name: Create Dockerfile
         run: |
-          cat <<'EOF' > Dockerfile
+          cat > Dockerfile << 'EOF'
           FROM alpine:latest
           ARG TARGETARCH
           ARG VERSION
@@ -171,16 +171,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and Push Multi-arch
-        uses: docker/build-push-action@v6
+      - name: Build and Push 
+        uses: docker/build-push-action@v7
         with:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: |
-            ${{ env.IMAGE }}:${{ env.VERSION }}
-            ${{ env.LATEST_TAG }}
-          build-args: |
-            VERSION=${{ env.VERSION }}
+          tags: ${{ env.IMAGE }}:${{ env.VERSION }}
+          build-args: VERSION=${{ env.VERSION }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Update :latest tag for stable channel
+        if: env.IS_LATEST == 'true'
+        run: |
+          docker buildx imagetools create -t ${{ env.IMAGE }}:latest  ${{ env.IMAGE }}:${{ env.VERSION }}
