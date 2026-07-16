@@ -187,4 +187,4 @@ jobs:
       - name: Update :latest tag for stable channel
         if: env.IS_LATEST == 'true'
         run: |
-          docker buildx imagetools create --provenance=false -t ${{ env.IMAGE }}:latest  ${{ env.IMAGE }}:${{ env.VERSION }}
+          docker buildx imagetools create -t ${{ env.IMAGE }}:latest  ${{ env.IMAGE }}:${{ env.VERSION }}
