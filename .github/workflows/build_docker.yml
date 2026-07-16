@@ -237,18 +237,9 @@ jobs:
           docker save ${{ env.IMAGE }}:${{ env.VERSION }} -o artifacts/chr-${{ env.VERSION }}-arm64.tar
           ls -lh artifacts/
 
-      - name: Upload amd64 tar artifact
+      - name: Upload tar artifact
         uses: actions/upload-artifact@v7
         with:
-          name: chr-${{ env.VERSION }}-amd64
-          path: artifacts/chr-${{ env.VERSION }}-amd64.tar
-          archive: false  
+          name: chr-${{ env.VERSION }}-docker-images
+          path: artifacts/
           retention-days: 30
-
-      - name: Upload arm64 tar artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: chr-${{ env.VERSION }}-arm64
-          path: artifacts/chr-${{ env.VERSION }}-arm64.tar
-          archive: false 
-          retention-days: 30  
