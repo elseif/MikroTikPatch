@@ -19,13 +19,13 @@ jobs:
       - name: Get versions and generate matrix
         id: get_versions
         run: |
-          SPECIFIED_VERSION="${{ inputs.version }}"
-          if [ -n "$SPECIFIED_VERSION" ]; then
+          VERSION="${{ inputs.version }}"
+          if [ -n "$VERSION" ]; then
             MATRIX=$(jq -c -n '
               [
-                { "name": "specified", "version": $SPECIFIED_VERSION, "channel": "specified"}
+                { "version": $VERSION, "channel": ""}
               ]
-            ' --arg SPECIFIED_VERSION "$SPECIFIED_VERSION")
+            ' --arg VERSION "$VERSION")
           else
             TIMESTAMP=$(date +%s)
             LONG_TERM=$(wget -nv -O - "https://upgrade.mikrotik.ltd/routeros/NEWESTa7.long-term?t=$TIMESTAMP" | cut -d ' ' -f1)
@@ -43,8 +43,8 @@ jobs:
             fi
             MATRIX=$(jq -c -n '
               [
-                {name: "long-term", version: $LONG_TERM, channel: "long-term"},
-                {name: "stable", version: $STABLE, channel: "stable"}
+                {version: $LONG_TERM, channel: "long-term"},
+                {version: $STABLE, channel: "stable"}
               ]
             ' --arg LONG_TERM "$LONG_TERM" --arg STABLE "$STABLE")
           fi
@@ -70,7 +70,6 @@ jobs:
     steps:
       - name: Show build info
         run: |
-          echo "Building: ${{ matrix.name }}"
           echo "Version: ${{ env.VERSION }}"
           echo "Channel: ${{ env.CHANNEL }}"
 
@@ -214,7 +213,7 @@ jobs:
           sbom: false
 
       - name: Update channel tags
-        if: matrix.name != 'specified'
+        if: env.CHANNEL != ''
         run: |
           TAGS="-t ${{ env.IMAGE }}:${{ env.CHANNEL }}"
           if [ "${{ env.CHANNEL }}" = "stable" ]; then
