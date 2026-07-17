@@ -3,10 +3,10 @@
 [![CoC:WTFCoC](https://img.shields.io/badge/CoC-WTFCoC-brightgreen.svg)](./CODE_OF_CONDUCT.md)
 
 
-[![Patch Mikrotik RouterOS](https://github.com/elseif/MikroTikPatch/actions/workflows/main.yml/badge.svg)](https://github.com/elseif/MikroTikPatch/actions/workflows/main.yml)![Cloud Status](https://img.shields.io/endpoint?url=https://mikrotik.ltd/status/cloud)
+[![Patch Mikrotik RouterOS](https://github.com/elseif/MikroTikPatch/actions/workflows/main.yml/badge.svg)](https://github.com/elseif/MikroTikPatch/actions/workflows/main.yml)
+![Cloud Status](https://img.shields.io/endpoint?url=https://mikrotik.ltd/status/cloud)
 
 ## ⚠️ 重要声明
-
 **此项目及工具仅供测试用途。使用风险自负。生产环境请使用官方授权版本。**
 
 ## 架构：x86、arm64 
@@ -21,7 +21,6 @@
 - **主页：** https://routeros.ltd/
 - **授权：** 需要赞助，CHR版本(x86/Arm64支持在线直接获取授权)。
 - **功能：** 支持在线自定义制作品牌包
-
 
 ## 支持的云功能
 | 功能 | 命令 |
