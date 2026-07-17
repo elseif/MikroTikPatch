@@ -11,10 +11,10 @@
 
 ## 架构：x86、arm64 
 - **主页：** https://mikrotik.ltd/ 
+- **演示：** https://demo.mikrotik.ltd/
 - **授权：** 安装OPTION.NPK后将自动授予最高级别许可证。
 - **源代码：** https://github.com/elseif/MikroTikPatch
 - **授权BOT：** https://t.me/ROS_Keygen_Bot
-- **演示：** https://demo.mikrotik.ltd/
 - **Docker：** `docker pull ghcr.io/elseif/chr:latest`
 
 ## 架构：arm64, arm, mipsbe, mmips, ppc, smips, x86 
