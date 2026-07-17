@@ -1,10 +1,10 @@
-# MikroTik RouterOS Patch  [[English](README_EN.md)]
+# MikroTik RouterOS Patch
+[![Patch Mikrotik RouterOS](https://github.com/elseif/MikroTikPatch/actions/workflows/main.yml/badge.svg)](https://github.com/elseif/MikroTikPatch/actions/workflows/main.yml)
+![Cloud Status](https://img.shields.io/endpoint?url=https://mikrotik.ltd/status/cloud)
+
 [![License: WTFPL](https://img.shields.io/badge/License-WTFPL-brightgreen.svg)](./LICENSE)
 [![CoC:WTFCoC](https://img.shields.io/badge/CoC-WTFCoC-brightgreen.svg)](./CODE_OF_CONDUCT.md)
 
-
-[![Patch Mikrotik RouterOS](https://github.com/elseif/MikroTikPatch/actions/workflows/main.yml/badge.svg)](https://github.com/elseif/MikroTikPatch/actions/workflows/main.yml)
-![Cloud Status](https://img.shields.io/endpoint?url=https://mikrotik.ltd/status/cloud)
 
 ## ⚠️ 重要声明
 **此项目及工具仅供测试用途。使用风险自负。生产环境请使用官方授权版本。**
