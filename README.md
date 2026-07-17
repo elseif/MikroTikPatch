@@ -12,14 +12,14 @@
 ## 架构：x86、arm64 
 - **主页：** https://mikrotik.ltd/ 
 - **演示：** https://demo.mikrotik.ltd/
-- **授权：** 安装OPTION.NPK后将自动授予最高级别许可证。
+- **授权： 安装OPTION.NPK后将自动授予最高级别许可证。**
 - **源代码：** https://github.com/elseif/MikroTikPatch
 - **授权BOT：** https://t.me/ROS_Keygen_Bot
 - **Docker：** `docker pull ghcr.io/elseif/chr:latest`
 
 ## 架构：arm64, arm, mipsbe, mmips, ppc, smips, x86 
 - **主页：** https://routeros.ltd/
-- **授权：** 需要赞助，CHR版本(x86/Arm64支持在线直接获取授权)。
+- **授权： 需要赞助**，*CHR版本(x86/Arm64)支持在线直接获取授权。*
 - **功能：** 支持在线自定义制作品牌包
 
 ## 支持的云功能
