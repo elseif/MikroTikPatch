@@ -196,11 +196,6 @@
                                   <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
                                 </label>
                             </div>
-                            
-                            <!-- Clear cache button -->
-                             <div>
-                                <button data-i18n="clearCache" id="clear-cache" class="w-full text-sm font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-slate-700 dark:text-slate-200 py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"></button>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -285,24 +280,6 @@
         </footer>
     </div>
 
-    
-    <!-- URLs modal for cache clearing -->
-    <div id="urls-pannel" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden" tabindex="-1">
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col transform transition-all opacity-0 scale-95" id="modal-content">
-            <header class="p-4 border-b border-slate-200 dark:border-gray-700 flex justify-between items-center">
-                <h3 class="text-lg font-semibold text-slate-800 dark:text-white" data-i18n="copyUrlsClearCache"></h3>
-                <button id="urls-close" class="p-1 rounded-full text-slate-400 hover:bg-slate-100 dark:hover:bg-gray-700">
-                     <span class="sr-only">Close modal</span>
-                     <span class="iconify text-2xl" data-icon="ph:x-bold"></span>
-                </button>
-            </header>
-            <!-- URLs list display area -->
-            <div id="urls-list" class="p-6 text-sm text-slate-600 dark:text-slate-400 overflow-y-auto custom-scrollbar flex-grow bg-slate-50 dark:bg-gray-900/50 rounded-b-xl whitespace-pre-wrap break-all"></div>
-            <footer class="p-4 border-t border-slate-200 dark:border-gray-700">
-                 <button id="copy-to-clear-cache" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-white dark:focus:ring-offset-gray-800 flex items-center justify-center gap-2" data-i18n="copyUrlsClearCache" href="#"></button> 
-            </footer>
-        </div>
-    </div>
 
     <!-- Changelog popup modal -->
     <div id="changelog-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden" tabindex="-1">
@@ -366,8 +343,6 @@
                     infoLabel2:`For more information about <b>install and upgrade</b> see the <a href="https://help.mikrotik.com/docs/" target="_blank" class="text-blue-500 dark:text-blue-400 hover:underline">Documentation</a>. For more information about <b>patch</b> see the <a href="https://github.com/elseif/MikroTikPatch" target="_blank" class="text-blue-500 dark:text-blue-400 hover:underline">MikroTikPatch</a>.`,
                     installCmdLabel:"Install Command",
                     proxyLabel:"Enable GitHub Proxy Accelerator",
-                    clearCache:"Clear gh-proxy Cache",
-                    copyUrlsClearCache:"Copy URLs & Open Clear Cache Page",
                     loading:"Loading latest versions...",
                     quickInformation:"Quick Information",
                     settings:"Settings",
@@ -382,8 +357,6 @@
                     infoLabel2:`有关<b>安装和升级</b>的更多信息，请参阅<a href="https://help.mikrotik.com/docs/" target="_blank" class="text-blue-500 dark:text-blue-400 hover:underline">文档</a><br>有关<b>Patch</b>的更多信息，请参阅<a href="https://github.com/elseif/MikroTikPatch" target="_blank" class="text-blue-500 dark:text-blue-400 hover:underline">MikroTikPatch</a>`,
                     installCmdLabel:"安装命令",
                     proxyLabel:"启用GitHub代理加速",
-                    clearCache:"清除gh-proxy缓存",
-                    copyUrlsClearCache:"复制链接并打开缓存清除页面",
                     loading:"正在加载最新版本...",
                     quickInformation:"快速信息",
                     settings:"设置",
@@ -400,11 +373,7 @@
                     const key = el.getAttribute("data-i18n");
                     if (i18n[lang] && i18n[lang][key]) {
                         // Special handling for buttons that need icons
-                        if (key === 'clearCache') {
-                           el.innerHTML = `<span class="iconify" data-icon="${ICONS.trash}"></span> ${i18n[lang][key]}`;
-                        } else if (key === 'copyUrlsClearCache' && el.id === 'copy-to-clear-cache') {
-                           el.innerHTML = `<span class="iconify" data-icon="${ICONS.copyAndOpen}"></span> ${i18n[lang][key]}`;
-                        } else if (key === 'installCmdLabel') {
+                        if (key === 'installCmdLabel') {
                            el.innerHTML = `<span class="iconify mr-2 text-blue-500" data-icon="ph:terminal-window-bold"></span>${i18n[lang][key]}`;
                         }
                         else {
@@ -618,13 +587,11 @@
             
             // GitHub proxy functionality
             const ghProxyCheckbox = document.getElementById("gh-proxy");
-            const clearCacheBtn = document.getElementById("clear-cache");
             if (localStorage.getItem("gh-proxy-enabled") === null && navigator.language.startsWith("zh")) {
                 // Enable GitHub proxy by default for Chinese users
                 localStorage.setItem("gh-proxy-enabled", "true");
             }
             ghProxyCheckbox.checked = localStorage.getItem("gh-proxy-enabled") === "true";
-            clearCacheBtn.style.display = ghProxyCheckbox.checked ? "inline-flex" : "none";
             
             // Update all download links with/without GitHub proxy
             function updateAllDownloadLinks() {
@@ -646,33 +613,9 @@
             // GitHub proxy toggle event listener
             ghProxyCheckbox.addEventListener("change", () => {
                 localStorage.setItem("gh-proxy-enabled", ghProxyCheckbox.checked ? "true" : "false");
-                clearCacheBtn.style.display = ghProxyCheckbox.checked ? "inline-flex" : "none";
                 updateAllDownloadLinks();
             });
             
-            // Cache clearing modal functionality
-            const modal = document.getElementById("urls-pannel");
-            const modalContent = document.getElementById("modal-content");
-            clearCacheBtn.addEventListener("click", () => {
-                const links = document.querySelectorAll('a[href^="https://gh-proxy.com/https://github.com/elseif/MikroTikPatch/"]');
-                document.getElementById("urls-list").innerText = Array.from(links).map(a => a.href).filter(href => !href.includes(".yml")).join("\n");
-                modal.classList.remove('hidden');
-                setTimeout(() => { modalContent.classList.add('opacity-100', 'scale-100'); modalContent.classList.remove('opacity-0', 'scale-95'); }, 10);
-            });
-            
-            // Modal close functionality
-            document.getElementById("urls-close").addEventListener("click", () => {
-                modalContent.classList.remove('opacity-100', 'scale-100');
-                modalContent.classList.add('opacity-0', 'scale-95');
-                setTimeout(() => modal.classList.add('hidden'), 200);
-            });
-
-            // Copy URLs and open cache clearing page
-            document.getElementById("copy-to-clear-cache").addEventListener("click", () => {
-                navigator.clipboard.writeText(document.getElementById("urls-list").innerText);
-                window.open("https://cache.gh-proxy.com/", "_blank");
-                document.getElementById("urls-close").click();
-            });
 
             // Changelog modal functionality
             const changelogModal = document.getElementById("changelog-modal");
