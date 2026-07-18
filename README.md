@@ -58,7 +58,6 @@ echo "Hello, world!"
 ### 更多关于RouterOS的信息请查看: https://manual.mikrotik.com/
 
 ### 感谢赞助
-[![DigitalOcean Referral Badge](https://web-platforms.sfo2.cdn.digitaloceanspaces.com/WWW/Badge%201.svg)](https://www.digitalocean.com/?refcode=dbf6ed365068&utm_campaign=Referral_Invite&utm_medium=Referral_Program&utm_source=badge)
 [DartNode(aff)](https://dartnode.com?aff=SnazzyLobster067)  | [ZMTO(aff)](https://console.zmto.com/?affid=1588) | [Vultr(aff)](https://www.vultr.com/?ref=9807160-9J)
 [![Powered by DartNode](https://dartnode.com/branding/DN-Open-Source-sm.png)](https://dartnode.com "Powered by DartNode - Free VPS for Open Source")
 
