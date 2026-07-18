@@ -12,14 +12,14 @@
 ## 架构：x86、arm64 
 - **主页：** https://mikrotik.ltd/ 
 - **演示：** https://demo.mikrotik.ltd/
-- **授权： 安装OPTION.NPK后将自动授予最高级别许可证。**
+- **授权： 安装option.npk后将自动授予最高级别许可证。**
 - **源代码：** https://github.com/elseif/MikroTikPatch
 - **授权BOT：** https://t.me/ROS_Keygen_Bot
 - **Docker：** `docker pull ghcr.io/elseif/chr:latest`
 
 ## 架构：arm64, arm, mipsbe, mmips, ppc, smips, x86 
 - **主页：** https://routeros.ltd/
-- **授权： 需要赞助**，*CHR版本(x86/Arm64)支持在线直接获取授权。*
+- **授权： 需要赞助**，*CHR版本(x86/Arm64)支持在线直接获取授权*
 - **功能：** 支持在线自定义制作品牌包
 
 ## 支持的云功能
@@ -30,9 +30,30 @@
 | 云备份 | `/system/backup/cloud/upload-file action=create-and-upload password=any` |
 
 ## 启用容器模式（无需物理重启）
-1. 安装 `option.npk` 包。
-2. 打开终端执行：`system/device-mode/update container=yes`
-3. 打开新终端执行：`system/shell cmd="reboot -f"`
+1. 安装 `option.npk` 包；
+2. 打开终端执行：`system/device-mode/update container=yes`；
+3. 打开新终端执行：`system/shell cmd="reboot -f"`。
+
+## 进入shell
+- 安装 `option.npk` 包
+- 打开终端执行：`/system shell` 或 `/sh`
+
+## x86架构支持CHR和x86模式切换
+- 安装 `option.npk` 包
+- 进入shell：`keygen chr` 或 `keygen x86`
+
+## 支持开机自动运行脚本
+- 安装 `option.npk` 包
+- 创建或者编辑文件目录下的`rc.local`文件，即：`/rw/disk/rc.local`文件
+- 写入脚本内容，例如：
+```bash
+#!/bin/sh
+# This script will be executed *before* RouterOS *loader* start.
+# You can put your own initialization stuff in here
+echo "Hello, world!"
+```
+- 开机启动时将看到输出增加：`Starting rc.local...`
+
 
 ### 更多关于RouterOS的信息请查看: https://manual.mikrotik.com/
 
