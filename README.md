@@ -53,6 +53,7 @@
 echo "Hello, world!"
 ```
 - 开机启动时将看到输出增加：`Starting rc.local...`
+- 启动后进入shell执行：`cat /ram/startup.catlog | grep 'Hello'` 查看输出。
 
 
 ### 更多关于RouterOS的信息请查看: https://manual.mikrotik.com/
