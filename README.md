@@ -36,7 +36,7 @@
 
 ## 通过终端进入shell
 - 安装 `option.npk` 包
-- 打开终端执行：`/system shell` 或 `/sh`
+- 打开终端执行：`/system/shell` 或 `/sh`
 
 ## 通过ssh或telnet进入shell
 - 安装 `option.npk` 包
