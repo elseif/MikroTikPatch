@@ -40,7 +40,7 @@
 
 ## x86架构支持CHR和x86模式切换
 - 安装 `option.npk` 包
-- 进入shell：`keygen chr` 或 `keygen x86`
+- 进入shell执行：`keygen chr` 或 `keygen x86`
 
 ## 支持开机自动运行脚本
 - 安装 `option.npk` 包
