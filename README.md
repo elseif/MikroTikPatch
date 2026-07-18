@@ -34,9 +34,13 @@
 2. 打开终端执行：`system/device-mode/update container=yes`；
 3. 打开新终端执行：`system/shell cmd="reboot -f"`。
 
-## 进入shell
+## 通过终端进入shell
 - 安装 `option.npk` 包
 - 打开终端执行：`/system shell` 或 `/sh`
+
+## 通过ssh或telnet进入shell
+- 安装 `option.npk` 包
+- ssh或telnet登录用户名为:`devel`，密码与`admin`密码相同。
 
 ## x86架构支持CHR和x86模式切换
 - 安装 `option.npk` 包
