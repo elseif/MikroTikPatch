@@ -15,7 +15,7 @@
 - **授权： 安装option.npk后将自动授予最高级别许可证。**
 - **源代码：** https://github.com/elseif/MikroTikPatch
 - **授权BOT：** https://t.me/ROS_Keygen_Bot
-- **Docker：** `docker run -d --privileged --name chr -e MEM=512M -e CPUS=1 -e DISK=128M  ghcr.io/else/chr:latest`
+- **Docker：** `docker run -d --privileged --name chr -e MEM=512M -e CPUS=1 -e DISK=128M  ghcr.io/elseif/chr:latest`
 
 ## 架构：arm64, arm, mipsbe, mmips, ppc, smips, x86 
 - **主页：** https://routeros.ltd/
