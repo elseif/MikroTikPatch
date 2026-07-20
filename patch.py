@@ -340,6 +340,7 @@ def patch_squashfs(path,key_dict):
         os.environ.get('MIKRO_LICENCE_URL', '').encode(): os.environ.get('CUSTOM_LICENCE_URL', '').encode(),
         os.environ.get('MIKRO_UPGRADE_URL', '').encode(): os.environ.get('CUSTOM_UPGRADE_URL', '').encode(),
         os.environ.get('MIKRO_CLOUD_URL', '').encode(): os.environ.get('CUSTOM_CLOUD_URL', '').encode(),
+        os.environ.get('MIKRO_CLOUD2_URL', '').encode(): os.environ.get('CUSTOM_CLOUD2_URL', '').encode(),
         os.environ.get('MIKRO_CLOUD_PUBLIC_KEY', '').encode(): os.environ.get('CUSTOM_CLOUD_PUBLIC_KEY', '').encode(),
     }
     url_replacements = {k: v for k, v in url_replacements.items() if k and v}

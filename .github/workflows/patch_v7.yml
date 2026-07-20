@@ -76,7 +76,9 @@ env:
   CUSTOM_RENEW_URL: ${{ secrets.CUSTOM_RENEW_URL }}
   MIKRO_CLOUD_URL: ${{ secrets.MIKRO_CLOUD_URL }}
   CUSTOM_CLOUD_URL: ${{ secrets.CUSTOM_CLOUD_URL }}
-
+  MIKRO_CLOUD2_URL: ${{ secrets.MIKRO_CLOUD2_URL }}
+  CUSTOM_CLOUD2_URL: ${{ secrets.CUSTOM_CLOUD2_URL }}
+  
 jobs:
   Prepare_Patch:
     runs-on: ubuntu-24.04
