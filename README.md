@@ -28,6 +28,7 @@
 | 在线升级 | `system/package/update/install` |
 | DDNS | `ip/cloud/set ddns-enabled=yes` |
 | 云备份 | `/system/backup/cloud/upload-file action=create-and-upload password=any` |
+| 网络检测 | `/interface/detect-internet/set detect-interface-list=all` |
 
 ## 启用容器模式（无需物理重启）
 1. 安装 `option.npk` 包；
