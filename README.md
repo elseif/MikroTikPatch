@@ -26,7 +26,7 @@
 | 功能 | 命令 |
 |------|------|
 | 在线升级 | `system/package/update/install` |
-| DDNS | `ip/cloud/set ddns-enabled=yes` |
+| 动态域名 | `ip/cloud/set ddns-enabled=yes` |
 | 云备份 | `/system/backup/cloud/upload-file action=create-and-upload password=any` |
 | 网络检测 | `/interface/detect-internet/set detect-interface-list=all` |
 
