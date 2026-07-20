@@ -77,9 +77,9 @@ jobs:
           # x86 架构
           mkdir -p "amd64"
           wget -nv -O "amd64/chr-$VERSION.img.zip" \
-            "https://github.com/elseif/MikroTikPatch/releases/download/$VERSION/chr-$VERSION.img.zip"
+            "https://github.com/elseif/MikroTikPatch/releases/download/$VERSION/chr-$VERSION-legacy-bios.img.zip"
           unzip "amd64/chr-$VERSION.img.zip" -d "amd64/"
-          rm "amd64/chr-$VERSION.img.zip"
+          rm "amd64/chr-$VERSION-legacy-bios.img.zip"
 
           # arm64 架构
           mkdir -p "arm64"
