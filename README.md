@@ -21,7 +21,7 @@
 
 ### arm64, arm, mipsbe, mmips, ppc, smips, x86 
 - **Homepage:** https://routeros.ltd/
-- **License:** Sponsorship required. *CHR versions (x86/Arm64) support online direct licensing.*
+- **License: Sponsorship required.** *CHR versions (x86/Arm64) support online direct licensing.*
 - **Features:** Supports online custom branded package creation.
 ---
 
