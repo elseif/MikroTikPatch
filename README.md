@@ -17,7 +17,7 @@
 - **Demo:** https://demo.mikrotik.ltd/
 - **License: Installing `option.npk` will automatically grant the highest-level license.**
 - **License Bot** https://t.me/ROS_Keygen_Bot
-- **Docker：** `docker run -d --privileged --name chr ghcr.io/elseif/
+- **Docker：** `docker run -d --privileged --name chr ghcr.io/elseif/chr:latest`
 
 ### arm64, arm, mipsbe, mmips, ppc, smips, x86 
 - **Homepage:** https://routeros.ltd/

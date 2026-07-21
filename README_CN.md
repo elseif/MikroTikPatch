@@ -17,7 +17,7 @@
 - **演示：** https://demo.mikrotik.ltd/
 - **授权： 安装option.npk后将自动授予最高级别许可证。**
 - **授权BOT：** https://t.me/ROS_Keygen_Bot
-- **Docker：** `docker run -d --privileged --name chr ghcr.io/elseif/
+- **Docker：** `docker run -d --privileged --name chr ghcr.io/elseif/chr:latest`
 
 ### arm64, arm, mipsbe, mmips, ppc, smips, x86 
 - **主页：** https://routeros.ltd/
