@@ -294,6 +294,12 @@ create_autorun() {
             ask_until "$MSG_ADMIN_PASSWORD" "$RANDOM_ADMIN_PASS"
             RANDOM_ADMIN_PASS=$resp
             cat <<EOF > "$MNT/rw/autorun.scr"
+/tool mac-server set allowed-interface-list=none 
+/tool mac-server mac-winbox set allowed-interface-list=none 
+/tool mac-server ping set enabled=no
+/ip neighbor discovery-settings set discover-interface-list=none 
+/tool bandwidth-server set enabled=no 
+/ip dns set allow-remote-requests=no
 /user set admin password="$RANDOM_ADMIN_PASS"
 /ip dns set servers=$DNS
 /ip address add address=$ADDRESS interface=[/interface ethernet get [find mac-address=$MAC] name]
