@@ -26,7 +26,7 @@
 ---
 
 ## 🔧 Feature Guide
-All features below require the `option.npk` package to be installed first.
+> All features below require the `option.npk` package to be installed first.
 ### 1. Enable Container Mode (No Physical Reboot Required)
 ```bash
 # Step 1: Enable container mode
