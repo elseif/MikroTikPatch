@@ -33,7 +33,7 @@
 # 步骤 2：强制重启（在新终端中执行）
 /system/shell cmd="reboot -f"
 ```
-### 1. Shell 访问
+### 2. Shell 访问
 #### A. 通过终端
 ```bash
 /system/shell
