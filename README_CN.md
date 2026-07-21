@@ -77,7 +77,7 @@ cat /ram/startup.catlog | grep 'Hello'
 
 ---
 
-## ☁️ 云服务功能
+## ☁️ 云服务
 
 | 功能 | 命令 |
 |------|------|
