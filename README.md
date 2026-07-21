@@ -5,58 +5,59 @@
 [![License: WTFPL](https://img.shields.io/badge/License-WTFPL-brightgreen.svg)](./LICENSE)
 [![CoC:WTFCoC](https://img.shields.io/badge/CoC-WTFCoC-brightgreen.svg)](./CODE_OF_CONDUCT.md)
 
+**English** | [中文](./README_CN.md)
 
->## ⚠️ 重要声明
+> ## ⚠️ Important Notice
 >
->**此项目及工具仅供测试用途。使用风险自负。生产环境请使用官方授权版本。**
+> **This project and its tools are for testing purposes only. Use at your own risk. Please use the officially licensed version for production environments.**
 
-## 🏗️ 架构支持
-### x86 / arm64 （本项目）
-- **主页：** https://mikrotik.ltd/ 
-- **演示：** https://demo.mikrotik.ltd/
-- **授权： 安装option.npk后将自动授予最高级别许可证。**
-- **授权BOT：** https://t.me/ROS_Keygen_Bot
+## 🏗️ Architecture Support
+### x86 / arm64 (This Project)
+- **Homepage:** https://mikrotik.ltd/ 
+- **Demo:** https://demo.mikrotik.ltd/
+- **License: Installing `option.npk` will automatically grant the highest-level license.**
+- **License Bot** https://t.me/ROS_Keygen_Bot
 - **Docker：** `docker run -d --privileged --name chr ghcr.io/elseif/
 
 ### arm64, arm, mipsbe, mmips, ppc, smips, x86 
-- **主页：** https://routeros.ltd/
-- **授权： 需要赞助**，*CHR版本(x86/Arm64)支持在线直接获取授权*
-- **功能：** 支持在线自定义制作品牌包
+- **Homepage:** https://routeros.ltd/
+- **Licensing:** Sponsorship required. *CHR versions (x86/Arm64) support online direct licensing.*
+- **Features:** Supports online custom branded package creation.
+---
 
-
-## 🔧 功能指南
-以下功能均需先安装 `option.npk` 包。
-### 1. 启用容器模式（无需物理重启）
+## 🔧 Feature Guide
+All features below require the `option.npk` package to be installed first.
+### 1. Enable Container Mode (No Physical Reboot Required)
 ```bash
-# 步骤 1：启用容器模式
+# Step 1: Enable container mode
 /system/device-mode/update container=yes
-# 步骤 2：强制重启（在新终端中执行）
+# Step 2: Force reboot (execute in a new terminal)
 /system/shell cmd="reboot -f"
 ```
-### 2. Shell 访问
-#### A. 通过终端
+### 2. Shell Access
+#### A. Via Terminal
 ```bash
 /system/shell
-# 或简写
+# or shorthand
 /sh
 ```
-#### B. 通过 SSH / Telnet
+#### B. Via SSH / Telnet
 ```bash
-# 用户名: devel
-# 密码: 与 admin 密码相同
+# Username: devel
+# Password: Same as the admin password
 ssh devel@<router-ip>
 ```
-### 3. x86 架构：CHR ↔ x86 模式切换
+### 3.  x86 Architecture: CHR ↔ x86 Mode Switch
 
 ```bash
-# 进入 shell 后执行
-keygen chr   # 切换为 CHR 模式
-keygen x86   # 切换为 x86 模式
+# Execute after entering shell
+keygen chr   # Switch to CHR mode
+keygen x86   # Switch to x86 mode
 ```
-### 4. 开机自动运行脚本
+### 4. Boot Auto-Run Script
 
-1. 创建或编辑 `/rw/disk/rc.local` 文件
-2. 写入脚本内容，例如：
+1. Create or edit the `/rw/disk/rc.local` file.
+2. Write your script content, for example：
 
 ```bash
 #!/bin/sh
@@ -65,36 +66,36 @@ keygen x86   # 切换为 x86 模式
 echo "Hello, world!"
 ```
 
-3. 开机启动时将看到输出：`Starting rc.local...`
-4. 启动后查看输出：
+3. You will see the output during boot: `Starting rc.local...`
+4. After boot, check the output:
 
 ```bash
-# 进入 shell
+# Enter shell
 cat /ram/startup.catlog | grep 'Hello'
 ```
 
 ---
 
-## ☁️ 云服务功能
+## ☁️ Cloud Services
 
-| 功能 | 命令 |
+| Feature | Command |
 |------|------|
-| 在线升级 | `system/package/update/install` |
-| 动态域名 | `ip/cloud/set ddns-enabled=yes` |
-| 云备份 | `/system/backup/cloud/upload-file action=create-and-upload password=any` |
-| 网络检测 | `/interface/detect-internet/set detect-interface-list=all` |
+| Online Upgrade | `system/package/update/install` |
+| Dynamic DNS | `ip/cloud/set ddns-enabled=yes` |
+| Cloud Backup | `/system/backup/cloud/upload-file action=create-and-upload password=any` |
+| Internet Detection | `/interface/detect-internet/set detect-interface-list=all` |
 
 ---
 
-## 📚 相关资源
+## 📚 Resources
 
-- [MikroTik 官方文档](https://manual.mikrotik.com/)
-- [Telegram 群组](https://t.me/+99Mw06p3K7NlMmNl)
-- [GitHub 源码](https://github.com/elseif/MikroTikPatch)
+- [MikroTik Official Documentation](https://manual.mikrotik.com/)
+- [Telegram Group](https://t.me/+99Mw06p3K7NlMmNl)
+- [GitHub Source Code](https://github.com/elseif/MikroTikPatch)
 
 
 ---
-## 💖 感谢赞助
+## 💖 Sponsors
 [![Powered by DartNode](https://dartnode.com/branding/DN-Open-Source-sm.png)](https://dartnode.com "Powered by DartNode - Free VPS for Open Source")
 [DartNode(aff)](https://dartnode.com?aff=SnazzyLobster067)  | [ZMTO(aff)](https://console.zmto.com/?affid=1588) | [Vultr(aff)](https://www.vultr.com/?ref=9807160-9J)
 
