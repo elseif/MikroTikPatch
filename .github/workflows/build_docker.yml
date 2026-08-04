@@ -14,7 +14,7 @@ jobs:
   Prepare:
     runs-on: ubuntu-24.04
     outputs:
-      MATRIX: ${{ steps.get_versions.outputs.MATRIX }}
+      MATRIX: ${{ steps.filter_matrix.outputs.MATRIX }}
     steps:
       - name: Get versions and generate matrix
         id: get_versions
@@ -51,6 +51,40 @@ jobs:
           echo "Generated matrix: $MATRIX"
           echo "MATRIX=$MATRIX" >> $GITHUB_OUTPUT
 
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Filter already-published versions from matrix
+        id: filter_matrix
+        env:
+          IMAGE: "ghcr.io/${{ github.repository_owner }}/chr"
+        run: |
+          MATRIX='${{ steps.get_versions.outputs.MATRIX }}'
+          FILTERED='[]'
+
+          while read -r row; do
+            VERSION=$(echo "$row" | jq -r '.version')
+            CHANNEL=$(echo "$row" | jq -r '.channel')
+
+            set +e
+            docker manifest inspect "${IMAGE}:${VERSION}" >/dev/null 2>&1
+            RET=$?
+            set -e
+
+            if [ "$RET" -eq 0 ]; then
+              echo "Skipping already published version: ${VERSION}"
+            else
+              FILTERED=$(echo "$FILTERED" | jq -c --arg VERSION "$VERSION" --arg CHANNEL "$CHANNEL" '. + [{"version": $VERSION, "channel": $CHANNEL}]')
+            fi
+          done < <(echo "$MATRIX" | jq -c '.[]')
+
+          echo "Filtered matrix: $FILTERED"
+          echo "MATRIX=$FILTERED" >> "$GITHUB_OUTPUT"
+
   Build:
     runs-on: ubuntu-24.04
     needs: Prepare
@@ -71,6 +105,13 @@ jobs:
         run: |
           echo "Version: ${{ env.VERSION }}"
           echo "Channel: ${{ env.CHANNEL }}"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download CHR image
         run: |
@@ -186,13 +227,6 @@ jobs:
           COPY start.sh /start.sh
           ENTRYPOINT ["/start.sh"]
           EOF
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
