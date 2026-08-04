@@ -86,12 +86,13 @@ jobs:
           echo "MATRIX=$FILTERED" >> "$GITHUB_OUTPUT"
 
   Build:
+    if: needs.Prepare.outputs.MATRIX != '[]'
     runs-on: ubuntu-24.04
     needs: Prepare
     strategy:
       max-parallel: 1
       matrix:
-        include: ${{ fromJson(needs.Prepare.outputs.MATRIX) }}
+        include: ${{ fromJson(needs.Prepare.outputs.MATRIX != '[]' && needs.Prepare.outputs.MATRIX || '[{"version":"__NO_BUILD__","channel":""}]') }}
     env:
       TZ: 'Asia/Shanghai'
       VERSION: ${{ matrix.version }}
