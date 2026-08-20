@@ -107,15 +107,25 @@ def patch_bzimage(data:bytes,key_dict:dict):
     new_full = new_full.ljust(old_full_len, b'\0')
     new_data[payload_offset : payload_offset + old_full_len] = new_full
 
+    # Search and patch decompressor code instructions located after the payload
+    payload_end = payload_offset + old_full_len
+    decompressor_code = bytes(new_data[payload_end:])
+
     # Patch decompressor hardcoded input_len immediate (mov $payload_length, %ecx)
     pat_header = b'\xb9' + struct.pack('<I', payload_length_orig)
     pat_actual = b'\xb9' + struct.pack('<I', payload_length_actual)
-    m_header = re.search(re.escape(pat_header), bytes(new_data))
+    m_header = re.search(re.escape(pat_header), decompressor_code)
     if m_header:
-        struct.pack_into('<I', new_data, m_header.start() + 1, new_payload_length_header)
-    m_actual = re.search(re.escape(pat_actual), bytes(new_data))
+        struct.pack_into('<I', new_data, payload_end + m_header.start() + 1, new_payload_length_header)
+    m_actual = re.search(re.escape(pat_actual), decompressor_code)
     if m_actual:
-        struct.pack_into('<I', new_data, m_actual.start() + 1, new_payload_length_actual)
+        struct.pack_into('<I', new_data, payload_end + m_actual.start() + 1, new_payload_length_actual)
+
+    # Patch decompressor hardcoded output_len immediate (mov $z_output_len, %r9) if present
+    pat_out = b'\x49\xc7\xc1' + struct.pack('<I', z_output_len)
+    m_out = re.search(re.escape(pat_out), decompressor_code)
+    if m_out:
+        struct.pack_into('<I', new_data, payload_end + m_out.start() + 3, len(new_vmlinux))
 
     # Maintain z_output_len at the fixed .rodata symbol address at payload end
     struct.pack_into('<I', new_data, payload_offset + payload_length_actual, len(new_vmlinux))
