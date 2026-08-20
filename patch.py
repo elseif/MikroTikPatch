@@ -71,10 +71,10 @@ def patch_bzimage(data:bytes,key_dict:dict):
     HEADER_PAYLOAD_LENGTH_OFFSET = HEADER_PAYLOAD_OFFSET + 4
     text_section_raw_data = struct.unpack_from('<I',data,PE_TEXT_SECTION_OFFSET)[0]
     payload_offset =  text_section_raw_data +struct.unpack_from('<I',data,HEADER_PAYLOAD_OFFSET)[0]
-    payload_length = struct.unpack_from('<I',data,HEADER_PAYLOAD_LENGTH_OFFSET)[0]
-    payload_length = payload_length - 4 #last 4 bytes is uncompressed size(z_output_len)
-    z_output_len = struct.unpack_from('<I',data,payload_offset+payload_length)[0]
-    vmlinux_xz = data[payload_offset:payload_offset+payload_length]
+    payload_length_orig = struct.unpack_from('<I',data,HEADER_PAYLOAD_LENGTH_OFFSET)[0]
+    payload_length_actual = payload_length_orig - 4 #last 4 bytes is uncompressed size(z_output_len)
+    z_output_len = struct.unpack_from('<I',data,payload_offset+payload_length_actual)[0]
+    vmlinux_xz = data[payload_offset:payload_offset+payload_length_actual]
     vmlinux = lzma.decompress(vmlinux_xz)
     assert z_output_len == len(vmlinux), 'vmlinux size is not equal to expected'
     CPIO_HEADER_MAGIC = b'07070100'
@@ -95,15 +95,31 @@ def patch_bzimage(data:bytes,key_dict:dict):
               "lc": 4,"lp": 0, "pb": 0,
              },
         ])
-    new_payload_length = len(new_vmlinux_xz)
-    assert new_payload_length <= payload_length , 'new vmlinux.xz size is too big'
-    new_payload_length = new_payload_length + 4 #last 4 bytes is uncompressed size(z_output_len)
+    new_payload_length_actual = len(new_vmlinux_xz)
+    assert new_payload_length_actual <= payload_length_actual , 'new vmlinux.xz size is too big'
+    new_payload_length_header = new_payload_length_actual + 4 #last 4 bytes is uncompressed size(z_output_len)
     new_data = bytearray(data)
-    struct.pack_into('<I',new_data,HEADER_PAYLOAD_LENGTH_OFFSET,new_payload_length)
-    vmlinux_xz += struct.pack('<I',z_output_len)
-    new_vmlinux_xz += struct.pack('<I',z_output_len)
-    new_vmlinux_xz = new_vmlinux_xz.ljust(len(vmlinux_xz),b'\0')
-    new_data = new_data.replace(vmlinux_xz,new_vmlinux_xz)
+    struct.pack_into('<I',new_data,HEADER_PAYLOAD_LENGTH_OFFSET,new_payload_length_header)
+
+    # Place new compressed payload and pad with zero bytes up to old total length
+    old_full_len = payload_length_actual + 4
+    new_full = new_vmlinux_xz + struct.pack('<I', len(new_vmlinux))
+    new_full = new_full.ljust(old_full_len, b'\0')
+    new_data[payload_offset : payload_offset + old_full_len] = new_full
+
+    # Patch decompressor hardcoded input_len immediate (mov $payload_length, %ecx)
+    pat_header = b'\xb9' + struct.pack('<I', payload_length_orig)
+    pat_actual = b'\xb9' + struct.pack('<I', payload_length_actual)
+    m_header = re.search(re.escape(pat_header), bytes(new_data))
+    if m_header:
+        struct.pack_into('<I', new_data, m_header.start() + 1, new_payload_length_header)
+    m_actual = re.search(re.escape(pat_actual), bytes(new_data))
+    if m_actual:
+        struct.pack_into('<I', new_data, m_actual.start() + 1, new_payload_length_actual)
+
+    # Maintain z_output_len at the fixed .rodata symbol address at payload end
+    struct.pack_into('<I', new_data, payload_offset + payload_length_actual, len(new_vmlinux))
+
     return new_data
 
 def patch_initrd_xz(initrd_xz:bytes,key_dict:dict,ljust=True):
