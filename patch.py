@@ -1,7 +1,14 @@
 import subprocess,lzma
 import struct,os,re,tempfile
-import pefile
-from elftools.elf.elffile import ELFFile
+try:
+    import pefile
+except ImportError:
+    pefile = None
+
+try:
+    from elftools.elf.elffile import ELFFile
+except ImportError:
+    ELFFile = None
 from npk import NovaPackage,NpkPartID,NpkFileContainer
 
 def replace_chunks(old_chunks,new_chunks,data,name):
