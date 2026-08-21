@@ -10,8 +10,8 @@ on:
         options:
         - stable
         - long-term
-        - testing
-        - development
+        # - testing
+        # - development
       arch:
         description: 'Architecture (x86, arm64)'
         required: true
