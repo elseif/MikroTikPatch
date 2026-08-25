@@ -442,9 +442,9 @@
 
             // Fetch latest version numbers from MikroTik servers
             const loadingOverlay = document.getElementById("loading");
-            const [routeros7_stable, routeros7_testing, routeros6_longterm, routeros6_stable] = await Promise.all([
+            const [routeros7_stable, routeros7_longterm, routeros6_longterm, routeros6_stable] = await Promise.all([
                 fetch_latest_versions(`https://upgrade.mikrotik.ltd/routeros/NEWESTa7.stable?ts=${Date.now()}`, "7.19.4"),
-                fetch_latest_versions(`https://upgrade.mikrotik.ltd/routeros/NEWESTa7.testing?ts=${Date.now()}`, "7.20rc1"),
+                fetch_latest_versions(`https://upgrade.mikrotik.ltd/routeros/NEWESTa7.long-term?ts=${Date.now()}`, "7.20rc1"),
                 fetch_latest_versions(`https://upgrade.mikrotik.ltd/routeros/NEWEST6.long-term?ts=${Date.now()}`, "6.49.18"),
                 fetch_latest_versions(`https://upgrade.mikrotik.ltd/routeros/NEWEST6.stable?ts=${Date.now()}`, "6.49.19"),
             ]);
@@ -456,7 +456,7 @@
             const downloads =[
                 {
                     title:"RouterOS v7",
-                    versions:[ { title:"Stable", version:routeros7_stable }, { title:"Testing", version:routeros7_testing } ],
+                    versions:[ { title:"Long-Term", version:routeros7_longterm },{ title:"Stable", version:routeros7_stable } ],
                     groups: [
                         { title:"ARM64 / AMPERE", arch:"arm64", downloads:[ { title:"Main package", type:"main" }, { title:"Extra packages", type:"extra" }, { title:"ISO image for AMPERE", type:"iso" } ] },
                         { title:"X86", arch:"x86", downloads:[ { title:"Main package", type:"main" }, { title:"Extra packages", type:"extra" }, { title:"CD Image", type:"iso" }, { title:"Install image", type:"install" } ] },
@@ -472,7 +472,7 @@
                 },
                 {
                     title:"Cloud Hosted Router",
-                    versions:[ { title:"Long-Term", version:routeros6_longterm }, { title:"Stable", version:routeros6_stable }, { title:"Stable", version:routeros7_stable }, { title:"Testing", version:routeros7_testing } ],
+                    versions:[ { title:"Long-Term", version:routeros6_longterm }, { title:"Stable", version:routeros6_stable }, { title:"Long-Term", version:routeros7_longterm }, { title:"Stable", version:routeros7_stable } ],
                     groups:[
                         { title:"X86", arch:"x86", downloads:[ { title:"Main package", type:"main" }, { title:"Extra packages", type:"extra" }, { title:"VHDX image", type:"vhdx" }, { title:"VMDK image", type:"vmdk" }, { title:"VDI image", type:"vdi" }, { title:"VirtualPC image", type:"vhd" }, { title:"Raw disk image", type:"img" }, { title:"OVA template", type:"ova" } ] },
                         { title:"ARM64 / AMPERE", arch:"arm64", downloads:[ { title:"Main package", type:"main" }, { title:"Extra packages", type:"extra" }, { title:"VHDX image", type:"vhdx" }, { title:"VMDK image", type:"vmdk" }, { title:"VDI image", type:"vdi" }, { title:"VirtualPC image", type:"vhd" }, { title:"Raw disk image", type:"img" } ] }
@@ -709,8 +709,8 @@
 
             // Generate version selection buttons
             versionBtnsContainer.innerHTML = `
+                <button data-version="${routeros7_longterm}" class="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-blue-200 dark:hover:bg-gray-600 transition-all">v7 Long-Term</button>
                 <button data-version="${routeros7_stable}" class="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-blue-200 dark:hover:bg-gray-600 transition-all">v7 Stable</button>
-                <button data-version="${routeros7_testing}" class="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-blue-200 dark:hover:bg-gray-600 transition-all">v7 Testing</button>
                 <button data-version="${routeros6_longterm}" class="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-blue-200 dark:hover:bg-gray-600 transition-all">v6 Long-Term</button>
                 <button data-version="${routeros6_stable}" class="px-3 py-1.5 text-sm font-medium rounded-md hover:bg-blue-200 dark:hover:bg-gray-600 transition-all">v6 Stable</button>
             `;

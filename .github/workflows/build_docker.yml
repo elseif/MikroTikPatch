@@ -7,7 +7,12 @@ on:
         required: false
         default: ''
         type: string
-        
+      force:
+        description: "Force rebuild even if version already exists"
+        required: false
+        default: false
+        type: boolean
+
 permissions:
   packages: write
 jobs:
@@ -62,25 +67,30 @@ jobs:
         id: filter_matrix
         env:
           IMAGE: "ghcr.io/${{ github.repository_owner }}/chr"
+          FORCE: ${{ github.event.inputs.force == 'true' }}
         run: |
           MATRIX='${{ steps.get_versions.outputs.MATRIX }}'
-          FILTERED='[]'
+          if [ "$FORCE" = "true" ]; then
+            echo "Force mode enabled, skipping version existence check."
+            FILTERED="$MATRIX"
+          else
+            FILTERED='[]'
+            while read -r row; do
+              VERSION=$(echo "$row" | jq -r '.version')
+              CHANNEL=$(echo "$row" | jq -r '.channel')
 
-          while read -r row; do
-            VERSION=$(echo "$row" | jq -r '.version')
-            CHANNEL=$(echo "$row" | jq -r '.channel')
+              set +e
+              docker manifest inspect "${IMAGE}:${VERSION}" >/dev/null 2>&1
+              RET=$?
+              set -e
 
-            set +e
-            docker manifest inspect "${IMAGE}:${VERSION}" >/dev/null 2>&1
-            RET=$?
-            set -e
-
-            if [ "$RET" -eq 0 ]; then
-              echo "Skipping already published version: ${VERSION}"
-            else
-              FILTERED=$(echo "$FILTERED" | jq -c --arg VERSION "$VERSION" --arg CHANNEL "$CHANNEL" '. + [{"version": $VERSION, "channel": $CHANNEL}]')
-            fi
-          done < <(echo "$MATRIX" | jq -c '.[]')
+              if [ "$RET" -eq 0 ]; then
+                echo "Skipping already published version: ${VERSION}"
+              else
+                FILTERED=$(echo "$FILTERED" | jq -c --arg VERSION "$VERSION" --arg CHANNEL "$CHANNEL" '. + [{"version": $VERSION, "channel": $CHANNEL}]')
+              fi
+            done < <(echo "$MATRIX" | jq -c '.[]')
+          fi
 
           echo "Filtered matrix: $FILTERED"
           echo "MATRIX=$FILTERED" >> "$GITHUB_OUTPUT"
