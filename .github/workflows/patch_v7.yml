@@ -378,6 +378,28 @@ jobs:
       if: matrix.arch == 'x86' && steps.cache-refind.outputs.cache-hit != 'true'
       run: wget -nv -O $BUILD_DIR/refind-bin-0.14.2.zip https://downloads.sourceforge.net/project/refind/0.14.2/refind-bin-0.14.2.zip
 
+
+    - name: Build busybox rootfs
+      run: |
+        ROOTFS_DIR=$BUILD_DIR/rootfs
+        mkdir -p $ROOTFS_DIR/{bin,dev,etc,proc,sys}
+        cp ./busybox/busybox_$ARCH $ROOTFS_DIR/bin/busybox
+        chmod +x $ROOTFS_DIR/bin/busybox
+        for cmd in $(./busybox/busybox_x86 --list); do
+            ln -sf /bin/busybox "$ROOTFS_DIR/bin/$cmd"
+        done
+        cat > $ROOTFS_DIR/init <<'EOF'
+        #!/bin/sh
+        mount -t proc proc /proc
+        mount -t sysfs sysfs /sys
+        mount -t devtmpfs devtmpfs /dev
+        echo "BusyBox shell started. Type 'exit' to reboot."
+        exec setsid cttyhack /bin/sh
+        EOF
+        chmod +x $ROOTFS_DIR/init
+        (cd "$ROOTFS_DIR" && find . -print0 | cpio --owner=root:root --null -H newc -o 2>/dev/null > $BUILD_DIR/initramfs.cpio)
+
+
     - name: Create ISO & INSTALL image files
       run: |
         set -e
@@ -412,11 +434,30 @@ jobs:
             loader /linux.x86_64
             options "load_ramdisk=1 root=/dev/ram0 -install -cdrom debug"
         }
+        menuentry "Busybox Shell" {
+            loader /linux.x86_64
+            initrd /initramfs.cpio.xz
+            options "debug"
+        }
         default_selection /EFI/BOOT/BOOTX64.EFI
         EOF
             cp -v $BUILD_DIR/new_iso/isolinux/linux $BUILD_DIR/efiboot/linux.x86_64 
+            cp -v $BUILD_DIR/initramfs.cpio $BUILD_DIR/efiboot/initramfs.cpio
             sync
             sudo umount $BUILD_DIR/efiboot
+            tee $BUILD_DIR/new_iso/isolinux/syslinux.cfg > /dev/null << 'EOF'
+        default system
+        timeout 50
+        prompt 1
+        label system
+        	kernel linux
+        	append load_ramdisk=1 -install -cdrom debug
+        label busybox
+          kernel linux
+          append initrd=initramfs.cpio debug
+        EOF
+          cp -v $BUILD_DIR/initramfs.cpio $BUILD_DIR/new_iso/isolinux/initramfs.cpio
+
             xorriso -as mkisofs -o $PUBLISH_DIR/mikrotik-$VERSION$ARCH_EXT.iso \
                         -V 'MikroTik' \
                         -publisher "WWW.MIKROTIK.COM" \
@@ -459,14 +500,25 @@ jobs:
         	loader /linux
         	options "load_ramdisk=1 root=/dev/ram0 -install -hdd"
         }
+        menuentry "Busybox Shell" {
+            loader /linux.x86_64
+            initrd /initramfs.cpio
+            options "debug"
+        }
         default_selection /EFI/BOOT/BOOTX64.EFI
         EOF
             tee $BUILD_DIR/install/syslinux.cfg > /dev/null << 'EOF'
         default system
-        LABEL system
-        	KERNEL linux
-        	APPEND load_ramdisk=1 -install -hdd
+        timeout 50
+        prompt 1
+        label system
+        	kernel linux
+        	append load_ramdisk=1 -install -hdd
+        label busybox
+          kernel linux
+          append initrd=initramfs.cpio debug
         EOF
+            cp -v $BUILD_DIR/initramfs.cpio $BUILD_DIR/install/initramfs.cpio
             NPK_FILES=($(find $BUILD_DIR/new_iso/*.npk))
             for ((i=1; i<=${#NPK_FILES[@]}; i++))
             do
