@@ -436,7 +436,7 @@ jobs:
         }
         menuentry "Busybox Shell" {
             loader /linux.x86_64
-            initrd /initramfs.cpio.xz
+            initrd /initramfs.cpio
             options "debug"
         }
         default_selection /EFI/BOOT/BOOTX64.EFI
