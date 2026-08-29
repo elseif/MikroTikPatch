@@ -379,26 +379,72 @@ jobs:
       run: wget -nv -O $BUILD_DIR/refind-bin-0.14.2.zip https://downloads.sourceforge.net/project/refind/0.14.2/refind-bin-0.14.2.zip
 
 
-    - name: Build busybox rootfs
+    - name: Build alpine livecd
+      if: matrix.arch == 'x86'
       run: |
+        set -e
+        ROOTFS_URL="https://dl-cdn.alpinelinux.org/alpine/v3.24/releases/x86_64/alpine-minirootfs-3.24.1-x86_64.tar.gz"
         ROOTFS_DIR=$BUILD_DIR/rootfs
-        mkdir -p $ROOTFS_DIR/{bin,dev,etc,proc,sys}
-        cp ./busybox/busybox_$ARCH $ROOTFS_DIR/bin/busybox
-        chmod +x $ROOTFS_DIR/bin/busybox
-        for cmd in $(./busybox/busybox_x86 --list); do
-            ln -sf /bin/busybox "$ROOTFS_DIR/bin/$cmd"
-        done
-        cat > $ROOTFS_DIR/init <<'EOF'
-        #!/bin/sh
-        mount -t proc proc /proc
-        mount -t sysfs sysfs /sys
-        mount -t devtmpfs devtmpfs /dev
-        echo "BusyBox shell started. Type 'exit' to reboot."
-        exec setsid cttyhack /bin/sh
-        EOF
-        chmod +x $ROOTFS_DIR/init
-        (cd "$ROOTFS_DIR" && find . -print0 | cpio --owner=root:root --null -H newc -o 2>/dev/null > $BUILD_DIR/initramfs.cpio)
+        mkdir -p $ROOTFS_DIR
+        curl -# -L "$ROOTFS_URL" | tar -xzC $ROOTFS_DIR
 
+        mount -v --bind /dev $ROOTFS_DIR/dev
+        mount -vt sysfs sysfs $ROOTFS_DIR/sys
+        mount -vt proc proc $ROOTFS_DIR/proc
+
+        echo "nameserver 1.1.1.1" > $ROOTFS_DIR/etc/resolv.conf
+        cat << EOF | chroot $ROOTFS_DIR /usr/bin/env PATH=/usr/bin:/bin:/usr/sbin:/sbin /bin/sh
+        set -e
+        apk update
+        apk upgrade
+        apk add alpine-base openrc busybox-mdev-openrc dhcpcd curl iputils ca-certificates linux-lts linux-firmware-none
+        rc-update add devfs sysinit
+        rc-update add dmesg sysinit
+        rc-update add mdev sysinit
+        rc-update add hwdrivers sysinit
+
+        rc-update add acpid boot
+        rc-update add hostname boot
+        rc-update add hwclock boot
+        rc-update add modules boot
+        rc-update add sysctl boot
+        rc-update add bootmisc boot
+        rc-update add dhcpcd boot
+
+        rc-update add networking default
+
+        apk cache clean
+        EOF
+
+        sed -i 's/^features=.*/features="ata base cdrom scsi nvme ext4 usb virtio"/' $ROOTFS_DIR/etc/mkinitfs/mkinitfs.conf
+        KERNEL_VERSION=$(ls $ROOTFS_DIR/lib/modules | head -1)
+        chroot $ROOTFS_DIR /usr/bin/env PATH=/usr/bin:/bin:/usr/sbin:/sbin /sbin/mkinitfs -k -t /tmp "$KERNEL_VERSION"
+        rm -rf $ROOTFS_DIR/lib/modules
+        mv $ROOTFS_DIR/tmp/lib/modules $ROOTFS_DIR/lib
+        chroot $ROOTFS_DIR /sbin/depmod -b / "$KERNEL_VERSION"
+
+        umount -v $ROOTFS_DIR/dev
+        umount -v $ROOTFS_DIR/sys
+        umount -v $ROOTFS_DIR/proc
+
+        sed -i 's/^#\(ttyS0.*\)/\1/' $ROOTFS_DIR/etc/inittab
+        sed -i 's/^root:.*/root:::0:::::/' $ROOTFS_DIR/etc/shadow
+        echo "" > $ROOTFS_DIR/etc/motd
+
+        ln -sf sbin/init $ROOTFS_DIR/init
+        cp $ROOTFS_DIR/boot/vmlinuz-* $BUILD_DIR/vmlinuz
+
+        rm -rf $ROOTFS_DIR/tmp/*
+        rm -rf $ROOTFS_DIR/boot/*
+        rm -rf $ROOTFS_DIR/var/cache/*
+
+        (cd "$ROOTFS_DIR" && find . -print0 | cpio --owner=root:root --null -H newc -o 2>/dev/null | xz -C crc32 --x86 -v9eT0 > $BUILD_DIR/initramfs.xz)
+        rm -rf $ROOTFS_DIR
+
+        size=$(stat -c %s "$BUILD_DIR/vmlinuz")
+        printf "vmlinuz size : %d bytes (%.1f KB)\n" "$size" "$(echo "scale=1; $size/1024" | bc)"
+        size=$(stat -c %s "$BUILD_DIR/initramfs.xz")
+        printf "initramfs size : %d bytes (%.1f KB)\n" "$size" "$(echo "scale=1; $size/1024" | bc)"
 
     - name: Create ISO & INSTALL image files
       run: |
@@ -434,15 +480,16 @@ jobs:
             loader /linux.x86_64
             options "load_ramdisk=1 root=/dev/ram0 -install -cdrom debug"
         }
-        menuentry "Busybox Shell" {
-            loader /linux.x86_64
-            initrd /initramfs.cpio
+        menuentry "Alpine Linux LiveCD" {
+            loader /vmlinuz
+            initrd /initramfs.xz
             options "debug"
         }
         default_selection /EFI/BOOT/BOOTX64.EFI
         EOF
             cp -v $BUILD_DIR/new_iso/isolinux/linux $BUILD_DIR/efiboot/linux.x86_64 
-            cp -v $BUILD_DIR/initramfs.cpio $BUILD_DIR/efiboot/initramfs.cpio
+            cp -v $BUILD_DIR/vmlinuz $BUILD_DIR/efiboot/vmlinuz
+            cp -v $BUILD_DIR/initramfs.xz $BUILD_DIR/efiboot/initramfs.xz
             sync
             sudo umount $BUILD_DIR/efiboot
             tee $BUILD_DIR/new_iso/isolinux/syslinux.cfg > /dev/null << 'EOF'
@@ -452,11 +499,12 @@ jobs:
         label system
         	kernel linux
         	append load_ramdisk=1 -install -cdrom debug
-        label busybox
-          kernel linux
-          append initrd=initramfs.cpio debug
+        label alpine
+          kernel vmlinuz
+          append initrd=initramfs.xz debug
         EOF
-          cp -v $BUILD_DIR/initramfs.cpio $BUILD_DIR/new_iso/isolinux/initramfs.cpio
+          cp -v $BUILD_DIR/vmlinuz $BUILD_DIR/new_iso/isolinux/vmlinuz
+          cp -v $BUILD_DIR/initramfs.xz $BUILD_DIR/new_iso/isolinux/initramfs.xz
 
             xorriso -as mkisofs -o $PUBLISH_DIR/mikrotik-$VERSION$ARCH_EXT.iso \
                         -V 'MikroTik' \
@@ -500,25 +548,14 @@ jobs:
         	loader /linux
         	options "load_ramdisk=1 root=/dev/ram0 -install -hdd"
         }
-        menuentry "Busybox Shell" {
-            loader /linux.x86_64
-            initrd /initramfs.cpio
-            options "debug"
-        }
         default_selection /EFI/BOOT/BOOTX64.EFI
         EOF
             tee $BUILD_DIR/install/syslinux.cfg > /dev/null << 'EOF'
         default system
-        timeout 50
-        prompt 1
         label system
         	kernel linux
         	append load_ramdisk=1 -install -hdd
-        label busybox
-          kernel linux
-          append initrd=initramfs.cpio debug
         EOF
-            cp -v $BUILD_DIR/initramfs.cpio $BUILD_DIR/install/initramfs.cpio
             NPK_FILES=($(find $BUILD_DIR/new_iso/*.npk))
             for ((i=1; i<=${#NPK_FILES[@]}; i++))
             do
