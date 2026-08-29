@@ -411,8 +411,6 @@ jobs:
         rc-update add bootmisc boot
         rc-update add dhcpcd boot
 
-        rc-update add networking default
-
         apk cache clean
         EOF
 
