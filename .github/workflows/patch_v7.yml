@@ -442,9 +442,9 @@ jobs:
         sudo rm -rf $ROOTFS_DIR
 
         size=$(stat -c %s "$BUILD_DIR/vmlinuz")
-        printf "vmlinuz size : %d bytes (%.1f KB)\n" "$size" "$(echo "scale=1; $size/1024" | bc)"
+        printf "vmlinuz size : %d bytes (%.1f MB)\n" "$size" "$(echo "scale=1; $size/1024/1024" | bc)"
         size=$(stat -c %s "$BUILD_DIR/initramfs.xz")
-        printf "initramfs size : %d bytes (%.1f KB)\n" "$size" "$(echo "scale=1; $size/1024" | bc)"
+        printf "initramfs size : %d bytes (%.1f MB)\n" "$size" "$(echo "scale=1; $size/1024/1024" | bc)"
 
     - name: Create ISO & INSTALL image files
       run: |
@@ -464,7 +464,7 @@ jobs:
             python3 patch.py kernel $BUILD_DIR/efiboot/linux.x86_64 -O $BUILD_DIR/new_iso/isolinux/linux
             sudo umount $BUILD_DIR/efiboot
             rm -f $BUILD_DIR/new_iso/efiboot.img
-            truncate --size 32M $BUILD_DIR/new_iso/efiboot.img
+            truncate --size 64M $BUILD_DIR/new_iso/efiboot.img
             mkfs.vfat -n "Boot" $BUILD_DIR/new_iso/efiboot.img
             sudo mount -o loop,uid=$(id -u),gid=$(id -g) $BUILD_DIR/new_iso/efiboot.img $BUILD_DIR/efiboot
             mkdir -p $BUILD_DIR/efiboot/EFI/BOOT
