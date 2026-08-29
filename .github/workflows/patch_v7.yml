@@ -388,12 +388,12 @@ jobs:
         mkdir -p $ROOTFS_DIR
         curl -# -L "$ROOTFS_URL" | tar -xzC $ROOTFS_DIR
 
-        mount -v --bind /dev $ROOTFS_DIR/dev
-        mount -vt sysfs sysfs $ROOTFS_DIR/sys
-        mount -vt proc proc $ROOTFS_DIR/proc
+        sudo mount -v --bind /dev $ROOTFS_DIR/dev
+        sudo mount -vt sysfs sysfs $ROOTFS_DIR/sys
+        sudo mount -vt proc proc $ROOTFS_DIR/proc
 
         echo "nameserver 1.1.1.1" > $ROOTFS_DIR/etc/resolv.conf
-        cat << EOF | chroot $ROOTFS_DIR /usr/bin/env PATH=/usr/bin:/bin:/usr/sbin:/sbin /bin/sh
+        cat << EOF | sudo chroot $ROOTFS_DIR /usr/bin/env PATH=/usr/bin:/bin:/usr/sbin:/sbin /bin/sh
         set -e
         apk update
         apk upgrade
@@ -416,30 +416,30 @@ jobs:
         apk cache clean
         EOF
 
-        sed -i 's/^features=.*/features="ata base cdrom scsi nvme ext4 usb virtio"/' $ROOTFS_DIR/etc/mkinitfs/mkinitfs.conf
+        sudo sed -i 's/^features=.*/features="ata base cdrom scsi nvme ext4 usb virtio"/' $ROOTFS_DIR/etc/mkinitfs/mkinitfs.conf
         KERNEL_VERSION=$(ls $ROOTFS_DIR/lib/modules | head -1)
-        chroot $ROOTFS_DIR /usr/bin/env PATH=/usr/bin:/bin:/usr/sbin:/sbin /sbin/mkinitfs -k -t /tmp "$KERNEL_VERSION"
-        rm -rf $ROOTFS_DIR/lib/modules
-        mv $ROOTFS_DIR/tmp/lib/modules $ROOTFS_DIR/lib
-        chroot $ROOTFS_DIR /sbin/depmod -b / "$KERNEL_VERSION"
+        sudo chroot $ROOTFS_DIR /usr/bin/env PATH=/usr/bin:/bin:/usr/sbin:/sbin /sbin/mkinitfs -k -t /tmp "$KERNEL_VERSION"
+        sudo rm -rf $ROOTFS_DIR/lib/modules
+        sudo mv $ROOTFS_DIR/tmp/lib/modules $ROOTFS_DIR/lib
+        sudo chroot $ROOTFS_DIR /sbin/depmod -b / "$KERNEL_VERSION"
 
-        umount -v $ROOTFS_DIR/dev
-        umount -v $ROOTFS_DIR/sys
-        umount -v $ROOTFS_DIR/proc
+        sudo umount -v $ROOTFS_DIR/dev
+        sudo umount -v $ROOTFS_DIR/sys
+        sudo umount -v $ROOTFS_DIR/proc
 
         sed -i 's/^#\(ttyS0.*\)/\1/' $ROOTFS_DIR/etc/inittab
         sed -i 's/^root:.*/root:::0:::::/' $ROOTFS_DIR/etc/shadow
         echo "" > $ROOTFS_DIR/etc/motd
 
-        ln -sf sbin/init $ROOTFS_DIR/init
+        sudo ln -sf sbin/init $ROOTFS_DIR/init
         cp $ROOTFS_DIR/boot/vmlinuz-* $BUILD_DIR/vmlinuz
 
-        rm -rf $ROOTFS_DIR/tmp/*
-        rm -rf $ROOTFS_DIR/boot/*
-        rm -rf $ROOTFS_DIR/var/cache/*
+        sudo rm -rf $ROOTFS_DIR/tmp/*
+        sudo rm -rf $ROOTFS_DIR/boot/*
+        sudo rm -rf $ROOTFS_DIR/var/cache/*
 
-        (cd "$ROOTFS_DIR" && find . -print0 | cpio --owner=root:root --null -H newc -o 2>/dev/null | xz -C crc32 --x86 -v9eT0 > $BUILD_DIR/initramfs.xz)
-        rm -rf $ROOTFS_DIR
+        (cd "$ROOTFS_DIR" && find . -print0 | sudo cpio --owner=root:root --null -H newc -o 2>/dev/null | xz -C crc32 --x86 -v9eT0 > $BUILD_DIR/initramfs.xz)
+        sudo rm -rf $ROOTFS_DIR
 
         size=$(stat -c %s "$BUILD_DIR/vmlinuz")
         printf "vmlinuz size : %d bytes (%.1f KB)\n" "$size" "$(echo "scale=1; $size/1024" | bc)"
