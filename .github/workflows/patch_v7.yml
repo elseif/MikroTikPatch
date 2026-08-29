@@ -393,6 +393,17 @@ jobs:
         sudo mount -vt proc proc $ROOTFS_DIR/proc
 
         echo "nameserver 1.1.1.1" > $ROOTFS_DIR/etc/resolv.conf
+        cat << EOF > $ROOTFS_DIR/etc/network/interfaces
+        auto lo
+        iface lo inet loopback
+        auto eth0
+        iface eth0 inet dhcp
+        EOF
+
+        sed -i 's/^#\(ttyS0.*\)/\1/' $ROOTFS_DIR/etc/inittab
+        sed -i 's/^root:.*/root:::0:::::/' $ROOTFS_DIR/etc/shadow
+        echo "" > $ROOTFS_DIR/etc/motd
+
         cat << EOF | sudo chroot $ROOTFS_DIR /usr/bin/env PATH=/usr/bin:/bin:/usr/sbin:/sbin /bin/sh
         set -e
         apk update
@@ -411,10 +422,12 @@ jobs:
         rc-update add bootmisc boot
         rc-update add dhcpcd boot
 
+        rc-update add networking default
+
         apk cache clean
         EOF
 
-        sudo sed -i 's/^features=.*/features="ata base cdrom scsi nvme ext4 usb virtio"/' $ROOTFS_DIR/etc/mkinitfs/mkinitfs.conf
+        sudo sed -i 's/^features=.*/features="ata base cdrom network scsi nvme ext4 usb virtio"/' $ROOTFS_DIR/etc/mkinitfs/mkinitfs.conf
         KERNEL_VERSION=$(ls $ROOTFS_DIR/lib/modules | head -1)
         sudo chroot $ROOTFS_DIR /usr/bin/env PATH=/usr/bin:/bin:/usr/sbin:/sbin /sbin/mkinitfs -k -t /tmp "$KERNEL_VERSION"
         sudo rm -rf $ROOTFS_DIR/lib/modules
@@ -424,10 +437,6 @@ jobs:
         sudo umount -v $ROOTFS_DIR/dev
         sudo umount -v $ROOTFS_DIR/sys
         sudo umount -v $ROOTFS_DIR/proc
-
-        sed -i 's/^#\(ttyS0.*\)/\1/' $ROOTFS_DIR/etc/inittab
-        sed -i 's/^root:.*/root:::0:::::/' $ROOTFS_DIR/etc/shadow
-        echo "" > $ROOTFS_DIR/etc/motd
 
         sudo ln -sf sbin/init $ROOTFS_DIR/init
         cp $ROOTFS_DIR/boot/vmlinuz-* $BUILD_DIR/vmlinuz
