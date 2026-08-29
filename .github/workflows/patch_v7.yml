@@ -379,11 +379,14 @@ jobs:
       run: wget -nv -O $BUILD_DIR/refind-bin-0.14.2.zip https://downloads.sourceforge.net/project/refind/0.14.2/refind-bin-0.14.2.zip
 
 
-    - name: Build alpine livecd
+    - name: Build Alpine LiveCD
       if: matrix.arch == 'x86'
       run: |
         set -e
-        ROOTFS_URL="https://dl-cdn.alpinelinux.org/alpine/v3.24/releases/x86_64/alpine-minirootfs-3.24.1-x86_64.tar.gz"
+        YAML_URL="https://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/x86_64/latest-releases.yaml"
+        ROOTFS_FILE=$(curl -sL "$YAML_URL" | grep -m1 'alpine-minirootfs.*\.tar\.gz' | awk '{print $NF}' | tr -d '"')
+        echo "$ROOTFS_FILE"
+        ROOTFS_URL="https://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/x86_64/$ROOTFS_FILE"
         ROOTFS_DIR=$BUILD_DIR/rootfs
         mkdir -p $ROOTFS_DIR
         curl -# -L "$ROOTFS_URL" | tar -xzC $ROOTFS_DIR
@@ -392,28 +395,50 @@ jobs:
         sudo mount -vt sysfs sysfs $ROOTFS_DIR/sys
         sudo mount -vt proc proc $ROOTFS_DIR/proc
 
-        echo "nameserver 1.1.1.1" > $ROOTFS_DIR/etc/resolv.conf
-        cat << EOF > $ROOTFS_DIR/etc/network/interfaces
+        cat << 'EOF' > $ROOTFS_DIR/etc/network/interfaces
         auto lo
         iface lo inet loopback
         auto eth0
         iface eth0 inet dhcp
         EOF
 
-        sed -i 's/^#\(ttyS0.*\)/\1/' $ROOTFS_DIR/etc/inittab
-        sed -i 's/^root:.*/root:::0:::::/' $ROOTFS_DIR/etc/shadow
-        echo "" > $ROOTFS_DIR/etc/motd
+        cat << 'EOF' > $ROOTFS_DIR/etc/inittab
+        # /etc/inittab
+        ::sysinit:/sbin/openrc sysinit
+        ::sysinit:/sbin/openrc boot
+        ::wait:/sbin/openrc default
+        tty1::respawn:/sbin/agetty --autologin root tty1 linux
+        tty2::respawn:/sbin/agetty --autologin root tty2 linux
+        tty3::respawn:/sbin/agetty --autologin root tty3 linux
+        tty4::respawn:/sbin/agetty --autologin root tty4 linux
+        ttyS0::respawn:/sbin/agetty --autologin root ttyS0 linux
+        ::ctrlaltdel:/sbin/reboot
+        ::shutdown:/sbin/openrc shutdown
+        EOF
 
-        cat << EOF | sudo chroot $ROOTFS_DIR /usr/bin/env PATH=/usr/bin:/bin:/usr/sbin:/sbin /bin/sh
+        cp ./install_routeros.sh $ROOTFS_DIR/root/install_routeros.sh
+        chmod +x $ROOTFS_DIR/root/install_routeros.sh
+        cat << 'EOF' > $ROOTFS_DIR/root/.zprofile
+        if [ -x /root/install_routeros.sh ]; then
+            /root/install_routeros.sh
+        fi
+        EOF
+        cp ./npkextract/npkextract $ROOTFS_DIR/bin/npkextract
+        chmod +x $ROOTFS_DIR/bin/npkextract
+
+        cat << 'EOF' | sudo chroot $ROOTFS_DIR /usr/bin/env PATH=/usr/bin:/bin:/usr/sbin:/sbin /bin/sh
         set -e
+        echo "nameserver 1.1.1.1" > /etc/resolv.conf
         apk update
         apk upgrade
-        apk add alpine-base openrc busybox-mdev-openrc dhcpcd curl iputils ca-certificates linux-lts linux-firmware-none
+        apk add alpine-base openrc busybox-mdev-openrc dhcpcd curl ca-certificates linux-lts linux-firmware-none
+        apk add bash dialog sgdisk dosfstools e2fsprogs util-linux parted
+        apk add zsh zsh-syntax-highlighting zsh-autosuggestions coreutils ncurses iproute2
+
         rc-update add devfs sysinit
         rc-update add dmesg sysinit
         rc-update add mdev sysinit
         rc-update add hwdrivers sysinit
-
         rc-update add acpid boot
         rc-update add hostname boot
         rc-update add hwclock boot
@@ -421,24 +446,32 @@ jobs:
         rc-update add sysctl boot
         rc-update add bootmisc boot
         rc-update add dhcpcd boot
-
         rc-update add networking default
+
+        curl -o /root/.zshrc https://gitlab.com/kalilinux/packages/kali-defaults/-/raw/kali/master/etc/skel/.zshrc
+        sed -i 's/^PROMPT_ALTERNATIVE=twoline/PROMPT_ALTERNATIVE=oneline/' /root/.zshrc
+        sed -i 's/^NEWLINE_BEFORE_PROMPT=yes/NEWLINE_BEFORE_PROMPT=no/' /root/.zshrc
+        sed -i 's|/usr/share/zsh-syntax-highlighting|/usr/share/zsh/plugins/zsh-syntax-highlighting|g' /root/.zshrc
+        sed -i 's|/usr/share/zsh-autosuggestions|/usr/share/zsh/plugins/zsh-autosuggestions|g' /root/.zshrc
+
+        sed -i 's|^root:\(.*\):/bin/sh$|root:\1:/bin/zsh|' /etc/passwd
+        sed -i 's/^root:.*/root:::0:::::/' /etc/shadow
+        echo "" > /etc/motd
+        sed -i 's/^features=.*/features="ata base cdrom network scsi nvme ext2 usb virtio"/' /etc/mkinitfs/mkinitfs.conf
+        KERNEL_VERSION=$(ls /lib/modules | head -1)
+        mkinitfs -k -t /tmp "$KERNEL_VERSION"
+        rm -rf /lib/modules
+        mv /tmp/lib/modules /lib
+        depmod "$KERNEL_VERSION"
+        ln -sf sbin/init /init
 
         apk cache clean
         EOF
-
-        sudo sed -i 's/^features=.*/features="ata base cdrom network scsi nvme ext4 usb virtio"/' $ROOTFS_DIR/etc/mkinitfs/mkinitfs.conf
-        KERNEL_VERSION=$(ls $ROOTFS_DIR/lib/modules | head -1)
-        sudo chroot $ROOTFS_DIR /usr/bin/env PATH=/usr/bin:/bin:/usr/sbin:/sbin /sbin/mkinitfs -k -t /tmp "$KERNEL_VERSION"
-        sudo rm -rf $ROOTFS_DIR/lib/modules
-        sudo mv $ROOTFS_DIR/tmp/lib/modules $ROOTFS_DIR/lib
-        sudo chroot $ROOTFS_DIR /sbin/depmod -b / "$KERNEL_VERSION"
 
         sudo umount -v $ROOTFS_DIR/dev
         sudo umount -v $ROOTFS_DIR/sys
         sudo umount -v $ROOTFS_DIR/proc
 
-        sudo ln -sf sbin/init $ROOTFS_DIR/init
         cp $ROOTFS_DIR/boot/vmlinuz-* $BUILD_DIR/vmlinuz
 
         sudo rm -rf $ROOTFS_DIR/tmp/*
