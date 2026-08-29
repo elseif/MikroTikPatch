@@ -463,9 +463,8 @@ jobs:
             sudo mount -o loop $BUILD_DIR/new_iso/efiboot.img $BUILD_DIR/efiboot
             python3 patch.py kernel $BUILD_DIR/efiboot/linux.x86_64 -O $BUILD_DIR/new_iso/isolinux/linux
             sudo umount $BUILD_DIR/efiboot
-            #修改为16M,减小镜像体积
             rm -f $BUILD_DIR/new_iso/efiboot.img
-            truncate --size 16M $BUILD_DIR/new_iso/efiboot.img
+            truncate --size 32M $BUILD_DIR/new_iso/efiboot.img
             mkfs.vfat -n "Boot" $BUILD_DIR/new_iso/efiboot.img
             sudo mount -o loop,uid=$(id -u),gid=$(id -g) $BUILD_DIR/new_iso/efiboot.img $BUILD_DIR/efiboot
             mkdir -p $BUILD_DIR/efiboot/EFI/BOOT
