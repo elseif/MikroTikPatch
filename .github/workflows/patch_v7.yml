@@ -438,7 +438,7 @@ jobs:
         sudo rm -rf $ROOTFS_DIR/boot/*
         sudo rm -rf $ROOTFS_DIR/var/cache/*
 
-        (cd "$ROOTFS_DIR" && find . -print0 | sudo cpio --owner=root:root --null -H newc -o 2>/dev/null | xz -C crc32 --x86 -v9eT0 > $BUILD_DIR/initramfs.xz)
+        (cd "$ROOTFS_DIR" && sudo find . -print0 | sudo cpio --owner=root:root --null -H newc -o 2>/dev/null | xz -C crc32 --x86 -v9eT0 > $BUILD_DIR/initramfs.xz)
         sudo rm -rf $ROOTFS_DIR
 
         size=$(stat -c %s "$BUILD_DIR/vmlinuz")
