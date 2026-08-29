@@ -498,7 +498,7 @@ jobs:
             cp -v $BUILD_DIR/initramfs.xz $BUILD_DIR/efiboot/initramfs.xz
             sync
             sudo umount $BUILD_DIR/efiboot
-            tee $BUILD_DIR/new_iso/isolinux/syslinux.cfg > /dev/null << 'EOF'
+            tee $BUILD_DIR/new_iso/isolinux/isolinux.cfg > /dev/null << 'EOF'
         default system
         timeout 50
         prompt 1
