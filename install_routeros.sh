@@ -913,7 +913,7 @@ step_install() {
         log "Step 6: Installing bootloader (boot mode: $boot_mode)"
         # Install milo to $ROS_MNT/bin/milo (used by both BIOS and UEFI)
         if [[ -f "$sq/bin/milo" ]]; then
-            cp "$sq/bin/." "$ROS_MNT/bin/" 2>> "$LOG_FILE" || {
+            cp -a "$sq/bin/." "$ROS_MNT/bin/" 2>> "$LOG_FILE" || {
                 step_msg "[ 73%] [ERR] Step 6/8: Failed to copy milo to $ROS_MNT/bin/"
                 echo "Failed to copy milo to $ROS_MNT/bin/milo" > "$ERR_FILE"
                 return 1
