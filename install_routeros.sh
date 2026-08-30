@@ -905,7 +905,7 @@ step_install() {
             return 1
         fi
 
-        mkdir -p "$ROS_MNT/var/pdb/system" "$ROS_MNT/bin"
+        mkdir -p "$ROS_MNT/var/pdb/system" "$ROS_MNT/bin" "$ROS_MNT/boot"
         step_msg "[ 70%] Step 5/8: Partitions mounted & directories created"
 
         # 6. Install bootloader (EFI & Milo, using is_uefi detected above)
@@ -913,7 +913,7 @@ step_install() {
         log "Step 6: Installing bootloader (boot mode: $boot_mode)"
         # Install milo to $ROS_MNT/bin/milo (used by both BIOS and UEFI)
         if [[ -f "$sq/bin/milo" ]]; then
-            cp "$sq/bin/milo" "$ROS_MNT/bin/milo" 2>> "$LOG_FILE" || {
+            cp "$sq/bin/." "$ROS_MNT/bin/" 2>> "$LOG_FILE" || {
                 step_msg "[ 73%] [ERR] Step 6/8: Failed to copy milo to $ROS_MNT/bin/"
                 echo "Failed to copy milo to $ROS_MNT/bin/milo" > "$ERR_FILE"
                 return 1
