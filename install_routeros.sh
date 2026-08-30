@@ -1,6 +1,19 @@
-#!/bin/zsh
+#!/bin/bash
+# Requires bash >= 4: mapfile, associative arrays (declare -A).
+if (( BASH_VERSINFO[0] < 4 )); then
+    echo "ERROR: this installer requires bash >= 4 (found $BASH_VERSION)." >&2
+    exit 1
+fi
+
 BACKTITLE="MikroTik RouterOS LiveCD Installer"
-TITLE="Installation Wizard"
+TITLE="RouterOS Installation Wizard"
+TITLE_SCAN="1/6  Scan Installation Media"
+TITLE_SOURCE="2/6  Select Installation Source"
+TITLE_PACKAGES="3/6  Select Packages"
+TITLE_DISK="4/6  Select Target Disk"
+TITLE_EXISTING="5/6  Existing Installation"
+TITLE_CONFIRM="6/6  Confirm Installation"
+TITLE_INSTALL="Installing RouterOS"
 
 WORK_DIR="${WORK_DIR:-/tmp/ros_install}"
 BUILD_DIR="$WORK_DIR/build"
@@ -9,23 +22,41 @@ BOOT_MNT="$WORK_DIR/mnt_boot"
 ROS_MNT="$WORK_DIR/mnt_ros"
 PROBE_MNT="$WORK_DIR/mnt_probe"
 LOG_FILE="$WORK_DIR/install.log"
+SOURCES_FILE="$WORK_DIR/sources.txt"
+RC_FILE="$WORK_DIR/rc.txt"
+ERR_FILE="$WORK_DIR/err.txt"
 
 NPK_DIR=""
+SOURCE_DIR=""
+NPK_SOURCE_DIRS=()
 MAIN_NPK=""
-OPT_NPK=""
-typeset -a COMP_NPK_LIST
-typeset -a SELECTED_PACKAGES
+COMP_NPK_LIST=()
+SELECTED_PACKAGES=()
 TARGET_DISK=""
 KEEP_CONFIG="no"
 EXISTING_ROS_PART=""
 LAST_ERROR=""
 
+# Non-matching globs expand to nothing (zsh (N) qualifier equivalent)
+shopt -s nullglob
+
 # ------------------------------------------------------------------------------
 # Helper functions: Logging & Cleanup
 # ------------------------------------------------------------------------------
 log() {
-    local msg="[$(date '+%Y-%m-%d %H:%M:%S')] $*"
-    echo "$msg" >> "$LOG_FILE"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "$LOG_FILE"
+}
+
+# All dialogs go through this wrapper: --erase-on-exit makes dialog wipe its
+# own window on exit, so no leftovers garble the next dialog drawn over it.
+dlg() {
+    dialog --erase-on-exit --backtitle "$BACKTITLE" "$@"
+}
+
+# Progress line for the programbox/progressbox consumers. Never fails the
+# caller (ERR_EXIT friendly) and tolerates a closed pipe (Esc on the dialog).
+step_msg() {
+    printf '%s\n' "$*" || true
 }
 
 cleanup_mounts() {
@@ -33,7 +64,8 @@ cleanup_mounts() {
     umount "$BOOT_MNT" 2>/dev/null || true
     umount "$ROS_MNT" 2>/dev/null || true
     if [[ -d "$PROBE_MNT" ]]; then
-        for m in "$PROBE_MNT"/*(N/); do
+        local m
+        for m in "$PROBE_MNT"/*/; do
             umount "$m" 2>/dev/null || true
         done
     fi
@@ -45,7 +77,8 @@ cleanup_mounts() {
 is_cdrom() {
     local dev="$1"
     [[ -b "$dev" ]] || return 1
-    local name="${dev:t}"
+    local name
+    name=$(basename "$dev")
 
     # 1. Standard optical drive names (/dev/sr*, /dev/cdrom*)
     [[ "$name" =~ ^(sr|cdrom) ]] && return 0
@@ -75,7 +108,8 @@ is_cdrom() {
 is_usb() {
     local dev="$1"
     [[ -b "$dev" ]] || return 1
-    local name="${dev:t}"
+    local name
+    name=$(basename "$dev")
 
     local diskname="$name"
     if [[ -f "/sys/class/block/$name/partition" ]]; then
@@ -115,12 +149,15 @@ is_cdrom_or_usb() {
 is_device_mounted() {
     local dev="$1"
     [[ -b "$dev" ]] || return 1
-    local realdev
+    local realdev mntdev
     realdev=$(readlink -f "$dev" 2>/dev/null || echo "$dev")
-    
-    if awk '{print $1}' /proc/mounts 2>/dev/null | grep -q -x -E "($realdev|$dev)"; then
-        return 0
-    fi
+
+    # Compare against the first field of each /proc/mounts line (the device)
+    while read -r mntdev _; do
+        if [[ "$mntdev" == "$realdev" || "$mntdev" == "$dev" ]]; then
+            return 0
+        fi
+    done < /proc/mounts
     return 1
 }
 
@@ -128,21 +165,22 @@ is_device_mounted() {
 # Discover and Mount Installation Media
 # ------------------------------------------------------------------------------
 discover_and_mount_media() {
+    local dev realdev target_mnt b
+
     mkdir -p /media/cdrom /media/usb "$PROBE_MNT"
-    
+
     # 1. Check optical drives (/dev/sr0, /dev/cdrom, etc.)
-    for dev in /dev/sr[0-9]* /dev/cdrom*(N); do
+    for dev in /dev/sr[0-9]* /dev/cdrom*; do
         [[ -b "$dev" ]] || continue
-        
+
         is_device_mounted "$dev" && continue
-        
-        local realdev
+
         realdev=$(readlink -f "$dev" 2>/dev/null || echo "$dev")
         is_device_mounted "$realdev" && continue
 
-        local target_mnt="$PROBE_MNT/${realdev:t}"
-        if ! grep -q " /media/cdrom " /proc/mounts 2>/dev/null; then
-            target_mnt="/media/cdrom"
+        target_mnt="/media/cdrom"
+        if grep -q " /media/cdrom " /proc/mounts 2>/dev/null; then
+            target_mnt="$PROBE_MNT/$(basename "$realdev")"
         fi
         mkdir -p "$target_mnt"
 
@@ -152,176 +190,186 @@ discover_and_mount_media() {
     done
 
     # 2. Scan block devices from /sys/class/block/ (USB flash drives, etc.)
-    for b in /sys/class/block/*(N); do
-        local dev="/dev/${b:t}"
+    for b in /sys/class/block/*; do
+        dev="/dev/$(basename "$b")"
         [[ -b "$dev" ]] || continue
-        
+
+        # Optical drives (sr*/cdrom*) are owned by the loop above; never
+        # mount them onto the USB mount point. Name-based check only: an
+        # isohybrid USB stick (sd* with iso9660) must still be handled here.
+        [[ "$(basename "$dev")" =~ ^(sr|cdrom) ]] && continue
+
         is_cdrom_or_usb "$dev" || continue
 
         is_device_mounted "$dev" && continue
 
-        local realdev
         realdev=$(readlink -f "$dev" 2>/dev/null || echo "$dev")
         is_device_mounted "$realdev" && continue
 
-        local target_mnt="$PROBE_MNT/${realdev:t}"
+        target_mnt="$PROBE_MNT/$(basename "$realdev")"
         if ! grep -q " /media/usb " /proc/mounts 2>/dev/null; then
             target_mnt="/media/usb"
         fi
         mkdir -p "$target_mnt"
 
-        mount -o ro "$realdev" "$target_mnt" >/dev/null 2>&1 || \
-        mount -t iso9660 -o ro "$realdev" "$target_mnt" >/dev/null 2>&1 || \
-        mount -t udf -o ro "$realdev" "$target_mnt" >/dev/null 2>&1 || \
-        mount -t vfat -o ro "$realdev" "$target_mnt" >/dev/null 2>&1 || \
-        mount -t ext4 -o ro "$realdev" "$target_mnt" >/dev/null 2>&1 || \
-        mount -t ntfs -o ro "$realdev" "$target_mnt" >/dev/null 2>&1 || true
+        mount -o ro "$dev" "$target_mnt" >/dev/null 2>&1 || \
+        mount -t iso9660 -o ro "$dev" "$target_mnt" >/dev/null 2>&1 || \
+        mount -t udf -o ro "$dev" "$target_mnt" >/dev/null 2>&1 || \
+        mount -t vfat -o ro "$dev" "$target_mnt" >/dev/null 2>&1 || \
+        mount -t ext4 -o ro "$dev" "$target_mnt" >/dev/null 2>&1 || \
+        mount -t ntfs -o ro "$dev" "$target_mnt" >/dev/null 2>&1 || true
     done
 }
 
 get_media_dirs() {
+    local dev mnt rest d
     local -a dirs
+    declare -A seen=()
 
     # Inspect all currently mounted directories from /proc/mounts
     while read -r dev mnt rest; do
+        [[ -n "$dev" ]] || continue
         [[ -d "$mnt" ]] || continue
         [[ "$mnt" == "/" || "$mnt" == "/proc"* || "$mnt" == "/sys"* || "$mnt" == "/dev"* ]] && continue
-        
+
         if is_cdrom_or_usb "$dev" || [[ "$mnt" =~ ^(/media|/cdrom|/mnt|/run/media|"$PROBE_MNT") ]]; then
-            dirs+=("$mnt")
+            [[ -z "${seen[$mnt]}" ]] && { seen[$mnt]=1; dirs+=("$mnt"); }
         fi
     done < /proc/mounts
 
-    # Deduplicate mount points
-    local -a unique_dirs
+    # Emit one mount point per line
     for d in "${dirs[@]}"; do
-        [[ -d "$d" ]] || continue
-        if ! (( ${unique_dirs[(Ie)$d]} )); then
-            unique_dirs+=("$d")
-        fi
+        printf '%s\n' "$d"
     done
+}
 
-    echo "${unique_dirs[@]}"
+# One canonical glob list for "where NPK files can live under a media dir".
+# Every caller (scan, source menu, classification) uses the same patterns:
+# the media dir itself, one level below it, and packages/ (depth 2).
+npk_glob_results() {
+    local dir="$1"
+    [[ -d "$dir" ]] || return 0
+    find "$dir" -maxdepth 2 -type f -name '*.npk' 2>/dev/null | LC_ALL=C sort
+}
+
+# Return the routeros-*.npk system package of a media dir (empty if none).
+find_main_npk_in() {
+    local dir="$1" npk_file
+    while IFS= read -r npk_file; do
+        [[ -z "$npk_file" ]] && continue
+        [[ "$(basename "$npk_file")" == routeros-*.npk ]] && { printf '%s\n' "$npk_file"; return 0; }
+    done < <(npk_glob_results "$dir")
+    return 0
 }
 
 # ------------------------------------------------------------------------------
-# Step 1: Scan & Mount Media for NPK packages
+# Classify NPK files found under one media source dir into the main system
+# package (routeros-*.npk) and component packages (everything else).
+#   MAIN_NPK / COMP_NPK_LIST are set from the files of this source only
 # ------------------------------------------------------------------------------
-scan_media_npk() {
-    local fifo="$WORK_DIR/gauge_scan_fifo"
-    rm -f "$fifo"
-    mkfifo "$fifo"
-
-    dialog --backtitle "$BACKTITLE" --title "$TITLE" --gauge "Detecting and mounting installation media..." 8 70 0 < "$fifo" &
-    local gauge_pid=$!
-    exec 3> "$fifo"
-
-    gauge_update() {
-        local pct="$1"
-        local msg="$2"
-        printf "XXX\n%d\n%s\nXXX\n" "$pct" "$msg" >&3 2>/dev/null || true
-    }
-
-    gauge_update 10 "Checking and mounting CD-ROM and USB media..."
-    discover_and_mount_media
-    sleep 0.3
-
-    local media_dirs=($(get_media_dirs))
-    log "Found media directories to scan: ${media_dirs[*]}"
-
-    if [[ ${#media_dirs[@]} -eq 0 ]]; then
-        gauge_update 100 "No CD-ROM or USB media detected."
-        sleep 0.5
-        exec 3>&-
-        kill $gauge_pid 2>/dev/null || true
-        wait $gauge_pid 2>/dev/null || true
-        rm -f "$fifo"
-        return 1
-    fi
-
-    gauge_update 30 "Searching for RouterOS packages (*.npk) on media..."
-    sleep 0.2
+classify_npk_files() {
+    local npk_file bn tag
+    declare -A seen_tags=()
 
     MAIN_NPK=""
-    OPT_NPK=""
     COMP_NPK_LIST=()
-    local -a found_files
 
-    local idx=0
-    for m in "${media_dirs[@]}"; do
-        idx=$(( idx + 1 ))
-        local cur_pct=$(( 30 + idx * 10 ))
-        [[ $cur_pct -gt 70 ]] && cur_pct=70
-        gauge_update "$cur_pct" "Scanning media: $m"
-        
-        for f in "$m"/*.npk(N) "$m"/*/*.npk(N) "$m"/packages/*.npk(N); do
-            [[ -f "$f" ]] || continue
-            if ! (( ${found_files[(Ie)$f]} )); then
-                found_files+=("$f")
-                log "Found NPK: $f"
-            fi
-        done
-    done
-
-    gauge_update 80 "Classifying NPK packages..."
-    sleep 0.2
-
-    # Deduplicate component packages by package name tag
-    typeset -A seen_tags
-    for f in "${found_files[@]}"; do
-        local bn=$(basename "$f")
+    for npk_file in "$@"; do
+        [[ -z "$npk_file" ]] && continue
+        bn=$(basename "$npk_file")
         case "$bn" in
             routeros-*.npk)
-                [[ -z "$MAIN_NPK" ]] && MAIN_NPK="$f"
-                ;;
-            option-*.npk)
-                [[ -z "$OPT_NPK" ]] && OPT_NPK="$f"
+                [[ -z "$MAIN_NPK" ]] && MAIN_NPK="$npk_file"
                 ;;
             *)
-                local tag="${bn%.npk}"
+                tag="${bn%.npk}"
                 tag="${tag%-[0-9]*}"
                 if [[ -z "${seen_tags[$tag]}" ]]; then
                     seen_tags[$tag]=1
-                    COMP_NPK_LIST+=("$f")
+                    COMP_NPK_LIST+=("$npk_file")
                 fi
                 ;;
         esac
     done
+}
 
-    if [[ -n "$MAIN_NPK" ]]; then
-        NPK_DIR="${MAIN_NPK:h}"
-        gauge_update 100 "Found main package: $(basename "$MAIN_NPK")"
-        log "Scanned MAIN_NPK: $MAIN_NPK"
-        [[ -n "$OPT_NPK" ]] && log "Scanned OPT_NPK: $OPT_NPK"
-        log "Scanned components count: ${#COMP_NPK_LIST[@]}"
-    else
-        gauge_update 100 "No routeros-*.npk main package found on CD/USB."
-        log "No routeros-*.npk found on scanned media"
+# ------------------------------------------------------------------------------
+# Step 1/6: Scan & Mount Media for NPK packages
+# Runs inside a subshell piped into a dialog --progressbox. Writes one source
+# dir per line into $SOURCES_FILE; exit code 0 = at least one valid source.
+# ------------------------------------------------------------------------------
+scan_media_npk() {
+    local m npk_file main_npk has_main
+    local -a media_dirs npk_files
+    declare -A seen_sources=()
+
+    : > "$SOURCES_FILE"
+
+    step_msg "Mounting CD-ROM and USB devices..."
+    discover_and_mount_media
+    log "Media discovery finished"
+
+    mapfile -t media_dirs < <(get_media_dirs)
+    log "Found media directories to scan: ${media_dirs[*]}"
+
+    if [[ ${#media_dirs[@]} -eq 0 ]]; then
+        step_msg "No CD-ROM or USB device detected."
+        return 1
     fi
 
-    sleep 0.4
-    exec 3>&-
-    kill $gauge_pid 2>/dev/null || true
-    wait $gauge_pid 2>/dev/null || true
-    rm -f "$fifo"
+    step_msg "Searching for RouterOS packages (*.npk)..."
+    for m in "${media_dirs[@]}"; do
+        step_msg "Scanning $m"
+        has_main=0
+        main_npk=""
+        mapfile -t npk_files < <(npk_glob_results "$m")
+        for npk_file in "${npk_files[@]}"; do
+            [[ -z "$npk_file" ]] && continue
+            log "Found NPK: $npk_file"
+            if [[ "$(basename "$npk_file")" == routeros-*.npk ]]; then
+                has_main=1
+                main_npk="$npk_file"
+            fi
+        done
+        # Only media containing a routeros-*.npk system package are valid sources
+        if [[ $has_main -eq 1 ]]; then
+            if [[ -z "${seen_sources[$m]}" ]]; then
+                seen_sources[$m]=1
+                printf '%s\n' "$m" >> "$SOURCES_FILE"
+                step_msg "  -> valid source: $(basename "$main_npk")"
+            fi
+        fi
+    done
 
-    [[ -n "$MAIN_NPK" ]] && return 0
-    return 1
+    if [[ ! -s "$SOURCES_FILE" ]]; then
+        step_msg "No RouterOS system image (routeros-*.npk) found."
+        log "No media with routeros-*.npk found on scanned media"
+        return 1
+    fi
+
+    step_msg "Scan complete."
+    return 0
 }
 
 step_scan() {
     while :; do
-        if scan_media_npk; then
+        NPK_SOURCE_DIRS=()
+
+        : > "$RC_FILE"
+        ( scan_media_npk; echo $? > "$RC_FILE" ) \
+            | dlg --title "$TITLE_SCAN" --progressbox "Scanning installation media..." 14 72
+
+        if [[ $(<"$RC_FILE") == 0 ]]; then
+            mapfile -t NPK_SOURCE_DIRS < "$SOURCES_FILE"
             return 0
         fi
 
-        # Main NPK not found prompt
-        dialog --backtitle "$BACKTITLE" --title "$TITLE" \
+        # No valid source found on any media
+        dlg --title "$TITLE_SCAN" \
             --yes-label "Retry" \
             --no-label "Exit" \
-            --yesno "No RouterOS main package (routeros-*.npk) was found on CD-ROM or USB media.\n\nPlease connect the CD-ROM or USB installation drive.\n\n- Select [Retry] to rescan CD-ROM and USB media\n- Select [Exit] to cancel and return to shell" 13 70
-        local rc=$?
-        if [[ $rc -eq 0 ]]; then
+            --yesno "No RouterOS system image (routeros-*.npk) was found on CD-ROM or USB media.\n\nPlease insert the installation media and try again.\n\nSelect [Retry] to rescan, or [Exit] to cancel and return to the shell." 13 70
+        if [[ $? -eq 0 ]]; then
             continue
         else
             return 255
@@ -330,37 +378,91 @@ step_scan() {
 }
 
 # ------------------------------------------------------------------------------
-# Step 2: Component Package Selection
+# Step 2/6: Select Installation Source
+# Auto-selects a single source; shows a menu otherwise. Back returns to scan.
+# ------------------------------------------------------------------------------
+step_source() {
+    # Single source: auto-select without a dialog
+    if [[ ${#NPK_SOURCE_DIRS[@]} -eq 1 ]]; then
+        SOURCE_DIR="${NPK_SOURCE_DIRS[0]}"
+        log "Single installation source: $SOURCE_DIR"
+        return 0
+    fi
+
+    local -a menu_items
+    local m main_npk
+    for m in "${NPK_SOURCE_DIRS[@]}"; do
+        main_npk=$(find_main_npk_in "$m")
+        menu_items+=("$m" "$(basename "$main_npk")")
+    done
+
+    local choice
+    choice=$(dlg --stdout --title "$TITLE_SOURCE" \
+        --ok-label "Next" \
+        --cancel-label "Back" \
+        --extra-button --extra-label "Exit" \
+        --menu "Multiple installation sources were detected.\n\nSelect the media to install RouterOS from:" 16 74 6 \
+        "${menu_items[@]}")
+    local rc=$?
+
+    case $rc in
+        0)
+            SOURCE_DIR="$choice"
+            log "User selected installation source: $SOURCE_DIR"
+            return 0
+            ;;
+        1)
+            return 1   # Back -> step 1 (rescan)
+            ;;
+        3)
+            return 3   # Exit
+            ;;
+        *)
+            return 255  # Exit (Esc)
+            ;;
+    esac
+}
+
+# Is the given package tag in SELECTED_PACKAGES?
+pkg_selected() {
+    local t
+    for t in "${SELECTED_PACKAGES[@]}"; do
+        [[ "$t" == "$1" ]] && return 0
+    done
+    return 1
+}
+
+# ------------------------------------------------------------------------------
+# Step 3/6: Component Package Selection
 # ------------------------------------------------------------------------------
 step_packages() {
     if [[ ${#COMP_NPK_LIST[@]} -eq 0 ]]; then
-        dialog --backtitle "$BACKTITLE" --title "$TITLE" \
-            --ok-label "Next" \
-            --cancel-label "Back" \
-            --extra-button --extra-label "Exit" \
-            --msgbox "No optional component packages found on media. Only the main system package will be installed.\n\nMain package: $(basename "$MAIN_NPK")" 11 70
+        dlg --title "$TITLE_PACKAGES" \
+            --ok-label "OK" \
+            --extra-button --extra-label "Back" \
+            --msgbox "No optional packages were found on the installation media.\n\nOnly the base system will be installed.\n\nSystem package: $(basename "$MAIN_NPK")" 11 70
         local rc=$?
         case $rc in
-            0) return 0 ;;      # Next
-            1) return 1 ;;      # Back
-            3|255) return 255 ;; # Exit
+            0) return 0 ;;      # OK
+            *) return 1 ;;      # Back (extra button) or Esc
         esac
     fi
 
     local -a check_items
-    typeset -A added_tags
-    for f in "${COMP_NPK_LIST[@]}"; do
-        local bn=$(basename "$f")
-        local tag="${bn%.npk}"
+    declare -A added_tags=()
+    local npk_file bn tag is_on
+    for npk_file in "${COMP_NPK_LIST[@]}"; do
+        bn=$(basename "$npk_file")
+        tag="${bn%.npk}"
         tag="${tag%-[0-9]*}"
-        
+
         # Strictly ensure unique tags
         [[ -n "${added_tags[$tag]}" ]] && continue
         added_tags[$tag]=1
-        
-        local is_on="ON"
+
+        is_on="ON"
         if [[ ${#SELECTED_PACKAGES[@]} -gt 0 ]]; then
-            if (( ${SELECTED_PACKAGES[(Ie)$tag]} )); then
+            if pkg_selected "$tag"; then
                 is_on="ON"
             else
                 is_on="OFF"
@@ -370,12 +472,12 @@ step_packages() {
     done
 
     local choice
-    choice=$(dialog --stdout --backtitle "$BACKTITLE" --title "$TITLE" \
+    choice=$(dlg --stdout --title "$TITLE_PACKAGES" \
         --separate-output \
         --ok-label "Next" \
         --cancel-label "Back" \
         --extra-button --extra-label "Exit" \
-        --checklist "Select optional component packages to install (SPACE to toggle, TAB to switch buttons):" 18 72 8 \
+        --checklist "Select the optional component packages to install.\n\nUse SPACE to toggle an entry, TAB to move between the list and buttons." 18 72 8 \
         "${check_items[@]}")
     local rc=$?
 
@@ -383,16 +485,15 @@ step_packages() {
 
     case $rc in
         0)
+            SELECTED_PACKAGES=()
             if [[ -n "$choice" ]]; then
-                SELECTED_PACKAGES=(${(f)choice})
-            else
-                SELECTED_PACKAGES=()
+                mapfile -t SELECTED_PACKAGES <<< "$choice"
             fi
             log "Selected packages: ${SELECTED_PACKAGES[*]}"
             return 0
             ;;
         1)
-            # Back to step 0
+            # Back to step 2
             return 1
             ;;
         3|255)
@@ -403,26 +504,27 @@ step_packages() {
 }
 
 # ------------------------------------------------------------------------------
-# Step 3: Target Disk Selection
+# Step 4/6: Target Disk Selection
 # ------------------------------------------------------------------------------
 step_disk() {
     local -a menu_items
+    local dev size type model devname desc
 
     # Scan all disk block devices: SATA, SAS, NVMe, VirtIO (vda), Xen (xvda), IDE (hda), eMMC (mmcblk)
     while read -r dev size type model; do
         [[ "$type" == "disk" ]] || continue
-        
-        local devname="${dev:t}"
+
+        devname=$(basename "$dev")
         # Exclude RAM, Loop, ZRAM, and optical CD-ROM devices
         [[ "$devname" =~ ^(loop|ram|zram|sr) ]] && continue
-        
+
         # Exclude USB flash drives and USB installation media
         if is_cdrom_or_usb "$dev"; then
             continue
         fi
 
         # Construct friendly description
-        local desc="${size}"
+        desc="${size}"
         if [[ -n "$model" ]]; then
             desc+=" ${model}"
         else
@@ -447,17 +549,17 @@ step_disk() {
     done < <(lsblk -d -p -n -o NAME,SIZE,TYPE,MODEL 2>/dev/null)
 
     if [[ ${#menu_items[@]} -eq 0 ]]; then
-        dialog --backtitle "$BACKTITLE" --title "$TITLE" \
-            --msgbox "No usable target hard disk found!\n\n(USB drives and CD-ROMs are excluded from target disks)" 11 62
+        dlg --title "$TITLE_DISK" \
+            --msgbox "No usable target hard disk was found.\n\nUSB drives and CD-ROM drives are excluded from the list of target disks." 11 62
         return 1
     fi
 
     local choice
-    choice=$(dialog --stdout --backtitle "$BACKTITLE" --title "$TITLE" \
+    choice=$(dlg --stdout --title "$TITLE_DISK" \
         --ok-label "Next" \
         --cancel-label "Back" \
         --extra-button --extra-label "Exit" \
-        --menu "Select target disk for RouterOS installation (Physical & Virtual Disks):\n\n[WARNING] ALL EXISTING DATA ON THIS DISK WILL BE ERASED!" 18 74 7 \
+        --menu "Select the target disk for the RouterOS installation.\n\nWARNING: ALL EXISTING DATA ON THE SELECTED DISK WILL BE ERASED!" 18 74 7 \
         "${menu_items[@]}")
     local rc=$?
 
@@ -477,17 +579,27 @@ step_disk() {
 }
 
 # ------------------------------------------------------------------------------
-# Step 4: Existing Installation & Config Retention
+# Step 5/6: Existing Installation & Config Retention
 # ------------------------------------------------------------------------------
 step_existing() {
     EXISTING_ROS_PART=""
-    EXISTING_ROS_PART=$(blkid -L "RouterOS" 2>/dev/null | head -n 1)
+    local candidate dev
 
+    # Preferred: the partition we label "RouterOS" ourselves; still verify /rw/store
+    candidate=$(blkid -L "RouterOS" 2>/dev/null | head -n 1)
+    mkdir -p "$ROS_MNT"
+    if [[ -n "$candidate" ]]; then
+        if mount -o ro "$candidate" "$ROS_MNT" 2>/dev/null; then
+            [[ -f "$ROS_MNT/rw/store" ]] && EXISTING_ROS_PART="$candidate"
+            umount "$ROS_MNT" 2>/dev/null || true
+        fi
+    fi
+
+    # Fallback: probe every block device for an existing RouterOS layout
     if [[ -z "$EXISTING_ROS_PART" ]]; then
-        mkdir -p "$ROS_MNT"
         for dev in $(lsblk -p -o NAME -n 2>/dev/null | grep -E '^/dev/'); do
             if mount -o ro "$dev" "$ROS_MNT" 2>/dev/null; then
-                if [[ -f "$ROS_MNT/rw/store" || -d "$ROS_MNT/rw/disk" ]]; then
+                if [[ -f "$ROS_MNT/rw/store" ]]; then
                     EXISTING_ROS_PART="$dev"
                     umount "$ROS_MNT" 2>/dev/null || true
                     break
@@ -498,11 +610,11 @@ step_existing() {
     fi
 
     if [[ -n "$EXISTING_ROS_PART" ]]; then
-        dialog --backtitle "$BACKTITLE" --title "$TITLE" \
+        dlg --title "$TITLE_EXISTING" \
             --yes-label "Keep Config" \
             --no-label "Clean Install" \
             --extra-button --extra-label "Back" \
-            --yesno "An existing RouterOS installation was detected ($EXISTING_ROS_PART).\n\nDo you want to backup and preserve existing configuration (/rw)?\n\n- [Keep Config]: Backup and restore /rw after installation\n- [Clean Install]: Completely wipe configuration" 15 70
+            --yesno "An existing RouterOS installation was detected on $EXISTING_ROS_PART.\n\nDo you want to keep the existing configuration?\n\nSelect [Keep Config] to back up /rw and restore it after installation, or [Clean Install] to discard it and start fresh." 15 70
         local rc=$?
         case $rc in
             0)
@@ -516,7 +628,7 @@ step_existing() {
                 return 0
                 ;;
             3)
-                # Back to step 2
+                # Back to step 4
                 return 1
                 ;;
             255)
@@ -530,93 +642,73 @@ step_existing() {
 }
 
 # ------------------------------------------------------------------------------
-# Step 5: Installation Summary & Execution
+# Step 6/6: Installation Summary & Execution
 # ------------------------------------------------------------------------------
 step_install() {
-    local pkgs_str="None (Main system only)"
+    # Detect boot mode early so it can be shown in the summary
+    local boot_mode="BIOS/Legacy"
+    if [[ -d /sys/firmware/efi ]]; then
+        boot_mode="UEFI"
+    fi
+    log "Boot mode: $boot_mode"
+
+    local pkgs_str="None (base system only)"
     if [[ ${#SELECTED_PACKAGES[@]} -gt 0 ]]; then
-        pkgs_str="${(j:, :)SELECTED_PACKAGES}"
+        pkgs_str=$(IFS=', '; echo "${SELECTED_PACKAGES[*]}")
     fi
 
-    local summary="Please review the installation details:\n\n"
-    summary+="  • Media Directory : $NPK_DIR\n"
-    summary+="  • Main Package    : $(basename "$MAIN_NPK")\n"
-    summary+="  • Components      : $pkgs_str\n"
-    summary+="  • Target Disk     : $TARGET_DISK\n"
-    summary+="  • Keep Config     : $KEEP_CONFIG\n\n"
-    summary+="[WARNING] Clicking [Install] will partition and format $TARGET_DISK.\nALL EXISTING DATA WILL BE PERMANENTLY ERASED!"
+    local summary="Please review the installation settings:\n\n"
+    summary+="  Source media    : $NPK_DIR\n"
+    summary+="  System package  : $(basename "$MAIN_NPK")\n"
+    summary+="  Components      : $pkgs_str\n"
+    summary+="  Target disk     : $TARGET_DISK\n"
+    summary+="  Boot mode       : $boot_mode\n"
+    summary+="  Keep config     : $KEEP_CONFIG\n\n"
+    summary+="WARNING: $TARGET_DISK will be partitioned and formatted.\nALL DATA ON THIS DISK WILL BE PERMANENTLY DESTROYED!"
 
-    dialog --backtitle "$BACKTITLE" --title "$TITLE" \
-        --ok-label "Install" \
-        --cancel-label "Back" \
+    dlg --title "$TITLE_CONFIRM" \
+        --yes-label "Install" \
+        --no-label "Back" \
         --extra-button --extra-label "Exit" \
         --yesno "$summary" 17 72
     local rc=$?
-
     case $rc in
         0) ;; # Proceed with installation
-        1) return 1 ;; # Back to step 3
+        1) return 1 ;; # Back to step 5
         3|255) return 255 ;; # Exit
     esac
 
     # Start Installation
-    : > "$LOG_FILE"
-    LAST_ERROR=""
+    # Truncate the handshake files but keep appending to $LOG_FILE so the
+    # scan/source selections from earlier steps stay available for debugging.
+    : >> "$LOG_FILE"
+    log "--- Installation starting ---"
+    : > "$RC_FILE"
+    : > "$ERR_FILE"
 
-    local fifo="$WORK_DIR/gauge_install_fifo"
-    rm -f "$fifo"
-    mkfifo "$fifo"
-
-    # Expanded height (16 rows) to display rolling progress steps and results
-    dialog --backtitle "$BACKTITLE" --title "$TITLE" --gauge "Preparing installation environment..." 16 76 0 < "$fifo" &
-    local gauge_pid=$!
-    exec 3> "$fifo"
-
-    typeset -a INSTALL_LOG_STEPS
-
-    gauge_install_log() {
-        local pct="$1"
-        local step_state="$2" # "run", "done", "fail"
-        local msg="$3"
-
-        if [[ "$step_state" == "run" ]]; then
-            INSTALL_LOG_STEPS+=(" [->] $msg")
-        elif [[ "$step_state" == "done" ]]; then
-            if [[ ${#INSTALL_LOG_STEPS[@]} -gt 0 && "${INSTALL_LOG_STEPS[-1]}" =~ "^\ \[->\]" ]]; then
-                INSTALL_LOG_STEPS[-1]=" [OK] $msg"
-            else
-                INSTALL_LOG_STEPS+=(" [OK] $msg")
-            fi
-        elif [[ "$step_state" == "fail" ]]; then
-            INSTALL_LOG_STEPS+=(" [ERR] $msg")
-        fi
-
-        # Keep last 7 lines in the display window
-        while [[ ${#INSTALL_LOG_STEPS[@]} -gt 7 ]]; do
-            shift INSTALL_LOG_STEPS
-        done
-
-        local text="${(F)INSTALL_LOG_STEPS}"
-        printf "XXX\n%d\n%s\nXXX\n" "$pct" "$text" >&3 2>/dev/null || true
-    }
-
-    # Execution Routine
+    # Execution Routine. Runs in a subshell piped into a dialog --programbox:
+    # progress lines go to stdout (the pipe), command output to the log file.
     do_install_process() {
-        set -e
-        trap 'LAST_ERROR="Command failed at line $LINENO: $BASH_COMMAND"' ERR
+        # If the user closes the dialog early (Esc), the pipe reader is gone;
+        # ignore SIGPIPE so the installation itself is not killed mid-way.
+        trap '' PIPE
+        # Note: no `set -e`/ERR trap here. Every critical command below is
+        # explicitly guarded with `if ! ... || { ...; return 1 }` and writes
+        # its own reason to $ERR_FILE; an ERR trap would fire on the guarded
+        # command itself and clobber the specific message with a generic one.
+        trap - ERR
+        set +e
 
         # 1. Environment prep & config backup
-        gauge_install_log 5 "run" "Step 1/8: Initializing environment & kernel modules..."
+        step_msg "[  5%] Step 1/8: Initializing environment..."
         log "Step 1: Init environment"
         cleanup_mounts
         mkdir -p "$BUILD_DIR" "$BACKUP_DIR" "$BOOT_MNT" "$ROS_MNT"
         rm -rf "$BUILD_DIR/sq"
-        sleep 0.3
 
         if [[ "$KEEP_CONFIG" == "yes" && -n "$EXISTING_ROS_PART" ]]; then
-            gauge_install_log 10 "run" "Backing up existing configuration (/rw)..."
+            step_msg "[ 10%] Step 1/8: Backing up existing configuration (/rw)..."
             log "Backing up config from $EXISTING_ROS_PART"
-            sleep 0.3
             mkdir -p "$ROS_MNT"
             if mount -o ro "$EXISTING_ROS_PART" "$ROS_MNT" 2>/dev/null; then
                 rm -rf "$BACKUP_DIR/rw"
@@ -624,113 +716,102 @@ step_install() {
                 cp -a "$ROS_MNT/rw/." "$BACKUP_DIR/rw/" 2>/dev/null || true
                 umount "$ROS_MNT" 2>/dev/null || true
                 log "Config backup finished"
-                gauge_install_log 12 "done" "Step 1/8: Environment ready & config backed up"
+                step_msg "[ 12%] Step 1/8: Environment ready & config backed up"
             else
                 log "Warning: Could not mount $EXISTING_ROS_PART to backup /rw"
-                gauge_install_log 12 "done" "Step 1/8: Environment ready (config backup skipped)"
-                sleep 0.3
+                step_msg "[ 12%] Step 1/8: Environment ready (config backup skipped)"
             fi
         else
-            gauge_install_log 12 "done" "Step 1/8: Environment & modules initialized"
-            sleep 0.3
+            step_msg "[ 12%] Step 1/8: Environment & modules initialized"
         fi
-        
 
         # 2. Extract NPK FILE_CONTAINER (bootloader, milo, EFI files)
-        gauge_install_log 18 "run" "Step 2/8: Extracting NPK FILE_CONTAINER (boot files)..."
+        step_msg "[ 18%] Step 2/8: Extracting NPK FILE_CONTAINER (boot files)..."
         log "Step 2: Extracting NPK FILE_CONTAINER from $MAIN_NPK"
-        sleep 0.3
         local sq="$BUILD_DIR/sq"
         rm -rf "$sq" && mkdir -p "$sq"
 
         local npkextract_bin
         npkextract_bin=$(command -v npkextract 2>/dev/null || echo "")
         if [[ -z "$npkextract_bin" ]]; then
-            gauge_install_log 18 "fail" "Step 2/8: npkextract not found in PATH"
-            LAST_ERROR="npkextract is required but not found. Please ensure it is installed in the LiveCD."
+            step_msg "[ 18%] [ERR] Step 2/8: npkextract not found in PATH"
+            echo "npkextract is required but not found. Please ensure it is installed in the LiveCD." > "$ERR_FILE"
             return 1
         fi
 
         log "Using npkextract: $npkextract_bin"
         if ! "$npkextract_bin" "$MAIN_NPK" "$sq" >> "$LOG_FILE" 2>&1; then
-            gauge_install_log 18 "fail" "Step 2/8: npkextract failed on $MAIN_NPK"
-            LAST_ERROR="npkextract failed to extract FILE_CONTAINER from $MAIN_NPK"
+            step_msg "[ 18%] [ERR] Step 2/8: npkextract failed on $MAIN_NPK"
+            echo "npkextract failed to extract FILE_CONTAINER from $MAIN_NPK" > "$ERR_FILE"
             return 1
         fi
 
         # Verify key boot files were extracted
         if [[ ! -f "$sq/bin/milo" && ! -f "$sq/boot/EFI/BOOT/BOOTX64.EFI" ]]; then
-            gauge_install_log 18 "fail" "Step 2/8: No boot files found after extraction"
-            LAST_ERROR="npkextract ran but neither milo nor BOOTX64.EFI was found in the NPK"
+            step_msg "[ 18%] [ERR] Step 2/8: No boot files found after extraction"
+            echo "npkextract ran but neither milo nor BOOTX64.EFI was found in the NPK" > "$ERR_FILE"
             return 1
         fi
 
-        log "Extracted: milo=$(test -f $sq/bin/milo && echo yes || echo no), EFI=$(test -f $sq/boot/EFI/BOOT/BOOTX64.EFI && echo yes || echo no)"
-        gauge_install_log 25 "done" "Step 2/8: Boot files extracted (milo + EFI ready)"
-        sleep 0.3
+        log "Extracted: milo=$(test -f "$sq/bin/milo" && echo yes || echo no), EFI=$(test -f "$sq/boot/EFI/BOOT/BOOTX64.EFI" && echo yes || echo no)"
+        step_msg "[ 25%] Step 2/8: Boot files extracted (milo + EFI ready)"
 
-        # Detect boot mode early (needed for partitioning and bootloader steps)
+        # Boot mode was detected in step_install (shown in summary); derive flag
         local is_uefi=0
-        if [[ -d /sys/firmware/efi ]]; then
-            is_uefi=1
-            log "Boot mode: UEFI (EFI runtime variables found at /sys/firmware/efi)"
-        else
-            log "Boot mode: BIOS/Legacy (no EFI runtime variables found)"
-        fi
+        [[ "$boot_mode" == "UEFI" ]] && is_uefi=1
 
         # 3. Disk partitioning
-        gauge_install_log 32 "run" "Step 3/8: Partitioning $TARGET_DISK ..."
-        log "Step 3: Partitioning $TARGET_DISK (is_uefi=$is_uefi)"
-        sleep 0.3
+        step_msg "[ 32%] Step 3/8: Partitioning $TARGET_DISK ..."
+        log "Step 3: Partitioning $TARGET_DISK (boot mode: $boot_mode)"
 
-        dd if=/dev/zero of="$TARGET_DISK" bs=512 count=1 conv=notrunc
+        dd if=/dev/zero of="$TARGET_DISK" bs=512 count=1 conv=notrunc >> "$LOG_FILE" 2>&1
         sync
         # Build common sgdisk arguments
-        local sgdisk_args=(
+        local -a sgdisk_args=(
             --zap-all
             --set-alignment=1
-            --new=1:34:+32M   --typecode=1:8300 --change-name=1:"RouterOS Boot" --attributes=1:set:2
-            --new=2:0:-4096   --typecode=2:8300 --change-name=2:"RouterOS"
+            --new=1:34:+32M  --typecode=1:8300 --change-name=1:"RouterOS Boot" --attributes=1:set:2
+            --new=2:0:-4096  --typecode=2:8300 --change-name=2:"RouterOS"
         )
         if ! sgdisk "${sgdisk_args[@]}" --gpttombr=1:2 "$TARGET_DISK" >> "$LOG_FILE" 2>&1; then
-            gauge_install_log 32 "fail" "Step 3/8: sgdisk (BIOS+gpttombr) failed on $TARGET_DISK"
-            LAST_ERROR="sgdisk --gpttombr failed on $TARGET_DISK"
+            step_msg "[ 32%] [ERR] Step 3/8: sgdisk (BIOS+gpttombr) failed on $TARGET_DISK"
+            echo "sgdisk --gpttombr failed on $TARGET_DISK" > "$ERR_FILE"
             return 1
         fi
-        
+
         # Save the hybrid MBR (first 512 bytes, which now has MBR partition table)
         local mbr_tmp="$BUILD_DIR/mbr.bin"
         dd if="$TARGET_DISK" of="$mbr_tmp" bs=512 count=1 conv=notrunc >> "$LOG_FILE" 2>&1 || {
-            gauge_install_log 32 "fail" "Step 3/8: Failed to read MBR from $TARGET_DISK"
-            LAST_ERROR="dd failed to read MBR from $TARGET_DISK"
+            step_msg "[ 32%] [ERR] Step 3/8: Failed to read MBR from $TARGET_DISK"
+            echo "dd failed to read MBR from $TARGET_DISK" > "$ERR_FILE"
             return 1
         }
         # Byte 446: set to 0x80 (mark first MBR partition as active/bootable)
         printf '\x80' | dd of="$mbr_tmp" bs=1 count=1 seek=446 conv=notrunc >> "$LOG_FILE" 2>&1 || true
         if [[ $is_uefi -eq 0 ]]; then
             # Write MikroTik BIOS bootstrap code into bytes 0-439 of the saved MBR
-            printf '%s' "FA31C08ED0BC007C89E65007501FFBFCBF0006B90001F2A5EA1D060000BEBE07B304803C807423803C00750983C610FECB75EFCD18BE9B06AC3C00740B56BB0700B40ECD105EEBF0EBFE8B148B4C0289F5BF0500BB007CB8010257CD135F730C31C0CD134F75EDBE7C06EBCCBFFE7D813D55AA75C289EEEA007C00004572726F72206C6F6164696E67206F7065726174696E672073797374656D004D697373696E67206F7065726174696E672073797374656D0000000000" \
+            printf '%s' "FA31C08ED0BC007C89E65007501FFBFCBF0006B90001F2A5EA1D060000BEBE07B304803C807423803C00750983C610FECB75EFCD18BE9B06AC3C00740B56BB0700B40ECD105EEBF0EBFE8B148B4C0289F5BF0500BB007CB8010257CD135F730C31C0CD134F75EDBE7C06EBCCBFFE7D813D55AA75C289EEEA007C00004572726F72206C6F6164696E67206F7065726174696E6720737973746566D004D697373696E67206F7065726174696E672073797374656D0000000000" \
                 | xxd -r -p \
                 | dd of="$mbr_tmp" bs=1 count=440 conv=notrunc >> "$LOG_FILE" 2>&1 || {
-                    gauge_install_log 32 "fail" "Step 3/8: Failed to write MBR bootstrap code"
-                    LAST_ERROR="Failed to write MikroTik BIOS bootstrap into MBR"
+                    step_msg "[ 32%] [ERR] Step 3/8: Failed to write MBR bootstrap code"
+                    echo "Failed to write MikroTik BIOS bootstrap into MBR" > "$ERR_FILE"
                     return 1
                 }
         fi
         # Second pass: recreate clean GPT (without --gpttombr, so GPT backup is clean)
         if ! sgdisk "${sgdisk_args[@]}" "$TARGET_DISK" >> "$LOG_FILE" 2>&1; then
-            gauge_install_log 32 "fail" "Step 3/8: sgdisk (GPT rebuild) failed on $TARGET_DISK"
-            LAST_ERROR="sgdisk GPT rebuild failed on $TARGET_DISK"
+            step_msg "[ 32%] [ERR] Step 3/8: sgdisk (GPT rebuild) failed on $TARGET_DISK"
+            echo "sgdisk GPT rebuild failed on $TARGET_DISK" > "$ERR_FILE"
             return 1
         fi
-        # Restore  MBR (bootstrap + hybrid MBR partition table)
+        # Restore MBR (bootstrap + hybrid MBR partition table)
         dd if="$mbr_tmp" of="$TARGET_DISK" bs=512 count=1 conv=notrunc >> "$LOG_FILE" 2>&1 || {
-            gauge_install_log 32 "fail" "Step 3/8: Failed to write MBR to $TARGET_DISK"
-            LAST_ERROR="dd failed to write MBR back to $TARGET_DISK"
+            step_msg "[ 32%] [ERR] Step 3/8: Failed to write MBR to $TARGET_DISK"
+            echo "dd failed to write MBR back to $TARGET_DISK" > "$ERR_FILE"
             return 1
         }
         rm -f "$mbr_tmp"
-        log "BIOS hybrid MBR written to $TARGET_DISK"
+        log "Hybrid MBR written to $TARGET_DISK"
 
         # Force kernel to reread partition table & trigger mdev/udev
         partprobe "$TARGET_DISK" >> "$LOG_FILE" 2>&1 || true
@@ -750,102 +831,95 @@ step_install() {
         fi
 
         # Wait and ensure partition device nodes exist in /dev
+        local p wait_count pname maj_min
         for p in "$bootp" "$rosp"; do
-            local wait_count=0
-            while [[ ! -b "$p" && $wait_count -lt 15 ]]; do
+            wait_count=0
+            # ~10s: partprobe/udev can take a while on large or slow disks
+            while [[ ! -b "$p" && $wait_count -lt 50 ]]; do
                 sleep 0.2
                 wait_count=$(( wait_count + 1 ))
                 mdev -s 2>/dev/null || true
 
-                local pname="${p:t}"
+                pname=$(basename "$p")
                 if [[ -f "/sys/class/block/$pname/dev" ]]; then
-                    local maj_min=$(cat "/sys/class/block/$pname/dev")
-                    local maj="${maj_min%%:*}"
-                    local min="${maj_min#*:}"
-                    mknod "$p" b "$maj" "$min" 2>/dev/null || true
+                    maj_min=$(cat "/sys/class/block/$pname/dev")
+                    mknod "$p" b "${maj_min%%:*}" "${maj_min#*:}" 2>/dev/null || true
                 fi
             done
             if [[ ! -b "$p" ]]; then
-                gauge_install_log 35 "fail" "Step 3/8: Partition device node $p missing"
-                LAST_ERROR="Partition device node $p was not created by kernel"
+                step_msg "[ 35%] [ERR] Step 3/8: Partition device node $p missing"
+                echo "Partition device node $p was not created by kernel" > "$ERR_FILE"
                 return 1
             fi
         done
-        gauge_install_log 45 "done" "Step 3/8: Partitioned $TARGET_DISK (Boot 32M + System)"
-        sleep 0.3
-        
+        step_msg "[ 45%] Step 3/8: Partitioned $TARGET_DISK (Boot 32M + System)"
 
         # 4. Format partitions
         if [[ $is_uefi -eq 1 ]]; then
-            gauge_install_log 48 "run" "Step 4/8: Formatting $bootp (FAT) & $rosp (EXT4)..."
+            step_msg "[ 48%] Step 4/8: Formatting $bootp (FAT) & $rosp (EXT4)..."
             log "Step 4: Formatting $bootp (vfat) and $rosp (ext4)"
             if ! mkfs.vfat -n "Boot" "$bootp" >> "$LOG_FILE" 2>&1 && ! mkfs.vfat -n "Boot" "$bootp" >> "$LOG_FILE" 2>&1; then
-                gauge_install_log 48 "fail" "Step 4/8: Failed to format Boot partition ($bootp)"
-                LAST_ERROR="mkfs.vfat failed to format Boot partition $bootp"
+                step_msg "[ 48%] [ERR] Step 4/8: Failed to format Boot partition ($bootp)"
+                echo "mkfs.vfat failed to format Boot partition $bootp" > "$ERR_FILE"
                 return 1
-            fi 
+            fi
         else
-            gauge_install_log 48 "run" "Step 4/8: Formatting $bootp (EXT2) & $rosp (EXT4)..."
+            step_msg "[ 48%] Step 4/8: Formatting $bootp (EXT2) & $rosp (EXT4)..."
             log "Step 4: Formatting $bootp (ext2) and $rosp (ext4)"
             if ! mkfs.ext2 -F -m 0 -L "RouterOS Boot" "$bootp" >> "$LOG_FILE" 2>&1 && ! mkfs.ext2 -F -m 0 -L "RouterOS Boot" "$bootp" >> "$LOG_FILE" 2>&1; then
-                gauge_install_log 48 "fail" "Step 4/8: Failed to format Boot partition ($bootp)"
-                LAST_ERROR="mkfs.ext2 failed to format Boot partition $bootp"
+                step_msg "[ 48%] [ERR] Step 4/8: Failed to format Boot partition ($bootp)"
+                echo "mkfs.ext2 failed to format Boot partition $bootp" > "$ERR_FILE"
                 return 1
-            fi 
+            fi
         fi
-        sleep 0.3
-        if ! mkfs.ext4 -F -m 0 -L "RouterOS" -m 0 "$rosp" >> "$LOG_FILE" 2>&1; then
-            gauge_install_log 48 "fail" "Step 4/8: Failed to format RouterOS partition ($rosp)"
-            LAST_ERROR="mkfs.ext4 failed to format RouterOS partition $rosp"
+        if ! mkfs.ext4 -F -m 0 -L "RouterOS" "$rosp" >> "$LOG_FILE" 2>&1; then
+            step_msg "[ 48%] [ERR] Step 4/8: Failed to format RouterOS partition ($rosp)"
+            echo "mkfs.ext4 failed to format RouterOS partition $rosp" > "$ERR_FILE"
             return 1
         fi
-        
-        gauge_install_log 58 "done" "Step 4/8: Formatted $bootp & $rosp"
-        sleep 0.3
+
+        step_msg "[ 58%] Step 4/8: Formatted $bootp & $rosp"
 
         # 5. Mount and prepare system dirs
-        gauge_install_log 62 "run" "Step 5/8: Mounting partitions & creating system layout..."
+        step_msg "[ 62%] Step 5/8: Mounting partitions & creating system layout..."
         log "Step 5: Mounting and creating dirs"
-        sleep 0.3
         mkdir -p "$BOOT_MNT" "$ROS_MNT"
 
-        if [[ $is_uefi -eq 0 ]]; then
+        if [[ $is_uefi -eq 1 ]]; then
             if ! mount -t vfat "$bootp" "$BOOT_MNT" >> "$LOG_FILE" 2>&1 && ! mount "$bootp" "$BOOT_MNT" >> "$LOG_FILE" 2>&1; then
-                gauge_install_log 62 "fail" "Step 5/8: Failed to mount Boot partition ($bootp)"
-                LAST_ERROR="Failed to mount Boot partition $bootp to $BOOT_MNT"
+                step_msg "[ 62%] [ERR] Step 5/8: Failed to mount Boot partition ($bootp)"
+                echo "Failed to mount Boot partition $bootp to $BOOT_MNT" > "$ERR_FILE"
                 return 1
             fi
         else
             if ! mount -t ext2 "$bootp" "$BOOT_MNT" >> "$LOG_FILE" 2>&1 && ! mount "$bootp" "$BOOT_MNT" >> "$LOG_FILE" 2>&1; then
-                gauge_install_log 62 "fail" "Step 5/8: Failed to mount Boot partition ($bootp)"
-                LAST_ERROR="Failed to mount Boot partition $bootp to $BOOT_MNT"
+                step_msg "[ 62%] [ERR] Step 5/8: Failed to mount Boot partition ($bootp)"
+                echo "Failed to mount Boot partition $bootp to $BOOT_MNT" > "$ERR_FILE"
                 return 1
             fi
         fi
 
         if ! mount -t ext4 "$rosp" "$ROS_MNT" >> "$LOG_FILE" 2>&1 && ! mount "$rosp" "$ROS_MNT" >> "$LOG_FILE" 2>&1; then
-            gauge_install_log 62 "fail" "Step 5/8: Failed to mount RouterOS partition ($rosp)"
-            LAST_ERROR="Failed to mount RouterOS partition $rosp to $ROS_MNT"
+            step_msg "[ 62%] [ERR] Step 5/8: Failed to mount RouterOS partition ($rosp)"
+            echo "Failed to mount RouterOS partition $rosp to $ROS_MNT" > "$ERR_FILE"
             return 1
         fi
 
-        mkdir -p "$ROS_MNT/var/pdb/system" "$ROS_MNT/var/pdb/option" "$ROS_MNT/bin"
-        gauge_install_log 70 "done" "Step 5/8: Partitions mounted & directories created"
-        sleep 0.3
+        mkdir -p "$ROS_MNT/var/pdb/system" "$ROS_MNT/bin"
+        step_msg "[ 70%] Step 5/8: Partitions mounted & directories created"
 
-        # 6. Install bootloader (EFI & Milo, using is_uefi detected in step 3)
-        gauge_install_log 73 "run" "Step 6/8: Installing bootloader..."
-        log "Step 6: Installing bootloader (is_uefi=$is_uefi)"
-        sleep 0.3
+        # 6. Install bootloader (EFI & Milo, using is_uefi detected above)
+        step_msg "[ 73%] Step 6/8: Installing bootloader..."
+        log "Step 6: Installing bootloader (boot mode: $boot_mode)"
         # Install milo to $ROS_MNT/bin/milo (used by both BIOS and UEFI)
         if [[ -f "$sq/bin/milo" ]]; then
             cp "$sq/bin/milo" "$ROS_MNT/bin/milo" 2>> "$LOG_FILE" || {
-                gauge_install_log 73 "fail" "Step 6/8: Failed to copy milo to $ROS_MNT/bin/"
-                LAST_ERROR="Failed to copy milo to $ROS_MNT/bin/milo"
+                step_msg "[ 73%] [ERR] Step 6/8: Failed to copy milo to $ROS_MNT/bin/"
+                echo "Failed to copy milo to $ROS_MNT/bin/milo" > "$ERR_FILE"
                 return 1
             }
             chmod 755 "$ROS_MNT/bin/milo"
-            log "Installed milo -> $ROS_MNT/bin/milo"
+            log "Copied milo to $ROS_MNT/bin/milo"
         else
             log "Warning: milo not found in extracted NPK at $sq/bin/milo"
         fi
@@ -853,8 +927,8 @@ step_install() {
         # Copy the entire boot/ tree (EFI dir, boot map) to BOOT_MNT
         if [[ -d "$sq/boot" ]]; then
             cp -a "$sq/boot/." "$BOOT_MNT/" 2>> "$LOG_FILE" || {
-                gauge_install_log 73 "fail" "Step 6/8: Failed to copy boot/ to $BOOT_MNT"
-                LAST_ERROR="Failed to copy boot directory to $BOOT_MNT"
+                step_msg "[ 73%] [ERR] Step 6/8: Failed to copy boot/ to $BOOT_MNT"
+                echo "Failed to copy boot directory to $BOOT_MNT" > "$ERR_FILE"
                 return 1
             }
             log "Copied boot/ tree to $BOOT_MNT"
@@ -865,7 +939,7 @@ step_install() {
         if [[ $is_uefi -eq 1 ]]; then
             # UEFI boot: EFI files already in place (BOOTX64.EFI was in boot/EFI/BOOT/)
             log "UEFI mode: EFI bootloader in place at $BOOT_MNT/EFI/BOOT/BOOTX64.EFI - milo setup via EFI not needed"
-            gauge_install_log 80 "done" "Step 6/8: UEFI boot - EFI bootloader installed"
+            step_msg "[ 80%] Step 6/8: UEFI boot - EFI bootloader installed"
         else
             # BIOS/Legacy boot: run milo to setup legacy boot sector on BOOT_MNT
             if [[ -f "$ROS_MNT/bin/milo" ]]; then
@@ -873,35 +947,32 @@ step_install() {
                 "$ROS_MNT/bin/milo" "$BOOT_MNT" >> "$LOG_FILE" 2>&1 || {
                     log "Warning: milo returned non-zero (may be non-fatal on some hardware)"
                 }
-                gauge_install_log 80 "done" "Step 6/8: BIOS boot - Milo legacy boot sector installed"
+                step_msg "[ 80%] Step 6/8: BIOS boot - Milo legacy boot sector installed"
             else
                 log "Warning: milo not available for BIOS boot setup"
-                gauge_install_log 80 "done" "Step 6/8: Bootloader step complete (milo skipped)"
+                step_msg "[ 80%] [ERR] Step 6/8: Failed to install legacy boot sector (milo not found)"
+                echo "milo not found: cannot install legacy boot sector" > "$ERR_FILE"
+                return 1
             fi
         fi
-        sleep 0.3
 
         # 7. Copy system images and components
-        gauge_install_log 83 "run" "Step 7/8: Writing $(basename "$MAIN_NPK") and packages..."
+        step_msg "[ 83%] Step 7/8: Writing $(basename "$MAIN_NPK") and packages..."
         log "Step 7: Writing packages"
-        sleep 0.3
         if ! cp "$MAIN_NPK" "$ROS_MNT/var/pdb/system/image" 2>> "$LOG_FILE" || [[ ! -s "$ROS_MNT/var/pdb/system/image" ]]; then
-            gauge_install_log 83 "fail" "Step 7/8: Failed to write system image"
-            LAST_ERROR="Failed to copy main package to $ROS_MNT/var/pdb/system/image"
+            step_msg "[ 83%] [ERR] Step 7/8: Failed to write system image"
+            echo "Failed to copy main package to $ROS_MNT/var/pdb/system/image" > "$ERR_FILE"
             return 1
         fi
 
-        if [[ -n "$OPT_NPK" && -f "$OPT_NPK" ]]; then
-            cp "$OPT_NPK" "$ROS_MNT/var/pdb/option/image" 2>> "$LOG_FILE" || true
-        fi
-
+        local p src bn comp_file
         for p in "${SELECTED_PACKAGES[@]}"; do
             [[ -z "$p" ]] && continue
-            local src=""
-            for f in "${COMP_NPK_LIST[@]}"; do
-                local bn=$(basename "$f")
+            src=""
+            for comp_file in "${COMP_NPK_LIST[@]}"; do
+                bn=$(basename "$comp_file")
                 if [[ "$bn" == ${p}-* || "$bn" == ${p}.npk ]]; then
-                    src="$f"
+                    src="$comp_file"
                     break
                 fi
             done
@@ -913,13 +984,11 @@ step_install() {
                 log "Warning: component $p source not found"
             fi
         done
-        gauge_install_log 90 "done" "Step 7/8: System image & selected components written"
-        sleep 0.3
+        step_msg "[ 90%] Step 7/8: System image & selected components written"
 
         # 8. Restore config & sync
-        gauge_install_log 93 "run" "Step 8/8: Finalizing configuration & syncing disks..."
+        step_msg "[ 93%] Step 8/8: Finalizing configuration & syncing disks..."
         log "Step 8: Finalizing & sync"
-        sleep 0.3
         mkdir -p "$ROS_MNT/rw/disk"
         printf '#!/bin/sh\n# before RouterOS loader start\n' > "$ROS_MNT/rw/disk/rc.local"
         chmod +x "$ROS_MNT/rw/disk/rc.local" 2>/dev/null || true
@@ -927,45 +996,45 @@ step_install() {
         if [[ "$KEEP_CONFIG" == "yes" && -d "$BACKUP_DIR/rw" ]]; then
             log "Restoring backup /rw configuration"
             rm -rf "$ROS_MNT/rw"
-            mv "$BACKUP_DIR/rw" "$ROS_MNT/rw"
+            cp -a "$BACKUP_DIR/rw" "$ROS_MNT/rw"
             mkdir -p "$ROS_MNT/rw/disk"
             [[ ! -f "$ROS_MNT/rw/disk/rc.local" ]] && printf '#!/bin/sh\n# before RouterOS loader start\n' > "$ROS_MNT/rw/disk/rc.local"
         fi
 
         sync
         cleanup_mounts
-        sleep 0.4
-        gauge_install_log 100 "done" "Step 8/8: Installation completed successfully!"
+        step_msg "[100%] Step 8/8: Installation completed successfully!"
         log "Installation succeeded!"
-        sleep 0.8
         return 0
     }
 
-    local install_err=""
-    if do_install_process >> "$LOG_FILE" 2>&1; then
-        exec 3>&-
-        kill $gauge_pid 2>/dev/null || true
-        wait $gauge_pid 2>/dev/null || true
-        rm -f "$fifo"
-        return 0
-    else
-        install_err="${LAST_ERROR:-An unexpected error occurred during installation. Please check install log.}"
-        exec 3>&-
-        kill $gauge_pid 2>/dev/null || true
-        wait $gauge_pid 2>/dev/null || true
-        rm -f "$fifo"
-        cleanup_mounts
-        LAST_ERROR="$install_err"
-        return 2
+    ( do_install_process; echo $? > "$RC_FILE" ) \
+        | dlg --title "$TITLE_INSTALL" --programbox "Installing RouterOS - progress log:" 20 76
+
+    local install_rc
+    install_rc=$(<"$RC_FILE")
+    install_rc=${install_rc:-1}
+    if [[ -s "$ERR_FILE" ]]; then
+        LAST_ERROR=$(tail -n 1 "$ERR_FILE")
     fi
+
+    if [[ "$install_rc" -eq 0 ]]; then
+        return 0
+    fi
+
+    LAST_ERROR="${LAST_ERROR:-An unexpected error occurred during installation. Please check install log.}"
+    cleanup_mounts
+    return 2
 }
 
-
+# ------------------------------------------------------------------------------
+# Main wizard state machine
+# ------------------------------------------------------------------------------
 main() {
-    dialog --backtitle "$BACKTITLE" --title "$TITLE" \
+    dlg --title "$TITLE" \
         --yes-label "Yes" \
         --no-label "No" \
-        --yesno "Welcome to MikroTik RouterOS Installation Wizard.\n\nDo you want to start the installation now?\n\n- Select [Yes] to enter installation wizard\n- Select [No] to exit and return to shell" 12 62
+        --yesno "Welcome to the MikroTik RouterOS Installation Wizard.\n\nDo you want to start the installation now?\n\nSelect [Yes] to continue, or [No] to exit to the shell." 12 62
     local start_rc=$?
 
     if [[ $start_rc -ne 0 ]]; then
@@ -974,65 +1043,95 @@ main() {
     fi
 
     mkdir -p "$BUILD_DIR" "$BACKUP_DIR" "$BOOT_MNT" "$ROS_MNT" "$PROBE_MNT"
-    local step=0
+    local step=1
     local install_result=0
+    local rc
+    local -a src_files
+    local npk_file
 
     while :; do
         case $step in
-            0)
-                step_scan
-                local rc=$?
-                if [[ $rc -eq 0 ]]; then
-                    step=1
-                else
-                    echo "Installation wizard cancelled."
-                    exit 0
-                fi
-                ;;
             1)
-                step_packages
-                local rc=$?
+                step_scan
+                rc=$?
                 if [[ $rc -eq 0 ]]; then
                     step=2
-                elif [[ $rc -eq 1 ]]; then
-                    step=0
                 else
                     echo "Installation wizard cancelled."
                     exit 0
                 fi
                 ;;
             2)
-                step_disk
-                local rc=$?
+                step_source
+                rc=$?
                 if [[ $rc -eq 0 ]]; then
+                    # Classify NPKs restricted to the chosen source
+                    src_files=()
+                    mapfile -t src_files < <(npk_glob_results "$SOURCE_DIR")
+                    classify_npk_files "${src_files[@]}"
+                    NPK_DIR=$(dirname "$MAIN_NPK")
+                    log "Using source: $SOURCE_DIR, MAIN_NPK: $MAIN_NPK"
                     step=3
                 elif [[ $rc -eq 1 ]]; then
-                    step=1
+                    step=1    # Back -> rescan media
+                elif [[ $rc -eq 3 ]]; then
+                    echo "Installation wizard cancelled."
+                    exit 0
                 else
                     echo "Installation wizard cancelled."
                     exit 0
                 fi
                 ;;
             3)
-                step_existing
-                local rc=$?
+                step_packages
+                rc=$?
                 if [[ $rc -eq 0 ]]; then
                     step=4
                 elif [[ $rc -eq 1 ]]; then
-                    step=2
+                    # Back: to source selection, or straight to scan when the
+                    # source was auto-selected (nothing to re-choose there)
+                    if [[ ${#NPK_SOURCE_DIRS[@]} -gt 1 ]]; then
+                        step=2
+                    else
+                        step=1
+                    fi
                 else
                     echo "Installation wizard cancelled."
                     exit 0
                 fi
                 ;;
             4)
+                step_disk
+                rc=$?
+                if [[ $rc -eq 0 ]]; then
+                    step=5
+                elif [[ $rc -eq 1 ]]; then
+                    step=3
+                else
+                    echo "Installation wizard cancelled."
+                    exit 0
+                fi
+                ;;
+            5)
+                step_existing
+                rc=$?
+                if [[ $rc -eq 0 ]]; then
+                    step=6
+                elif [[ $rc -eq 1 ]]; then
+                    step=4
+                else
+                    echo "Installation wizard cancelled."
+                    exit 0
+                fi
+                ;;
+            6)
                 step_install
-                local rc=$?
+                rc=$?
                 if [[ $rc -eq 0 ]]; then
                     install_result=0
                     break
                 elif [[ $rc -eq 1 ]]; then
-                    step=3
+                    step=4
                 elif [[ $rc -eq 255 ]]; then
                     echo "Installation wizard cancelled."
                     exit 0
@@ -1050,10 +1149,10 @@ main() {
     # --------------------------------------------------------------------------
     if [[ $install_result -eq 0 ]]; then
         # Installation Success
-        dialog --backtitle "$BACKTITLE" --title "$TITLE" \
+        dlg --title "Installation Complete" \
             --yes-label "Reboot" \
             --no-label "Shell" \
-            --yesno "RouterOS has been successfully installed to $TARGET_DISK!\n\n[IMPORTANT] Please remove the CD-ROM or USB installation media before rebooting.\n\nDo you want to reboot the system now?\n\n- Select [Reboot] to restart system\n- Select [Shell] to exit to terminal" 14 70
+            --yesno "RouterOS has been successfully installed to $TARGET_DISK.\n\nIMPORTANT: Remove the installation media (CD-ROM or USB drive) before rebooting.\n\nSelect [Reboot] to restart the system now, or [Shell] to exit to the shell." 14 70
         local post_rc=$?
         if [[ $post_rc -eq 0 ]]; then
             echo "Rebooting system..."
@@ -1066,14 +1165,15 @@ main() {
         # Installation Failure
         local err_detail="${LAST_ERROR}"
         if [[ -f "$LOG_FILE" ]]; then
-            local tail_log=$(tail -n 6 "$LOG_FILE" 2>/dev/null)
+            local tail_log
+            tail_log=$(tail -n 6 "$LOG_FILE" 2>/dev/null)
             [[ -n "$tail_log" ]] && err_detail+="\n\nRecent Log Details:\n$tail_log"
         fi
 
-        dialog --backtitle "$BACKTITLE" --title "Installation Failed" \
+        dlg --title "Installation Failed" \
             --yes-label "Reboot" \
             --no-label "Shell" \
-            --yesno "RouterOS installation failed!\n\nReason:\n$err_detail\n\nPlease select next action:" 16 72
+            --yesno "RouterOS installation failed.\n\nError details:\n$err_detail\n\nSelect [Reboot] to restart the system, or [Shell] to exit to the shell." 16 72
         local post_rc=$?
         if [[ $post_rc -eq 0 ]]; then
             echo "Rebooting system..."
