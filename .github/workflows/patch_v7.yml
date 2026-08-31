@@ -841,7 +841,7 @@ jobs:
             CYL_LOW=$(( CYL & 0xFF ))
             HEX_CHS=$(printf "%02x%02x%02x" $HEAD $(( SEC | (CYL_HIGH << 6) )) $CYL_LOW)
             echo "LBA:$LBA, Cylinder=$CYL, Head=$HEAD, Sector=$SEC (Hex: $HEX_CHS)"
-            echo "$HEX_CHS" | xxd -r -p | dd of=$BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img bs=1 seek=447 conv=notrunc status=none
+            echo "$HEX_CHS" | xxd -r -p | dd of=$BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img bs=1 seek=447 conv=notrunc
             #Active CHR mode
             printf '\x01' | dd of=$BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img bs=1 seek=336 conv=notrunc
             #Active boot
