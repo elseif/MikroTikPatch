@@ -764,54 +764,63 @@ step_install() {
         step_msg "[ 32%] Step 3/8: Partitioning $TARGET_DISK ..."
         log "Step 3: Partitioning $TARGET_DISK (boot mode: $boot_mode)"
 
-        dd if=/dev/zero of="$TARGET_DISK" bs=512 count=1 conv=notrunc >> "$LOG_FILE" 2>&1
-        sync
-        # Build common sgdisk arguments
+        wipefs --all --force "$TARGET_DISK" >> "$LOG_FILE" 2>&1
+        # Build common sgdisk arguments,1MB alignment, 32MB boot partition
         local -a sgdisk_args=(
-            --zap-all
-            --set-alignment=1
-            --new=1:34:+32M  --typecode=1:8300 --change-name=1:"RouterOS Boot" --attributes=1:set:2
-            --new=2:0:-4096  --typecode=2:8300 --change-name=2:"RouterOS"
+            --set-alignment=2048
+            --new=1:0:+32M  --typecode=1:8300 --change-name=1:"RouterOS Boot"
+            --new=2:0:-4096 --typecode=2:8300 --change-name=2:"RouterOS"
+            --hybrid=1:2:EE
         )
-        if ! sgdisk "${sgdisk_args[@]}" --gpttombr=1:2 "$TARGET_DISK" >> "$LOG_FILE" 2>&1; then
+        if ! sgdisk "${sgdisk_args[@]}" "$TARGET_DISK" >> "$LOG_FILE" 2>&1; then
             step_msg "[ 32%] [ERR] Step 3/8: sgdisk (BIOS+gpttombr) failed on $TARGET_DISK"
             echo "sgdisk --gpttombr failed on $TARGET_DISK" > "$ERR_FILE"
             return 1
         fi
 
-        # Save the hybrid MBR (first 512 bytes, which now has MBR partition table)
-        local mbr_tmp="$BUILD_DIR/mbr.bin"
-        dd if="$TARGET_DISK" of="$mbr_tmp" bs=512 count=1 conv=notrunc >> "$LOG_FILE" 2>&1 || {
-            step_msg "[ 32%] [ERR] Step 3/8: Failed to read MBR from $TARGET_DISK"
-            echo "dd failed to read MBR from $TARGET_DISK" > "$ERR_FILE"
+        #Active boot
+        printf '\x80' | dd of="$TARGET_DISK" bs=1 seek=446 conv=notrunc >> "$LOG_FILE" 2>&1 || {
+            step_msg "[ 33%] [ERR] Step 3/8: Failed to Active boot to write MBR to $TARGET_DISK"
+            echo "dd failed to Active boot to write MBR back to $TARGET_DISK" > "$ERR_FILE"
             return 1
         }
-        # Byte 446: set to 0x80 (mark first MBR partition as active/bootable)
-        printf '\x80' | dd of="$mbr_tmp" bs=1 count=1 seek=446 conv=notrunc >> "$LOG_FILE" 2>&1 || true
+        #Must be 0x83, ERROR: could not find disk!
+        printf '\x83' | dd of="$TARGET_DISK" bs=1 seek=450 conv=notrunc >> "$LOG_FILE" 2>&1 || {
+            step_msg "[ 33%] [ERR] Step 3/8: Failed to flag boot to write MBR to $TARGET_DISK"
+            echo "dd failed to flag boot to write MBR back to $TARGET_DISK" > "$ERR_FILE"
+            return 1
+        }
+
+
         if [[ $is_uefi -eq 0 ]]; then
             # Write MikroTik BIOS bootstrap code into bytes 0-439 of the saved MBR
             printf '%s' "FA31C08ED0BC007C89E65007501FFBFCBF0006B90001F2A5EA1D060000BEBE07B304803C807423803C00750983C610FECB75EFCD18BE9B06AC3C00740B56BB0700B40ECD105EEBF0EBFE8B148B4C0289F5BF0500BB007CB8010257CD135F730C31C0CD134F75EDBE7C06EBCCBFFE7D813D55AA75C289EEEA007C00004572726F72206C6F6164696E67206F7065726174696E6720737973746566D004D697373696E67206F7065726174696E672073797374656D0000000000" \
                 | xxd -r -p \
-                | dd of="$mbr_tmp" bs=1 count=440 conv=notrunc >> "$LOG_FILE" 2>&1 || {
-                    step_msg "[ 32%] [ERR] Step 3/8: Failed to write MBR bootstrap code"
+                | dd of="$TARGET_DISK" bs=1 conv=notrunc >> "$LOG_FILE" 2>&1 || {
+                    step_msg "[ 33%] [ERR] Step 3/8: Failed to write MBR bootstrap code"
                     echo "Failed to write MikroTik BIOS bootstrap into MBR" > "$ERR_FILE"
                     return 1
                 }
+            LBA=2048
+            HEAD=$(( (LBA / 63) % 16 ))
+            SEC=$(( (LBA % 63) + 1 ))
+            CYL=$(( (LBA / 63) / 16 ))
+            CYL_HIGH=$(( (CYL >> 8) & 0x03 ))
+            CYL_LOW=$(( CYL & 0xFF ))
+
+            BYTE1=$HEAD
+            BYTE2=$(( SEC + (CYL_HIGH * 64) ))  
+            BYTE3=$CYL_LOW
+
+            printf "$(printf '\\x%02x\\x%02x\\x%02x' $BYTE1 $BYTE2 $BYTE3)" | \
+            dd of="$TARGET_DISK" bs=1 seek=447 count=3 conv=notrunc >> "$LOG_FILE" 2>&1 || {
+                step_msg "[ 33%] [ERR] Step 3/8: Failed to write MBR partition CHS entry"
+                echo "Failed to write MikroTik Start CHS into MBR partition table" > "$ERR_FILE"
+                return 1
+            }
         fi
-        # Second pass: recreate clean GPT (without --gpttombr, so GPT backup is clean)
-        if ! sgdisk "${sgdisk_args[@]}" "$TARGET_DISK" >> "$LOG_FILE" 2>&1; then
-            step_msg "[ 32%] [ERR] Step 3/8: sgdisk (GPT rebuild) failed on $TARGET_DISK"
-            echo "sgdisk GPT rebuild failed on $TARGET_DISK" > "$ERR_FILE"
-            return 1
-        fi
-        # Restore MBR (bootstrap + hybrid MBR partition table)
-        dd if="$mbr_tmp" of="$TARGET_DISK" bs=512 count=1 conv=notrunc >> "$LOG_FILE" 2>&1 || {
-            step_msg "[ 32%] [ERR] Step 3/8: Failed to write MBR to $TARGET_DISK"
-            echo "dd failed to write MBR back to $TARGET_DISK" > "$ERR_FILE"
-            return 1
-        }
-        rm -f "$mbr_tmp"
-        log "Hybrid MBR written to $TARGET_DISK"
+
+        log "MBR written to $TARGET_DISK"
 
         # Force kernel to reread partition table & trigger mdev/udev
         partprobe "$TARGET_DISK" >> "$LOG_FILE" 2>&1 || true
@@ -855,24 +864,24 @@ step_install() {
         step_msg "[ 45%] Step 3/8: Partitioned $TARGET_DISK (Boot 32M + System)"
 
         # 4. Format partitions
-        if [[ $is_uefi -eq 1 ]]; then
-            step_msg "[ 48%] Step 4/8: Formatting $bootp (FAT) & $rosp (EXT4)..."
-            log "Step 4: Formatting $bootp (vfat) and $rosp (ext4)"
-            if ! mkfs.vfat -n "Boot" "$bootp" >> "$LOG_FILE" 2>&1 && ! mkfs.vfat -n "Boot" "$bootp" >> "$LOG_FILE" 2>&1; then
-                step_msg "[ 48%] [ERR] Step 4/8: Failed to format Boot partition ($bootp)"
-                echo "mkfs.vfat failed to format Boot partition $bootp" > "$ERR_FILE"
-                return 1
-            fi
-        else
+        if [[ $is_uefi -eq 0 ]]; then
             step_msg "[ 48%] Step 4/8: Formatting $bootp (EXT2) & $rosp (EXT4)..."
             log "Step 4: Formatting $bootp (ext2) and $rosp (ext4)"
-            if ! mkfs.ext2 -F -m 0 -L "RouterOS Boot" "$bootp" >> "$LOG_FILE" 2>&1 && ! mkfs.ext2 -F -m 0 -L "RouterOS Boot" "$bootp" >> "$LOG_FILE" 2>&1; then
+            if ! mkfs.ext2 -F -m 0 -b 4096 -L "RouterOS Boot" "$bootp" >> "$LOG_FILE" 2>&1; then
                 step_msg "[ 48%] [ERR] Step 4/8: Failed to format Boot partition ($bootp)"
                 echo "mkfs.ext2 failed to format Boot partition $bootp" > "$ERR_FILE"
                 return 1
             fi
+        else
+            step_msg "[ 48%] Step 4/8: Formatting $bootp (FAT) & $rosp (EXT4)..."
+            log "Step 4: Formatting $bootp (vfat) and $rosp (ext4)"
+            if ! mkfs.vfat -F 16 -n "Boot" "$bootp" >> "$LOG_FILE" 2>&1; then
+                step_msg "[ 48%] [ERR] Step 4/8: Failed to format Boot partition ($bootp)"
+                echo "mkfs.vfat failed to format Boot partition $bootp" > "$ERR_FILE"
+                return 1
+            fi
         fi
-        if ! mkfs.ext4 -F -m 0 -L "RouterOS" "$rosp" >> "$LOG_FILE" 2>&1; then
+        if ! mkfs.ext4 -F -m 0 -b 4096 -L "RouterOS" "$rosp" >> "$LOG_FILE" 2>&1; then
             step_msg "[ 48%] [ERR] Step 4/8: Failed to format RouterOS partition ($rosp)"
             echo "mkfs.ext4 failed to format RouterOS partition $rosp" > "$ERR_FILE"
             return 1
@@ -885,21 +894,13 @@ step_install() {
         log "Step 5: Mounting and creating dirs"
         mkdir -p "$BOOT_MNT" "$ROS_MNT"
 
-        if [[ $is_uefi -eq 1 ]]; then
-            if ! mount -t vfat "$bootp" "$BOOT_MNT" >> "$LOG_FILE" 2>&1 && ! mount "$bootp" "$BOOT_MNT" >> "$LOG_FILE" 2>&1; then
-                step_msg "[ 62%] [ERR] Step 5/8: Failed to mount Boot partition ($bootp)"
-                echo "Failed to mount Boot partition $bootp to $BOOT_MNT" > "$ERR_FILE"
-                return 1
-            fi
-        else
-            if ! mount -t ext2 "$bootp" "$BOOT_MNT" >> "$LOG_FILE" 2>&1 && ! mount "$bootp" "$BOOT_MNT" >> "$LOG_FILE" 2>&1; then
-                step_msg "[ 62%] [ERR] Step 5/8: Failed to mount Boot partition ($bootp)"
-                echo "Failed to mount Boot partition $bootp to $BOOT_MNT" > "$ERR_FILE"
-                return 1
-            fi
+        if ! mount "$bootp" "$BOOT_MNT" >> "$LOG_FILE" 2>&1; then
+            step_msg "[ 62%] [ERR] Step 5/8: Failed to mount Boot partition ($bootp)"
+            echo "Failed to mount Boot partition $bootp to $BOOT_MNT" > "$ERR_FILE"
+            return 1
         fi
 
-        if ! mount -t ext4 "$rosp" "$ROS_MNT" >> "$LOG_FILE" 2>&1 && ! mount "$rosp" "$ROS_MNT" >> "$LOG_FILE" 2>&1; then
+        if ! mount "$rosp" "$ROS_MNT" >> "$LOG_FILE" 2>&1; then
             step_msg "[ 62%] [ERR] Step 5/8: Failed to mount RouterOS partition ($rosp)"
             echo "Failed to mount RouterOS partition $rosp to $ROS_MNT" > "$ERR_FILE"
             return 1
@@ -936,24 +937,25 @@ step_install() {
             log "Warning: boot/ directory not found in extracted NPK at $sq/boot"
         fi
 
-        if [[ $is_uefi -eq 1 ]]; then
-            # UEFI boot: EFI files already in place (BOOTX64.EFI was in boot/EFI/BOOT/)
-            log "UEFI mode: EFI bootloader in place at $BOOT_MNT/EFI/BOOT/BOOTX64.EFI - milo setup via EFI not needed"
-            step_msg "[ 80%] Step 6/8: UEFI boot - EFI bootloader installed"
-        else
+        if [[ $is_uefi -eq 0 ]]; then
             # BIOS/Legacy boot: run milo to setup legacy boot sector on BOOT_MNT
             if [[ -f "$ROS_MNT/bin/milo" ]]; then
                 log "BIOS mode: running milo $BOOT_MNT to install legacy boot sector"
                 "$ROS_MNT/bin/milo" "$BOOT_MNT" >> "$LOG_FILE" 2>&1 || {
-                    log "Warning: milo returned non-zero (may be non-fatal on some hardware)"
+                    log "Error: milo returned non-zero (may be non-fatal on some hardware)"
+                    return 1
                 }
                 step_msg "[ 80%] Step 6/8: BIOS boot - Milo legacy boot sector installed"
             else
-                log "Warning: milo not available for BIOS boot setup"
+                log "Error: milo not available for BIOS boot setup"
                 step_msg "[ 80%] [ERR] Step 6/8: Failed to install legacy boot sector (milo not found)"
                 echo "milo not found: cannot install legacy boot sector" > "$ERR_FILE"
                 return 1
             fi
+        else
+            # UEFI boot: EFI files already in place (BOOTX64.EFI was in boot/EFI/BOOT/)
+            log "UEFI mode: EFI bootloader in place at $BOOT_MNT/EFI/BOOT/BOOTX64.EFI - milo setup via EFI not needed"
+            step_msg "[ 80%] Step 6/8: UEFI boot - EFI bootloader installed"
         fi
 
         # 7. Copy system images and components
