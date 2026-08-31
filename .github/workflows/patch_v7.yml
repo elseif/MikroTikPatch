@@ -825,7 +825,7 @@ jobs:
 
             echo "Creating x86 legacy bios CHR..."
 
-            truncate --size 128M $BUILD_DIR/chr-$VERSION$ARCH-legacy-bios.img
+            truncate --size 128M $BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img
             sgdisk --set-alignment=2048 \
               --new=1:0:+32M  --typecode=1:EF00 --change-name=1:"RouterOS Boot" \
               --new=2:0:-4096  --typecode=2:8300 --change-name=2:"RouterOS" \
