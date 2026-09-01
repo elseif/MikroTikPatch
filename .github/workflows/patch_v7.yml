@@ -852,13 +852,13 @@ jobs:
           ls -lh "$IMAGE_PREFIX".*
 
           (cd $BUILD_DIR && \
-              zip $PUBLISH_DIR/$IMAGE_NAME.ova.zip $IMAGE_PREFIX.ova && \
-              zip $PUBLISH_DIR/$IMAGE_NAME.qcow2.zip $IMAGE_PREFIX.qcow2 && \
-              zip $PUBLISH_DIR/$IMAGE_NAME.vmdk.zip $IMAGE_PREFIX.vmdk && \
-              zip $PUBLISH_DIR/$IMAGE_NAME.vhd.zip $IMAGE_PREFIX.vhd && \
-              zip $PUBLISH_DIR/$IMAGE_NAME.vhdx.zip $IMAGE_PREFIX.vhdx && \
-              zip $PUBLISH_DIR/$IMAGE_NAME.vdi.zip $IMAGE_PREFIX.vdi && \
-              zip $PUBLISH_DIR/$IMAGE_NAME.img.zip $IMAGE_PREFIX.img )
+              zip $PUBLISH_DIR/$IMAGE_NAME.ova.zip $IMAGE_NAME.ova && \
+              zip $PUBLISH_DIR/$IMAGE_NAME.qcow2.zip $IMAGE_NAME.qcow2 && \
+              zip $PUBLISH_DIR/$IMAGE_NAME.vmdk.zip $IMAGE_NAME.vmdk && \
+              zip $PUBLISH_DIR/$IMAGE_NAME.vhd.zip $IMAGE_NAME.vhd && \
+              zip $PUBLISH_DIR/$IMAGE_NAME.vhdx.zip $IMAGE_NAME.vhdx && \
+              zip $PUBLISH_DIR/$IMAGE_NAME.vdi.zip $IMAGE_NAME.vdi && \
+              zip $PUBLISH_DIR/$IMAGE_NAME.img.zip $IMAGE_NAME.img )
           rm -f "$IMAGE_PREFIX".*
         }
 
