@@ -765,33 +765,31 @@ step_install() {
         log "Step 3: Partitioning $TARGET_DISK (boot mode: $boot_mode)"
 
         wipefs --all --force "$TARGET_DISK" >> "$LOG_FILE" 2>&1
-        # Build common sgdisk arguments,1MB alignment, 32MB boot partition
-        local -a sgdisk_args=(
-            --set-alignment=2048
-            --new=1:0:+32M  --typecode=1:EF00 --change-name=1:"RouterOS Boot"
-            --new=2:0:-4096 --typecode=2:8300 --change-name=2:"RouterOS"
-            --hybrid=1:2:EE
-        )
-        if ! sgdisk "${sgdisk_args[@]}" "$TARGET_DISK" >> "$LOG_FILE" 2>&1; then
-            step_msg "[ 32%] [ERR] Step 3/8: sgdisk (BIOS+gpttombr) failed on $TARGET_DISK"
-            echo "sgdisk --gpttombr failed on $TARGET_DISK" > "$ERR_FILE"
+
+        local SECTORS=$(blockdev --getsz "$TARGET_DISK")
+        local LBA_END=$(( (SECTORS - 4096) / 8 * 8 - 1 ))
+        if ! sgdisk \
+            --set-alignment=1 \
+            --new=1:34:65535 --typecode=1:EF00 --change-name=1:"RouterOS Boot" \
+            --new=2:65536:$LBA_END --typecode=2:8300 --change-name=2:"RouterOS" \
+            --hybrid=1:2:EE \
+            "$TARGET_DISK" >> "$LOG_FILE" 2>&1; then
+            step_msg "[ 32%] [ERR] Step 3/8: sgdisk failed on $TARGET_DISK"
+            echo "sgdisk failed on $TARGET_DISK" > "$ERR_FILE"
             return 1
         fi
-
-        #Active boot
+        # Active boot partition
         printf '\x80' | dd of="$TARGET_DISK" bs=1 seek=446 conv=notrunc >> "$LOG_FILE" 2>&1 || {
-            step_msg "[ 33%] [ERR] Step 3/8: Failed to Active boot to write MBR to $TARGET_DISK"
-            echo "dd failed to Active boot to write MBR back to $TARGET_DISK" > "$ERR_FILE"
+            step_msg "[ 33%] [ERR] Step 3/8: Failed to Active boot partition on $TARGET_DISK"
+            echo "dd failed to Active boot partition on $TARGET_DISK" > "$ERR_FILE"
             return 1
         }
-        #Must be 0x83, ERROR: could not find disk!
+        # Must be 0x83, otherwise "ERROR: could not find disk!"
         printf '\x83' | dd of="$TARGET_DISK" bs=1 seek=450 conv=notrunc >> "$LOG_FILE" 2>&1 || {
-            step_msg "[ 33%] [ERR] Step 3/8: Failed to flag boot to write MBR to $TARGET_DISK"
-            echo "dd failed to flag boot to write MBR back to $TARGET_DISK" > "$ERR_FILE"
+            step_msg "[ 33%] [ERR] Step 3/8: Failed to change partition type on $TARGET_DISK"
+            echo "dd failed to change partition type on $TARGET_DISK" > "$ERR_FILE"
             return 1
         }
-
-
         if [[ $is_uefi -eq 0 ]]; then
             # Write MikroTik BIOS bootstrap code into bytes 0-439 of the saved MBR
             printf '%s' "FA31C08ED0BC007C89E65007501FFBFCBF0006B90001F2A5EA1D060000BEBE07B304803C807423803C00750983C610FECB75EFCD18BE9B06AC3C00740B56BB0700B40ECD105EEBF0EBFE8B148B4C0289F5BF0500BB007CB8010257CD135F730C31C0CD134F75EDBE7C06EBCCBFFE7D813D55AA75C289EEEA007C00004572726F72206C6F6164696E67206F7065726174696E6720737973746566D004D697373696E67206F7065726174696E672073797374656D0000000000" \
@@ -801,25 +799,7 @@ step_install() {
                     echo "Failed to write MikroTik BIOS bootstrap into MBR" > "$ERR_FILE"
                     return 1
                 }
-            LBA=2048
-            HEAD=$(( (LBA / 63) % 16 ))
-            SEC=$(( (LBA % 63) + 1 ))
-            CYL=$(( (LBA / 63) / 16 ))
-            CYL_HIGH=$(( (CYL >> 8) & 0x03 ))
-            CYL_LOW=$(( CYL & 0xFF ))
-
-            BYTE1=$HEAD
-            BYTE2=$(( SEC + (CYL_HIGH * 64) ))  
-            BYTE3=$CYL_LOW
-
-            printf "$(printf '\\x%02x\\x%02x\\x%02x' $BYTE1 $BYTE2 $BYTE3)" | \
-            dd of="$TARGET_DISK" bs=1 seek=447 count=3 conv=notrunc >> "$LOG_FILE" 2>&1 || {
-                step_msg "[ 33%] [ERR] Step 3/8: Failed to write MBR partition CHS entry"
-                echo "Failed to write MikroTik Start CHS into MBR partition table" > "$ERR_FILE"
-                return 1
-            }
         fi
-
         log "MBR written to $TARGET_DISK"
 
         # Force kernel to reread partition table & trigger mdev/udev
@@ -927,6 +907,7 @@ step_install() {
 
         # Copy the entire boot/ tree (EFI dir, boot map) to BOOT_MNT
         if [[ -d "$sq/boot" ]]; then
+            rm -f "$sq/boot/map" 2>> "$LOG_FILE"
             cp -a "$sq/boot/." "$BOOT_MNT/" 2>> "$LOG_FILE" || {
                 step_msg "[ 73%] [ERR] Step 6/8: Failed to copy boot/ to $BOOT_MNT"
                 echo "Failed to copy boot directory to $BOOT_MNT" > "$ERR_FILE"

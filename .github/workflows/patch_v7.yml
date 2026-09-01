@@ -749,242 +749,146 @@ jobs:
         </Envelope>' 
         sudo apt-get install -y parted > /dev/null
         mkdir -p $BUILD_DIR/chr/{boot,routeros}
+
+        prepare_image(){
+          local IMAGE="$1"
+          local BOOT_MODE="$2"
+
+          truncate --size 128M "$IMAGE"
+          local END=$(( ($(stat -c '%s' "$IMAGE") / 512 - 4096) / 8 * 8 - 1 ))
+          sgdisk --set-alignment=1 \
+              --new=1:34:65535 --typecode=1:EF00 --change-name=1:"RouterOS Boot" \
+              --new=2:65536:$END --typecode=2:8300 --change-name=2:"RouterOS" \
+              --hybrid=1:2:EE \
+              "$IMAGE"
+          # Active CHR mode
+          printf '\x01' | dd of="$IMAGE" bs=1 seek=336 conv=notrunc status=none
+          # Active boot partition
+          printf '\x80' | dd of="$IMAGE" bs=1 seek=446 conv=notrunc status=none
+          # Must be 0x83, otherwise "ERROR: could not find disk!"
+          printf '\x83' | dd of="$IMAGE" bs=1 seek=450 conv=notrunc status=none
+
+          if [[ "$BOOT_MODE" == "bios" ]]; then
+              echo "FA31C08ED0BC007C89E65007501FFBFCBF0006B90001F2A5EA1D060000BEBE07B304803C807423803C00750983C610FECB75EFCD18BE9B06AC3C00740B56BB0700B40ECD105EEBF0EBFE8B148B4C0289F5BF0500BB007CB8010257CD135F730C31C0CD134F75EDBE7C06EBCCBFFE7D813D55AA75C289EEEA007C00004572726F72206C6F6164696E67206F7065726174696E672073797374656D004D697373696E67206F7065726174696E672073797374656D0000000000" |
+                  xxd -r -p |
+                  sudo dd of="$IMAGE" bs=1 conv=notrunc status=none
+          fi
+        }
+
+        build_image() {
+          local IMAGE="$1"
+          local BOOT_MODE="$2"
+
+          prepare_image $IMAGE $BOOT_MODE
+
+          sudo qemu-nbd -d /dev/nbd0 2>/dev/null || true
+          sudo qemu-nbd -c /dev/nbd0 -f raw "$IMAGE"
+          sudo partprobe /dev/nbd0
+
+          # Boot partition
+          if [[ "$BOOT_MODE" == "bios" ]]; then
+              sudo mkfs.ext2 -F -m 0 -L "RouterOS Boot" /dev/nbd0p1
+          elif [[ "$BOOT_MODE" == "efi" ]]; then
+              sudo mkfs.vfat -F 16 -n "BOOT" /dev/nbd0p1
+          else
+            echo "ERROR: unsupported boot mode: $BOOT_MODE" >&2
+            return 1
+          fi
+          sudo mount /dev/nbd0p1 "$BUILD_DIR/chr/boot"
+          sudo mkdir -p "$BUILD_DIR/chr/boot/EFI/BOOT"
+          if [ "$ARCH" == "x86" ]; then
+            sudo cp -vf  "$BUILD_DIR/chr/BOOTX64.EFI" "$BUILD_DIR/chr/boot/EFI/BOOT/BOOTX64.EFI"
+          elif [ "$ARCH" == "arm64" ]; then
+            sudo cp -vf $BUILD_DIR/chr/BOOTAA64.EFI $BUILD_DIR/chr/boot/EFI/BOOT/BOOTAA64.EFI
+          fi
+          if [[ "$BOOT_MODE" == "bios" ]]; then
+              sudo "$BUILD_DIR/chr/milo" "$BUILD_DIR/chr/boot"
+          fi
+          sudo umount "$BUILD_DIR/chr/boot"
+
+          # RouterOS partition
+          sudo mkfs.ext4 -F -m 0 -L "RouterOS" /dev/nbd0p2
+          sudo mount /dev/nbd0p2 "$BUILD_DIR/chr/routeros"
+          sudo mkdir -p $BUILD_DIR/chr/routeros/{var/pdb/{system,option},boot,bin,rw/disk}
+          sudo install -m 0755 "$BUILD_DIR/chr/milo" "$BUILD_DIR/chr/routeros/bin/milo"
+          sudo install -m 0755 "$BUILD_DIR/chr/bash" "$BUILD_DIR/chr/routeros/bin/bash"
+          sudo cp -v $PUBLISH_DIR/option-$VERSION$ARCH_EXT.npk $BUILD_DIR/chr/routeros/var/pdb/option/image
+          sudo cp -v $PUBLISH_DIR/routeros-$VERSION$ARCH_EXT.npk $BUILD_DIR/chr/routeros/var/pdb/system/image
+          printf '%s\n' \
+              '#!/bin/sh' \
+              '# This script will be executed *before* RouterOS *loader* start.' \
+              '# You can put your own initialization stuff in here' |
+              sudo tee "$BUILD_DIR/chr/routeros/rw/disk/rc.local" >/dev/null
+          sudo umount /dev/nbd0p2
+
+          sudo qemu-nbd -d /dev/nbd0
+
+          echo "Image built: $IMAGE"
+
+          local IMAGE_PREFIX="${IMAGE%.img}"
+          qemu-img convert -f raw -O qcow2 $IMAGE $IMAGE_PREFIX.qcow2
+          qemu-img convert -f raw -O vmdk  $IMAGE $IMAGE_PREFIX.vmdk
+          qemu-img convert -f raw -O vpc $IMAGE $IMAGE_PREFIX.vhd
+          qemu-img convert -f raw -O vhdx $IMAGE $IMAGE_PREFIX.vhdx
+          qemu-img convert -f raw -O vdi $IMAGE $IMAGE_PREFIX.vdi
+
+          local IMAGE_NAME="${IMAGE_PREFIX##*/}"
+          local VMDK_FILE="$IMAGE_NAME-disk1.vmdk"
+          local OVF_FILE="$IMAGE_NAME.ovf"
+          local OVA_FILE="$IMAGE_NAME.ova"
+
+          qemu-img convert -f raw -O vmdk -o subformat=streamOptimized "$IMAGE" "$BUILD_DIR/$VMDK_FILE"
+          local FILE_SIZE=$(stat -c %s "$BUILD_DIR/$VMDK_FILE")
+          echo "$OVF_TEMPLATE" |
+            sed -e "s|{VMDK_FILE}|$VMDK_FILE|g" \
+                -e "s|{FILE_SIZE}|$FILE_SIZE|g" \
+                -e "s|{FIRMWARE_TYPE}|$BOOT_MODE|g" \
+            > "$BUILD_DIR/$OVF_FILE"
+          (cd $BUILD_DIR && tar -cvf "$OVA_FILE" "$OVF_FILE" "$VMDK_FILE")
+          rm -f "$BUILD_DIR/$VMDK_FILE"
+          rm -f "$BUILD_DIR/$OVF_FILE"
+
+          echo "✅ Generated images:"
+          ls -lh "$IMAGE_PREFIX".*
+
+          (cd $BUILD_DIR && \
+              zip $PUBLISH_DIR/$IMAGE_NAME.ova.zip $IMAGE_PREFIX.ova && \
+              zip $PUBLISH_DIR/$IMAGE_NAME.qcow2.zip $IMAGE_PREFIX.qcow2 && \
+              zip $PUBLISH_DIR/$IMAGE_NAME.vmdk.zip $IMAGE_PREFIX.vmdk && \
+              zip $PUBLISH_DIR/$IMAGE_NAME.vhd.zip $IMAGE_PREFIX.vhd && \
+              zip $PUBLISH_DIR/$IMAGE_NAME.vhdx.zip $IMAGE_PREFIX.vhdx && \
+              zip $PUBLISH_DIR/$IMAGE_NAME.vdi.zip $IMAGE_PREFIX.vdi && \
+              zip $PUBLISH_DIR/$IMAGE_NAME.img.zip $IMAGE_PREFIX.img )
+          rm -f "$IMAGE_PREFIX".*
+        }
+
         if [ "$ARCH" == "x86" ]; then
-            echo "Creating x86 uefi CHR..."
+            echo "Creating CHR image for x86..."
             python3 npk.py extract $PUBLISH_DIR/routeros-$VERSION$ARCH_EXT.npk boot/EFI/BOOT/BOOTX64.EFI $BUILD_DIR/chr/BOOTX64.EFI
             python3 npk.py extract $PUBLISH_DIR/routeros-$VERSION$ARCH_EXT.npk bin/milo $BUILD_DIR/chr/milo
+            python3 npk.py extract $PUBLISH_DIR/routeros-$VERSION$ARCH_EXT.npk bin/bash $BUILD_DIR/chr/bash
             chmod +x $BUILD_DIR/chr/milo
-
-            truncate --size 128M $BUILD_DIR/chr-$VERSION$ARCH_EXT.img
-            sgdisk --set-alignment=2048 \
-              --new=1:0:+32M  --typecode=1:EF00 --change-name=1:"RouterOS Boot" \
-              --new=2:0:-4096  --typecode=2:8300 --change-name=2:"RouterOS" \
-              --hybrid=1:2:EE \
-              $BUILD_DIR/chr-$VERSION$ARCH_EXT.img
-            #Active CHR mode
-            printf '\x01' | dd of=$BUILD_DIR/chr-$VERSION$ARCH_EXT.img bs=1 seek=336 conv=notrunc
-            #Active boot
-            printf '\x80' | dd of=$BUILD_DIR/chr-$VERSION$ARCH_EXT.img bs=1 seek=446 conv=notrunc
-            #Must be 0x83, ERROR: could not find disk!
-            printf '\x83' | dd of=$BUILD_DIR/chr-$VERSION$ARCH_EXT.img bs=1 seek=450 conv=notrunc
-
-            dd if=$BUILD_DIR/chr-$VERSION$ARCH_EXT.img skip=446 bs=1 count=64 | hexdump -C
-
-            sudo qemu-nbd -d /dev/nbd0
-            sudo qemu-nbd -c /dev/nbd0 -f raw $BUILD_DIR/chr-$VERSION$ARCH_EXT.img
-            sudo partprobe /dev/nbd0
-            sudo fdisk -l /dev/nbd0
-            sudo mkfs.vfat -F 16 -n "Boot" /dev/nbd0p1
-            sudo mkfs.ext4 -F -m 0 -b 4096 -L "RouterOS" /dev/nbd0p2
-            sudo mount -o uid=$(id -u),gid=$(id -g) /dev/nbd0p1 $BUILD_DIR/chr/boot
-            sudo mkdir -p $BUILD_DIR/chr/boot/EFI/BOOT
-            sudo cp -v $BUILD_DIR/chr/BOOTX64.EFI $BUILD_DIR/chr/boot/EFI/BOOT/BOOTX64.EFI
-            sudo umount /dev/nbd0p1
-
-            sudo mount /dev/nbd0p2 $BUILD_DIR/chr/routeros
-            sudo mkdir -p $BUILD_DIR/chr/routeros/{var/pdb/{system,option},boot,bin,rw/disk}
-            # cmdStartVerify bin/milo
-            sudo cp -v $BUILD_DIR/chr/milo $BUILD_DIR/chr/routeros/bin/milo
-            sudo cp -v $PUBLISH_DIR/option-$VERSION$ARCH_EXT.npk $BUILD_DIR/chr/routeros/var/pdb/option/image
-            sudo cp -v $PUBLISH_DIR/routeros-$VERSION$ARCH_EXT.npk $BUILD_DIR/chr/routeros/var/pdb/system/image
-            echo -e '#!/bin/sh\n# This script will be executed *before* RouterOS *loader* start.\n# You can put your own initialization stuff in here\n' |sudo tee $BUILD_DIR/chr/routeros/rw/disk/rc.local
-            sudo umount /dev/nbd0p2
-            sudo qemu-nbd -d /dev/nbd0
-
-            qemu-img convert -f raw -O qcow2 $BUILD_DIR/chr-$VERSION$ARCH_EXT.img $BUILD_DIR/chr-$VERSION$ARCH_EXT.qcow2
-            qemu-img convert -f raw -O vmdk  $BUILD_DIR/chr-$VERSION$ARCH_EXT.img $BUILD_DIR/chr-$VERSION$ARCH_EXT.vmdk
-            qemu-img convert -f raw -O vpc $BUILD_DIR/chr-$VERSION$ARCH_EXT.img $BUILD_DIR/chr-$VERSION$ARCH_EXT.vhd
-            qemu-img convert -f raw -O vhdx $BUILD_DIR/chr-$VERSION$ARCH_EXT.img $BUILD_DIR/chr-$VERSION$ARCH_EXT.vhdx
-            qemu-img convert -f raw -O vdi $BUILD_DIR/chr-$VERSION$ARCH_EXT.img $BUILD_DIR/chr-$VERSION$ARCH_EXT.vdi
-
-            VMDK_FILE=chr-$VERSION$ARCH_EXT-disk1.vmdk
-            qemu-img convert -f raw -O vmdk -o subformat=streamOptimized \
-                $BUILD_DIR/chr-$VERSION$ARCH_EXT.img \
-                $BUILD_DIR/$VMDK_FILE
-            FILE_SIZE=$(stat -c %s "$BUILD_DIR/$VMDK_FILE")
-            OVF_FILE=chr-$VERSION$ARCH_EXT.ovf
-            OVA_FILE=chr-$VERSION$ARCH_EXT.ova
-            echo "$OVF_TEMPLATE" | sed -e "s|{VMDK_FILE}|$VMDK_FILE|g" \
-                    -e "s|{FILE_SIZE}|$FILE_SIZE|g" \
-                    -e "s|{FIRMWARE_TYPE}|efi|g" | tee $BUILD_DIR/$OVF_FILE
-            (cd $BUILD_DIR && tar -cvf "$OVA_FILE" "$OVF_FILE" "$VMDK_FILE")
-            rm $BUILD_DIR/$VMDK_FILE
-            rm $BUILD_DIR/$OVF_FILE
-            
-            echo "✅ UEFI CHR created: "
-            ls -la $BUILD_DIR/chr-$VERSION$ARCH_EXT.*
-
-            (cd $BUILD_DIR && \
-                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.ova.zip chr-$VERSION$ARCH_EXT.ova && \
-                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.qcow2.zip chr-$VERSION$ARCH_EXT.qcow2 && \
-                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.vmdk.zip chr-$VERSION$ARCH_EXT.vmdk && \
-                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.vhd.zip chr-$VERSION$ARCH_EXT.vhd && \
-                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.vhdx.zip chr-$VERSION$ARCH_EXT.vhdx && \
-                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.vdi.zip chr-$VERSION$ARCH_EXT.vdi && 
-                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.img.zip chr-$VERSION$ARCH_EXT.img )
-            rm $BUILD_DIR/chr-$VERSION$ARCH_EXT.*
-
-
-            echo "Creating x86 legacy bios CHR..."
-
-            truncate --size 128M $BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img
-            sgdisk --set-alignment=2048 \
-              --new=1:0:+32M  --typecode=1:EF00 --change-name=1:"RouterOS Boot" \
-              --new=2:0:-4096  --typecode=2:8300 --change-name=2:"RouterOS" \
-              --hybrid=1:2:EE \
-              $BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img
-            #MBR bootloader code
-            echo "FA31C08ED0BC007C89E65007501FFBFCBF0006B90001F2A5EA1D060000BEBE07B304803C807423803C00750983C610FECB75EFCD18BE9B06AC3C00740B56BB0700B40ECD105EEBF0EBFE8B148B4C0289F5BF0500BB007CB8010257CD135F730C31C0CD134F75EDBE7C06EBCCBFFE7D813D55AA75C289EEEA007C00004572726F72206C6F6164696E67206F7065726174696E672073797374656D004D697373696E67206F7065726174696E672073797374656D0000000000" | xxd -r -p | sudo dd of=$BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img bs=1 conv=notrunc
-            LBA=2048
-            HEAD=$(( (LBA / 63) % 16 ))
-            SEC=$(( (LBA % 63) + 1 ))
-            CYL=$(( (LBA / 63) / 16 ))
-            CYL_HIGH=$(( (CYL >> 8) & 0x03 ))
-            CYL_LOW=$(( CYL & 0xFF ))
-            HEX_CHS=$(printf "%02x%02x%02x" $HEAD $(( SEC | (CYL_HIGH << 6) )) $CYL_LOW)
-            echo "LBA:$LBA, Cylinder=$CYL, Head=$HEAD, Sector=$SEC (Hex: $HEX_CHS)"
-            echo "$HEX_CHS" | xxd -r -p | dd of=$BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img bs=1 seek=447 conv=notrunc
-            #Active CHR mode
-            printf '\x01' | dd of=$BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img bs=1 seek=336 conv=notrunc
-            #Active boot
-            printf '\x80' | dd of=$BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img bs=1 seek=446 conv=notrunc
-            #Must be 0x83, ERROR: could not find disk!
-            printf '\x83' | dd of=$BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img bs=1 seek=450 conv=notrunc
-          
-            dd if=$BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img skip=446 bs=1 count=64 | hexdump -C
-
-            sudo qemu-nbd -d /dev/nbd0
-            sudo qemu-nbd -c /dev/nbd0 -f raw $BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img
-            sudo partprobe /dev/nbd0
-            sudo mkfs.ext2 -F -m 0 -L "RouterOS Boot" /dev/nbd0p1
-            sudo mkfs.ext4 -F -m 0 -L "RouterOS"  /dev/nbd0p2
-            sudo mount /dev/nbd0p1 $BUILD_DIR/chr/boot
-            sudo mkdir -p $BUILD_DIR/chr/boot/EFI/BOOT
-            sudo cp -vf $BUILD_DIR/chr/BOOTX64.EFI $BUILD_DIR/chr/boot/EFI/BOOT/BOOTX64.EFI
-            sudo $BUILD_DIR/chr/milo $BUILD_DIR/chr/boot
-            sudo umount /dev/nbd0p1
-
-            sudo mount /dev/nbd0p2 $BUILD_DIR/chr/routeros
-            sudo mkdir -p $BUILD_DIR/chr/routeros/{var/pdb/{system,option},boot,bin,rw/disk}
-            sudo cp -v $BUILD_DIR/chr/milo $BUILD_DIR/chr/routeros/bin/milo
-            sudo cp -v $PUBLISH_DIR/option-$VERSION$ARCH_EXT.npk $BUILD_DIR/chr/routeros/var/pdb/option/image
-            sudo cp -v $PUBLISH_DIR/routeros-$VERSION$ARCH_EXT.npk $BUILD_DIR/chr/routeros/var/pdb/system/image
-            echo -e '#!/bin/sh\n# This script will be executed *before* RouterOS *loader* start.\n# You can put your own initialization stuff in here\n' | sudo tee $BUILD_DIR/chr/routeros/rw/disk/rc.local
-            sudo umount /dev/nbd0p2
-            sudo qemu-nbd -d /dev/nbd0
-
-            qemu-img convert -f raw -O qcow2 $BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img $BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.qcow2
-            qemu-img convert -f raw -O vmdk  $BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img $BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.vmdk
-            qemu-img convert -f raw -O vpc $BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img $BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.vhd
-            qemu-img convert -f raw -O vhdx $BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img $BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.vhdx
-            qemu-img convert -f raw -O vdi $BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img $BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.vdi
-
-            VMDK_FILE=chr-$VERSION$ARCH_EXT-disk1.vmdk
-            qemu-img convert -f raw -O vmdk -o subformat=streamOptimized \
-                $BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img \
-                $BUILD_DIR/$VMDK_FILE
-            FILE_SIZE=$(stat -c %s "$BUILD_DIR/$VMDK_FILE")
-            OVF_FILE=chr-$VERSION$ARCH_EXT-legacy-bios.ovf
-            OVA_FILE=chr-$VERSION$ARCH_EXT-legacy-bios.ova
-            echo "$OVF_TEMPLATE" | sed -e "s|{VMDK_FILE}|$VMDK_FILE|g" \
-                    -e "s|{FILE_SIZE}|$FILE_SIZE|g" \
-                    -e "s|{FIRMWARE_TYPE}|bios|g" | tee $BUILD_DIR/$OVF_FILE
-            (cd $BUILD_DIR && tar -cvf "$OVA_FILE" "$OVF_FILE" "$VMDK_FILE")
-            rm $BUILD_DIR/$VMDK_FILE
-            rm $BUILD_DIR/$OVF_FILE
-
-
-            echo "✅ legacy BIOS CHR created: "
-            ls -la $BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.*
-
-            (cd $BUILD_DIR && \
-                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.ova.zip chr-$VERSION$ARCH_EXT-legacy-bios.ova && \
-                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.qcow2.zip chr-$VERSION$ARCH_EXT-legacy-bios.qcow2 && \
-                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.vmdk.zip chr-$VERSION$ARCH_EXT-legacy-bios.vmdk && \
-                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.vhd.zip chr-$VERSION$ARCH_EXT-legacy-bios.vhd && \
-                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.vhdx.zip chr-$VERSION$ARCH_EXT-legacy-bios.vhdx && \
-                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.vdi.zip chr-$VERSION$ARCH_EXT-legacy-bios.vdi && \
-                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img.zip chr-$VERSION$ARCH_EXT-legacy-bios.img )
-            rm $BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.*
-            rm $BUILD_DIR/chr/BOOTX64.EFI
-            rm $BUILD_DIR/chr/milo
+            echo "Creating CHR image for x86 UEFI ..."
+            if ! build_image "$BUILD_DIR/chr-$VERSION$ARCH_EXT.img" efi; then
+                echo "ERROR: failed to build x86 UEFI image"
+                exit 1
+            fi
+            echo "Creating CHR image for x86 legacy BIOS  ..."
+            if ! build_image "$BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img" bios; then
+                echo "ERROR: failed to build x86 legacy BIOS image"
+                exit 1
+            fi
 
         elif [ "$ARCH" == "arm64" ]; then
-            echo "Creating arm64 CHR..."
+            echo "Creating CHR image for arm64..."
             python3 npk.py extract $PUBLISH_DIR/routeros-$VERSION$ARCH_EXT.npk boot/kernel $BUILD_DIR/chr/kernel
             python3 patch.py buildefi $BUILD_DIR/chr/kernel $BUILD_DIR/chr/BOOTAA64.EFI
             rm -r $BUILD_DIR/chr/kernel
-
-            #要求MBR分区表第一个分区类型必须为0x8300,否则ERROR: could not find disk!
-            truncate --size 128M $BUILD_DIR/chr-$VERSION$ARCH_EXT.img
-            sgdisk \
-                --zap-all \
-                --set-alignment=1 \
-                --new=1:34:+32M --typecode=1:8300 --change-name=1:"RouterOS Boot" \
-                --new=2:0:0 --typecode=2:8300 --change-name=2:"RouterOS" \
-                --gpttombr=1:2 \
-                $BUILD_DIR/chr-$VERSION$ARCH_EXT.img
-            dd if=$BUILD_DIR/chr-$VERSION$ARCH_EXT.img of=$BUILD_DIR/mbr.bin bs=1 count=512 conv=notrunc
-            printf '\x01' | dd of=$BUILD_DIR/mbr.bin bs=1 count=1 seek=336 conv=notrunc
-            sgdisk \
-                --zap-all \
-                --set-alignment=1 \
-                --new=1:34:+32M --typecode=1:EF00 --change-name=1:"RouterOS Boot" \
-                --new=2:0:0 --typecode=2:8300 --change-name=2:"RouterOS" \
-                $BUILD_DIR/chr-$VERSION$ARCH_EXT.img
-            dd if=$BUILD_DIR/mbr.bin of=$BUILD_DIR/chr-$VERSION$ARCH_EXT.img bs=1 count=512 conv=notrunc
-            rm $BUILD_DIR/mbr.bin
-            sudo qemu-nbd -d /dev/nbd0
-            sudo qemu-nbd -c /dev/nbd0 -f raw $BUILD_DIR/chr-$VERSION$ARCH_EXT.img
-            sudo partprobe /dev/nbd0
-            sudo mkfs.vfat -n "Boot" "/dev/nbd0p1"
-            sudo mkfs.ext4 -F -m 0 -L "RouterOS" "/dev/nbd0p2"
-            sudo mount -o uid=$(id -u),gid=$(id -g) /dev/nbd0p1 $BUILD_DIR/chr/boot
-            sudo mkdir -p $BUILD_DIR/chr/boot/EFI/BOOT
-            sudo mv -v $BUILD_DIR/chr/BOOTAA64.EFI $BUILD_DIR/chr/boot/EFI/BOOT/BOOTAA64.EFI
-            sudo umount /dev/nbd0p1
-
-            sudo mount /dev/nbd0p2 $BUILD_DIR/chr/routeros
-            sudo mkdir -p $BUILD_DIR/chr/routeros/{var/pdb/{system,option},boot,rw/disk}
-            sudo cp -v $PUBLISH_DIR/option-$VERSION$ARCH_EXT.npk $BUILD_DIR/chr/routeros/var/pdb/option/image
-            sudo cp -v $PUBLISH_DIR/routeros-$VERSION$ARCH_EXT.npk $BUILD_DIR/chr/routeros/var/pdb/system/image
-            echo -e '#!/bin/sh\n# This script will be executed *before* RouterOS *loader* start.\n# You can put your own initialization stuff in here\n' | sudo tee $BUILD_DIR/chr/routeros/rw/disk/rc.local
-            sudo umount /dev/nbd0p2
-            sudo qemu-nbd -d /dev/nbd0
-
-            qemu-img convert -f raw -O qcow2 $BUILD_DIR/chr-$VERSION$ARCH_EXT.img $BUILD_DIR/chr-$VERSION$ARCH_EXT.qcow2
-            qemu-img convert -f raw -O vmdk  $BUILD_DIR/chr-$VERSION$ARCH_EXT.img $BUILD_DIR/chr-$VERSION$ARCH_EXT.vmdk
-            qemu-img convert -f raw -O vpc $BUILD_DIR/chr-$VERSION$ARCH_EXT.img $BUILD_DIR/chr-$VERSION$ARCH_EXT.vhd
-            qemu-img convert -f raw -O vhdx $BUILD_DIR/chr-$VERSION$ARCH_EXT.img $BUILD_DIR/chr-$VERSION$ARCH_EXT.vhdx
-            qemu-img convert -f raw -O vdi $BUILD_DIR/chr-$VERSION$ARCH_EXT.img $BUILD_DIR/chr-$VERSION$ARCH_EXT.vdi
-
-            VMDK_FILE=chr-$VERSION$ARCH_EXT-disk1.vmdk
-            qemu-img convert -f raw -O vmdk -o subformat=streamOptimized \
-                $BUILD_DIR/chr-$VERSION$ARCH_EXT.img \
-                $BUILD_DIR/$VMDK_FILE
-            FILE_SIZE=$(stat -c %s "$BUILD_DIR/$VMDK_FILE")
-            OVF_FILE=chr-$VERSION$ARCH_EXT.ovf
-            OVA_FILE=chr-$VERSION$ARCH_EXT.ova
-            echo "$OVF_TEMPLATE" | sed -e "s|{VMDK_FILE}|$VMDK_FILE|g" \
-                    -e "s|{FILE_SIZE}|$FILE_SIZE|g" \
-                    -e "s|{FIRMWARE_TYPE}|efi|g" | tee $BUILD_DIR/$OVF_FILE
-            (cd $BUILD_DIR && tar -cvf "$OVA_FILE" "$OVF_FILE" "$VMDK_FILE")
-            rm $BUILD_DIR/$VMDK_FILE
-            rm $BUILD_DIR/$OVF_FILE
-
-
-            echo "✅ CHR created: "
-            ls -la $BUILD_DIR/chr-$VERSION$ARCH_EXT.*
-
-            (cd $BUILD_DIR && \
-                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.ova.zip chr-$VERSION$ARCH_EXT.ova && \
-                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.qcow2.zip chr-$VERSION$ARCH_EXT.qcow2 && \
-                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.vmdk.zip chr-$VERSION$ARCH_EXT.vmdk && \
-                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.vhd.zip chr-$VERSION$ARCH_EXT.vhd && \
-                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.vhdx.zip chr-$VERSION$ARCH_EXT.vhdx && \
-                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.vdi.zip chr-$VERSION$ARCH_EXT.vdi && 
-                zip $PUBLISH_DIR/chr-$VERSION$ARCH_EXT.img.zip chr-$VERSION$ARCH_EXT.img )
-            rm $BUILD_DIR/chr-$VERSION$ARCH_EXT.*
+            echo "Creating CHR image for arm64 UEFI  ..."
+            if ! build_image "$BUILD_DIR/chr-$VERSION$ARCH_EXT.img" efi; then
+                echo "ERROR: failed to build arm64 UEFI image"
+                exit 1
+            fi
         fi
         rm -rf $BUILD_DIR/chr
 
