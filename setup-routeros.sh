@@ -900,7 +900,7 @@ step_install() {
             return 1
         fi
 
-        if ! mount "$rosp" "$ROS_MNT" >> "$LOG_FILE" 2>&1; then
+        if ! mount -t ext4 "$rosp" "$ROS_MNT" >> "$LOG_FILE" 2>&1; then
             step_msg "[ 62%] [ERR] Step 5/8: Failed to mount RouterOS partition ($rosp)"
             echo "Failed to mount RouterOS partition $rosp to $ROS_MNT" > "$ERR_FILE"
             return 1
