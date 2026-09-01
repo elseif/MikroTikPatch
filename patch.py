@@ -358,12 +358,10 @@ def patch_squashfs(path,key_dict):
                     if old_url in data:
                         print(f'{file_path} url patched {old_url.decode()[:7]}...')
                         data = data.replace(old_url,new_url)
-                modified = False
                 for old_public_key,new_public_key in key_dict.items():
                     new_data  = replace_key(old_public_key,new_public_key,data,file_path)
                     if new_data != data:
                         data = new_data
-                        modified = True
                 with open(f'{file_path}_', 'wb') as f:
                     f.write(data)
         if 'loader' in files and os.path.isfile(os.path.join(root, 'loader')):
