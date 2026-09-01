@@ -181,7 +181,7 @@ jobs:
         echo "PACKAGES=$PACKAGES" >> $GITHUB_ENV
         echo "PACKAGES: $PACKAGES"
 
-    - name: Create Squashfs for Option and Python Package
+    - name: Build Squashfs for Option and Python Package
       run: |
         echo "Creating Option Package Squashfs for channel: $CHANNEL, arch: $ARCH"
         mkdir -p $BUILD_DIR/option-root/bin/
@@ -378,7 +378,6 @@ jobs:
       if: matrix.arch == 'x86' && steps.cache-refind.outputs.cache-hit != 'true'
       run: wget -nv -O $BUILD_DIR/refind-bin-0.14.2.zip https://downloads.sourceforge.net/project/refind/0.14.2/refind-bin-0.14.2.zip
 
-
     - name: Build Alpine LiveCD
       if: matrix.arch == 'x86'
       run: |
@@ -488,7 +487,7 @@ jobs:
         size=$(stat -c %s "$BUILD_DIR/initramfs.xz")
         printf "initramfs size : %d bytes (%.1f MB)\n" "$size" "$(echo "scale=1; $size/1024/1024" | bc)"
 
-    - name: Create ISO & INSTALL image files
+    - name: Build ISO & INSTALL image files
       run: |
         set -e
         sudo modprobe nbd
@@ -651,7 +650,7 @@ jobs:
         rm -rf $BUILD_DIR/new_iso
         rm -rf $BUILD_DIR/efiboot
 
-    - name: Create CHR image files
+    - name: Build CHR image files
       run: |
         set -e
         OVF_TEMPLATE='<?xml version="1.0" encoding="UTF-8"?>
@@ -767,7 +766,6 @@ jobs:
           printf '\x80' | dd of="$IMAGE" bs=1 seek=446 conv=notrunc status=none
           # Must be 0x83, otherwise "ERROR: could not find disk!"
           printf '\x83' | dd of="$IMAGE" bs=1 seek=450 conv=notrunc status=none
-
           if [[ "$BOOT_MODE" == "bios" ]]; then
               echo "FA31C08ED0BC007C89E65007501FFBFCBF0006B90001F2A5EA1D060000BEBE07B304803C807423803C00750983C610FECB75EFCD18BE9B06AC3C00740B56BB0700B40ECD105EEBF0EBFE8B148B4C0289F5BF0500BB007CB8010257CD135F730C31C0CD134F75EDBE7C06EBCCBFFE7D813D55AA75C289EEEA007C00004572726F72206C6F6164696E67206F7065726174696E672073797374656D004D697373696E67206F7065726174696E672073797374656D0000000000" |
                   xxd -r -p |
@@ -863,30 +861,30 @@ jobs:
         }
 
         if [ "$ARCH" == "x86" ]; then
-            echo "Creating CHR image for x86..."
+            echo "🚀 Creating CHR image for x86..."
             python3 npk.py extract $PUBLISH_DIR/routeros-$VERSION$ARCH_EXT.npk boot/EFI/BOOT/BOOTX64.EFI $BUILD_DIR/chr/BOOTX64.EFI
             python3 npk.py extract $PUBLISH_DIR/routeros-$VERSION$ARCH_EXT.npk bin/milo $BUILD_DIR/chr/milo
             python3 npk.py extract $PUBLISH_DIR/routeros-$VERSION$ARCH_EXT.npk bin/bash $BUILD_DIR/chr/bash
             chmod +x $BUILD_DIR/chr/milo
-            echo "Creating CHR image for x86 UEFI ..."
+            echo "🔄 Creating CHR image for x86 UEFI ..."
             if ! build_image "$BUILD_DIR/chr-$VERSION$ARCH_EXT.img" efi; then
-                echo "ERROR: failed to build x86 UEFI image"
+                echo "❌ failed to build x86 UEFI image"
                 exit 1
             fi
             echo "Creating CHR image for x86 legacy BIOS  ..."
             if ! build_image "$BUILD_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.img" bios; then
-                echo "ERROR: failed to build x86 legacy BIOS image"
+                echo "❌ failed to build x86 legacy BIOS image"
                 exit 1
             fi
 
         elif [ "$ARCH" == "arm64" ]; then
-            echo "Creating CHR image for arm64..."
+            echo "🚀 Creating CHR image for arm64..."
             python3 npk.py extract $PUBLISH_DIR/routeros-$VERSION$ARCH_EXT.npk boot/kernel $BUILD_DIR/chr/kernel
             python3 patch.py buildefi $BUILD_DIR/chr/kernel $BUILD_DIR/chr/BOOTAA64.EFI
             rm -r $BUILD_DIR/chr/kernel
-            echo "Creating CHR image for arm64 UEFI  ..."
+            echo "🔄Creating CHR image for arm64 UEFI  ..."
             if ! build_image "$BUILD_DIR/chr-$VERSION$ARCH_EXT.img" efi; then
-                echo "ERROR: failed to build arm64 UEFI image"
+                echo "❌ failed to build arm64 UEFI image"
                 exit 1
             fi
         fi
