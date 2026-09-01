@@ -768,7 +768,7 @@ step_install() {
         # Build common sgdisk arguments,1MB alignment, 32MB boot partition
         local -a sgdisk_args=(
             --set-alignment=2048
-            --new=1:0:+32M  --typecode=1:8300 --change-name=1:"RouterOS Boot"
+            --new=1:0:+32M  --typecode=1:EF00 --change-name=1:"RouterOS Boot"
             --new=2:0:-4096 --typecode=2:8300 --change-name=2:"RouterOS"
             --hybrid=1:2:EE
         )
