@@ -408,23 +408,24 @@ jobs:
         ::sysinit:/sbin/openrc boot
         ::wait:/sbin/openrc default
         tty1::respawn:/sbin/agetty --autologin root tty1 linux
-        tty2::respawn:/sbin/agetty --autologin root tty2 linux
-        tty3::respawn:/sbin/agetty --autologin root tty3 linux
-        tty4::respawn:/sbin/agetty --autologin root tty4 linux
-        ttyS0::respawn:/sbin/agetty --autologin root ttyS0 linux
+        tty2::respawn:/sbin/agetty tty2 linux
+        tty3::respawn:/sbin/agetty tty3 linux
+        tty4::respawn:/sbin/agetty tty4 linux
+        ttyS0::respawn:/sbin/agetty ttyS0 linux
         ::ctrlaltdel:/sbin/reboot
         ::shutdown:/sbin/openrc shutdown
         EOF
 
-        cp ./install_routeros.sh $ROOTFS_DIR/root/install_routeros.sh
-        chmod +x $ROOTFS_DIR/root/install_routeros.sh
+        cp ./setup-routeros.sh $ROOTFS_DIR/usr/local/bin/setup-routeros
+        chmod +x $ROOTFS_DIR//usr/local/bin/setup-routeros
+        cp ./npkextract/npkextract $ROOTFS_DIR/usr/local/bin/npkextract
+        chmod +x $ROOTFS_DIR/usr/local/bin/npkextract
+
         cat << 'EOF' > $ROOTFS_DIR/root/.zprofile
-        if [ -x /root/install_routeros.sh ]; then
-            /root/install_routeros.sh
+        if command -v setup-routeros >/dev/null 2>&1; then
+            setup-routeros
         fi
         EOF
-        cp ./npkextract/npkextract $ROOTFS_DIR/bin/npkextract
-        chmod +x $ROOTFS_DIR/bin/npkextract
 
         cat << 'EOF' | sudo chroot $ROOTFS_DIR /usr/bin/env PATH=/usr/bin:/bin:/usr/sbin:/sbin /bin/sh
         set -e
@@ -456,7 +457,8 @@ jobs:
 
         sed -i 's|^root:\(.*\):/bin/sh$|root:\1:/bin/zsh|' /etc/passwd
         sed -i 's/^root:.*/root:::0:::::/' /etc/shadow
-        echo "" > /etc/motd
+        printf 'Welcome to Alpine!\n\nTo start the RouterOS installation wizard, run: setup-routeros\n\n' > /etc/motd
+  
         sed -i 's/^features=.*/features="ata base cdrom network scsi nvme ext2 usb virtio"/' /etc/mkinitfs/mkinitfs.conf
         KERNEL_VERSION=$(ls /lib/modules | head -1)
         mkinitfs -k -t /tmp "$KERNEL_VERSION"
