@@ -1,9 +1,4 @@
 #!/bin/bash
-# Requires bash >= 4: mapfile, associative arrays (declare -A).
-if (( BASH_VERSINFO[0] < 4 )); then
-    echo "ERROR: this installer requires bash >= 4 (found $BASH_VERSION)." >&2
-    exit 1
-fi
 
 BACKTITLE="MikroTik RouterOS LiveCD Installer"
 TITLE="RouterOS Installation Wizard"
