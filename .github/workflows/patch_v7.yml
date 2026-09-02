@@ -3,15 +3,13 @@ on:
   workflow_dispatch:
     inputs:
       channel:
-        description: 'Channel (stable, long-term, testing, development)'
+        description: 'Channel (stable, long-term)'
         required: true
         default: 'stable'
         type: choice
         options:
         - stable
         - long-term
-        # - testing
-        # - development
       arch:
         description: 'Architecture (x86, arm64)'
         required: true
@@ -22,7 +20,7 @@ on:
         - x86
         - arm64
       version:
-        description: "Specify version (e.g., 7.19.2), empty for latest"
+        description: "Specify version (e.g., 7.xx.x), empty for latest"
         required: false
         default: ''
         type: string
@@ -185,10 +183,8 @@ jobs:
       run: |
         echo "Creating Option Package Squashfs for channel: $CHANNEL, arch: $ARCH"
         mkdir -p $BUILD_DIR/option-root/bin/
-        cp ./busybox/busybox_$ARCH $BUILD_DIR/option-root/bin/busybox
-        chmod +x $BUILD_DIR/option-root/bin/busybox
-        cp ./keygen/keygen_$ARCH $BUILD_DIR/option-root/bin/keygen
-        chmod +x $BUILD_DIR/option-root/bin/keygen
+        install -m 755 ./busybox/busybox_$ARCH $BUILD_DIR/option-root/bin/busybox
+        install -m 755 ./keygen/keygen_$ARCH $BUILD_DIR/option-root/bin/keygen
         chmod +x ./busybox/busybox_x86
         COMMANDS=$(./busybox/busybox_x86 --list)
         for cmd in $COMMANDS; do
@@ -415,10 +411,8 @@ jobs:
         ::shutdown:/sbin/openrc shutdown
         EOF
 
-        cp ./setup-routeros.sh $ROOTFS_DIR/usr/local/bin/setup-routeros
-        chmod +x $ROOTFS_DIR//usr/local/bin/setup-routeros
-        cp ./npkextract/npkextract $ROOTFS_DIR/usr/local/bin/npkextract
-        chmod +x $ROOTFS_DIR/usr/local/bin/npkextract
+        install -m 755 ./setup-routeros.sh $ROOTFS_DIR/usr/local/bin/setup-routeros
+        install -m 755 ./npkextract/npkextract $ROOTFS_DIR/usr/local/bin/npkextract
 
         cat << 'EOF' > $ROOTFS_DIR/root/.zprofile
         if command -v setup-routeros >/dev/null 2>&1; then
@@ -644,7 +638,7 @@ jobs:
                         -input-charset utf-8 \
                         -iso-level 3 \
                         $BUILD_DIR/new_iso
-            echo "✅ ISO created: "
+            echo "✅ arm64 ISO created: "
             ls -la $PUBLISH_DIR/mikrotik-$VERSION$ARCH_EXT.iso
         fi
         rm -rf $BUILD_DIR/new_iso
@@ -931,6 +925,77 @@ jobs:
             echo "Release not found for tag: $VERSION$ARCH_EXT)"
         fi
 
+    - name: Generate Release Body 
+      if: needs.Prepare_Patch.outputs.RELEASE == 'true'
+      run: |
+        RELEASE_BODY="$BUILD_DIR/RELEASE_BODY.md"
+        BASE_URL="https://github.com/${{ github.repository }}/releases/download/$VERSION$ARCH_EXT"
+        cat > "$RELEASE_BODY" << EOF
+        # RouterOS ${{ env.VERSION }}${{ env.ARCH_EXT }} Release
+
+        **Build Time**: $BUILD_TIME
+        **Architecture**: $ARCH
+        **Channel**: $CHANNEL
+
+        <details><summary><strong>RouterOS</strong></summary>
+
+        | Type | File |
+        |------|------|
+        EOF
+
+        link_file() {
+          local file="$1"
+          if [ -f "$file" ]; then
+            local basename=$(basename "$file")
+            echo "[$basename]($BASE_URL/$basename)"
+          else
+            echo "N/A"
+          fi
+        }
+
+        echo "| Main package | $(link_file "$PUBLISH_DIR/routeros-${VERSION}${ARCH_EXT}.npk") |" >> "$RELEASE_BODY"
+        echo "| Extra packages	 | $(link_file "$PUBLISH_DIR/all_packages-$ARCH-$VERSION.zip") |" >> "$RELEASE_BODY"
+        echo "| ISO Image | $(link_file "$PUBLISH_DIR/mikrotik-${VERSION}${ARCH_EXT}.iso") |" >> "$RELEASE_BODY"
+        if [ "$ARCH" == "x86" ]; then
+          echo "| Install Image | $(link_file "$PUBLISH_DIR/install-image-$VERSION.zip") |" >> "$RELEASE_BODY"
+          echo "| Netinstall | $(link_file "$PUBLISH_DIR/netinstall-$VERSION.zip") |" >> "$RELEASE_BODY"
+        fi
+        echo "</details>" >> "$RELEASE_BODY"
+        echo "" >> "$RELEASE_BODY"
+
+        echo "<details><summary><strong>Cloud Hosted Router (CHR)</strong></summary>" >> "$RELEASE_BODY"
+        echo "" >> "$RELEASE_BODY"
+
+        if [ "$ARCH" == "x86" ]; then
+          echo "| Format | UEFI | Legacy BIOS |" >> "$RELEASE_BODY"
+          echo "|--------|------|-------------|" >> "$RELEASE_BODY"
+        else
+          echo "| Format | UEFI |" >> "$RELEASE_BODY"
+          echo "|--------|------|" >> "$RELEASE_BODY"
+        fi
+
+        formats=("img" "ova" "qcow2" "vdi" "vhd" "vhdx" "vmdk")
+        for fmt in "${formats[@]}"; do
+          uefi_link=$(link_file "$PUBLISH_DIR/chr-$VERSION$ARCH_EXT.$fmt.zip")
+          if [ "$ARCH" == "x86" ]; then
+            legacy_link=$(link_file "$PUBLISH_DIR/chr-$VERSION$ARCH_EXT-legacy-bios.$fmt.zip")
+            echo "| $fmt | $uefi_link | $legacy_link |" >> "$RELEASE_BODY"
+          else
+            echo "| $fmt | $uefi_link |" >> "$RELEASE_BODY"
+          fi
+        done
+        echo "</details>" >> "$RELEASE_BODY"
+        echo "" >> "$RELEASE_BODY"
+
+
+        echo "<details><summary><strong>Changelog</strong></summary>" >> "$RELEASE_BODY"
+        echo "" >> "$RELEASE_BODY"
+        echo "<pre>" >> "$RELEASE_BODY"
+        cat "$PUBLISH_DIR/CHANGELOG" >> "$RELEASE_BODY"
+        echo "</pre>" >> "$RELEASE_BODY"
+        echo "</details>" >> "$RELEASE_BODY"
+        echo "✅ Release body generated at $RELEASE_BODY"
+
     - name: Create Release tag ${{ env.VERSION }}${{ env.ARCH_EXT }}
       if: needs.Prepare_Patch.outputs.RELEASE == 'true'
       uses: softprops/action-gh-release@v3
@@ -938,10 +1003,9 @@ jobs:
         name: "RouterOS ${{ env.VERSION }}${{ env.ARCH_EXT }}"
         repository: ${{ github.repository }}
         token: ${{ secrets.GITHUB_TOKEN }}
-        body_path: ${{env.PUBLISH_DIR}}/CHANGELOG
+        body_path: ${{env.BUILD_DIR}}/RELEASE_BODY.md
         tag_name: ${{ env.VERSION }}${{ env.ARCH_EXT }}
         make_latest:  ${{ env.CHANNEL == 'stable' && matrix.arch == 'x86'}} 
-        prerelease:  ${{ env.CHANNEL == 'testing'}} 
         files: |
           ${{env.PUBLISH_DIR}}/*.zip
           ${{env.PUBLISH_DIR}}/*.iso

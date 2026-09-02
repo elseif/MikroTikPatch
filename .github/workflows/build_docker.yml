@@ -1,5 +1,9 @@
 name: Build CHR Docker
+
 on:
+  schedule:
+    - cron: "00 10 * * *"   # At UTC 09:00 (Beijing 17:00) on every day
+    
   workflow_dispatch:
     inputs:
       version:

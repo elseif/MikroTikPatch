@@ -61,9 +61,9 @@ select_language() {
                 MSG_GATEWAY="Gateway:"
                 MSG_DNS="Domain Name Server:"
                 MSG_SELECT_VERSION="Select the version you want to install:"
+                MSG_LTS="long-term (v7)"
                 MSG_STABLE="stable (v7)"
-                MSG_TEST="testing (v7)"
-                MSG_LTS="long-term (v6)"
+                MSG_LTS6="long-term (v6)"
                 MSG_STABLE6="stable (v6)"
                 MSG_PLEASE_CHOOSE="Please choose an option:"
                 MSG_UNSUPPORTED_ARCH="Error: Unsupported architecture: "
@@ -92,9 +92,9 @@ select_language() {
                 MSG_GATEWAY="网关地址:"
                 MSG_DNS="DNS服务器:"
                 MSG_SELECT_VERSION="请选择您要安装的版本:"
+                MSG_LTS="长期支持版 (v7)"
                 MSG_STABLE="稳定版 (v7)"
-                MSG_TEST="测试版 (v7)"
-                MSG_LTS="长期支持版 (v6)"
+                MSG_LTS6="长期支持版 (v6)"
                 MSG_STABLE6="稳定版 (v6)"
                 MSG_PLEASE_CHOOSE="请选择一个选项:"
                 MSG_UNSUPPORTED_ARCH="错误: 不支持的架构: "
@@ -207,15 +207,15 @@ select_version() {
             x86_64|i386|i486|i586|i686)
                 echo "$MSG_SELECT_VERSION"
                 echo "1. $MSG_STABLE"
-                echo "2. $MSG_TEST"
-                echo "3. $MSG_LTS"
-                echo "4. $MSG_STABLE6"
+                echo "2. $MSG_LTS"
+                echo "3. $MSG_STABLE6"
+                echo "4. $MSG_LTS6"
                 read -p "$MSG_PLEASE_CHOOSE [1-4]" version_choice
                 ;; 
             aarch64)
                 echo "$MSG_SELECT_VERSION"
                 echo "1. $MSG_STABLE"
-                echo "2. $MSG_TEST"
+                echo "2. $MSG_LTS"
                 read -p "$MSG_PLEASE_CHOOSE [1-2]" version_choice
                 ;; 
             *)
@@ -229,7 +229,7 @@ select_version() {
                 V7=1
                 ;;
             2) 
-                VERSION=$(http_get "https://upgrade.mikrotik.ltd/routeros/NEWESTa7.testing" | cut -d' ' -f1)
+                VERSION=$(http_get "https://upgrade.mikrotik.ltd/routeros/NEWESTa7.long-term" | cut -d' ' -f1)
                 V7=1
                 ;;
             3)
@@ -237,7 +237,7 @@ select_version() {
                     echo "$MSG_ARM64_NOT_SUPPORT_V6"
                     continue
                 fi
-                VERSION=$(http_get "https://upgrade.mikrotik.ltd/routeros/NEWEST6.long-term" | cut -d' ' -f1)
+                VERSION=$(http_get "https://upgrade.mikrotik.ltd/routeros/NEWEST6.stable" | cut -d' ' -f1)
                 V7=0
                 ;;
             4)
@@ -245,7 +245,7 @@ select_version() {
                     echo "$MSG_ARM64_NOT_SUPPORT_V6"
                     continue
                 fi
-                VERSION=$(http_get "https://upgrade.mikrotik.ltd/routeros/NEWEST6.stable" | cut -d' ' -f1)
+                VERSION=$(http_get "https://upgrade.mikrotik.ltd/routeros/NEWEST6.long-term" | cut -d' ' -f1)
                 V7=0
                 ;;
             *)
