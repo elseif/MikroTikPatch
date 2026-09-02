@@ -909,7 +909,6 @@ jobs:
     - name: Delete Release tag ${{ env.VERSION }}${{ env.ARCH_EXT }}
       if: needs.Prepare_Patch.outputs.RELEASE == 'true'
       run: |
-        sed -i "1i Build Time:$BUILD_TIME" $PUBLISH_DIR/CHANGELOG
         HEADER="Authorization: token ${{ secrets.GITHUB_TOKEN }}"
         RELEASE_INFO=$(curl -s -H "$HEADER" https://api.github.com/repos/${{ github.repository }}/releases/tags/$VERSION$ARCH_EXT)
         RELEASE_ID=$(echo $RELEASE_INFO | jq -r '.id')
@@ -1046,7 +1045,6 @@ jobs:
         rm -f $PUBLISH_DIR/*.iso
         rm -f $PUBLISH_DIR/*.zip.sha256
         rm -f $PUBLISH_DIR/*.iso.sha256
-        sed -i '1d' $PUBLISH_DIR/CHANGELOG
         echo $VERSION $BUILD_TIME | tee $PUBLISH_DIR/info
         touch $PUBLISH_DIR/$CHANNEL
         REMOTE_PATH=${{ secrets.SSH_DIRECTORY }}/$VERSION
