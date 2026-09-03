@@ -39,8 +39,7 @@ jobs:
 
             CANDIDATES=$(echo "$OFFICIAL_UPGRADE" | jq -c --argjson patch "$PATCH_UPGRADE" '
               ($patch.upgradePaths // {}) as $paths |
-              .upgradePaths // {} |
-              to_entries |
+              .upgradePaths // {} | to_entries |
               map(
                 .value.version as $official_version |
                 ($paths[.key] // null) as $patch_value |
@@ -60,18 +59,21 @@ jobs:
             ')
           else
             CANDIDATES=$(echo "$OFFICIAL_UPGRADE" | jq -c '
-            .upgradePaths // {} | to_entries | 
-            map(
+              .upgradePaths // {} | to_entries | 
+              map(
                 select(
-                  ( (.key | test("^NEWEST(6|a7)") ) and (.key | test("\\.(stable|development|long-term)$"))
-                ) |
+                  (.key | test("^NEWEST(6|a7)"))
+                  and
+                  (.key | test("\\.(stable|development|long-term)$"))
+                )
+                |
                 {
                   majorVersion: (.value.version | split(".")[0]),
                   channel: (.key | split(".")[1]),
                   version: .value.version
                 }
               )
-          ')
+            ')
           fi
 
           VERSION_FILTER="${{ github.event.inputs.version || 'all' }}"
