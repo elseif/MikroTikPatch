@@ -49,7 +49,7 @@ jobs:
                   $patch_value != null and
                   $official_version != $patch_value.version and
                   (any($paths[]; .version == $official_version) | not) and
-                  (.key | test("^NEWEST(6|a7)") ) and 
+                  ((.key | test("^NEWEST6")) or (.key | test("^NEWESTa7"))) and 
                   (.key | test("\\.(stable|development|long-term)$"))
                 ) |
                 {
@@ -64,7 +64,7 @@ jobs:
               .upgradePaths // {} | to_entries | 
               map(
                 select(
-                  (.key | test("^NEWEST(6|a7)"))
+                  ((.key | test("^NEWEST6")) or (.key | test("^NEWESTa7")))
                   and
                   (.key | test("\\.(stable|development|long-term)$"))
                 )
