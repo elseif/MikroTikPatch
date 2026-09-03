@@ -30,49 +30,49 @@ jobs:
       - name: Fetch and compare versions
         id: set-matrix
         run: |
-          OFFICIAL_UPGRADE=$(curl -s https://upgrade.mikrotik.com/routeros/upgrade.json || echo '{}')
-          if ! echo "$OFFICIAL_UPGRADE" | jq -e . >/dev/null 2>&1; then
-            OFFICIAL_UPGRADE='{}'
-          fi
+          OFFICIAL_UPGRADE=$(curl -s https://upgrade.mikrotik.com/routeros/upgrade.json)
+          echo "$OFFICIAL_UPGRADE" | jq -e . >/dev/null 2>&1 || { echo "ERROR: OFFICIAL_UPGRADE is not valid JSON" >&2; exit 1; }
           echo "=== OFFICIAL_UPGRADE ==="
-          echo "$OFFICIAL_UPGRADE" | jq . || echo "Invalid JSON"
+          echo "$OFFICIAL_UPGRADE" | jq .
 
           if [[ "${{ github.event_name }}" != "workflow_dispatch" ]]; then
-            PATCH_UPGRADE=$(curl -s https://upgrade.mikrotik.ltd/routeros/upgrade.json || echo '{}')
-            if ! echo "$PATCH_UPGRADE" | jq -e . >/dev/null 2>&1; then
-              PATCH_UPGRADE='{}'
-            fi
+            PATCH_UPGRADE=$(curl -s https://upgrade.mikrotik.ltd/routeros/upgrade.json)
+            echo "$PATCH_UPGRADE" | jq -e . >/dev/null 2>&1 || { echo "ERROR: PATCH_UPGRADE is not valid JSON" >&2; exit 1; }
             echo "=== PATCH_UPGRADE ==="
-            echo "$PATCH_UPGRADE" | jq . || echo "Invalid JSON"
+            echo "$PATCH_UPGRADE" | jq .
 
             CANDIDATES=$(echo "$OFFICIAL_UPGRADE" | jq -c --argjson patch "$PATCH_UPGRADE" '
-              ($patch.upgradePaths | objects // {}) as $paths |
-              .upgradePaths // {} | to_entries | map(
+              ($patch.upgradePaths // {}) as $paths |
+              .upgradePaths // {} |
+              to_entries |
+              map(
                 .value.version as $official_version |
-                ($paths[.key] | objects) as $patch_value |
+                ($paths[.key] // null) as $patch_value |
                 select(
                   $patch_value != null and
                   $official_version != $patch_value.version and
-                  ( any( $paths[] | objects | .version; . == $official_version ) | not ) and
-                  ( .key | test("^NEWEST6") or .key | test("^NEWESTa7") )
-                ) | {
+                  (any($paths[]; .version == $official_version) | not) and
+                  (.key | test("^NEWEST6|^NEWESTa7"))
+                ) |
+                {
                   majorVersion: (if .key | test("^NEWESTa7") then "7" else "6" end),
                   channel: (.key | split(".")[1]),
                   version: .value.version
                 }
               )
-            ' || echo '[]')
+            ')
           else
             CANDIDATES=$(echo "$OFFICIAL_UPGRADE" | jq -c '
-              (.upgradePaths | objects // {}) | to_entries | map(
-                select( .key | test("^NEWEST6") or .key | test("^NEWESTa7") )
-                | {
-                    majorVersion: (if .key | test("^NEWESTa7") then "7" else "6" end),
+              .upgradePaths // {}| to_entries | 
+              map(
+                  select((.key | test("^NEWEST6")) or (.key | test("^NEWESTa7"))) |
+                  {
+                    majorVersion: (if (.key | test("^NEWESTa7"))  then "7" else "6"  end),
                     channel: (.key | split(".")[1]),
                     version: .value.version
                   }
-              )
-            ' || echo '[]')
+                )
+            ')
           fi
 
           VERSION_FILTER="${{ inputs.version || 'all' }}"
