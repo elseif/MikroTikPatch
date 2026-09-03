@@ -34,22 +34,26 @@ jobs:
           if ! echo "$OFFICIAL_UPGRADE" | jq -e . >/dev/null 2>&1; then
             OFFICIAL_UPGRADE='{}'
           fi
+          echo "=== OFFICIAL_UPGRADE ==="
+          echo "$OFFICIAL_UPGRADE" | jq . || echo "Invalid JSON"
 
           if [[ "${{ github.event_name }}" != "workflow_dispatch" ]]; then
             PATCH_UPGRADE=$(curl -s https://upgrade.mikrotik.ltd/routeros/upgrade.json || echo '{}')
             if ! echo "$PATCH_UPGRADE" | jq -e . >/dev/null 2>&1; then
               PATCH_UPGRADE='{}'
             fi
+            echo "=== PATCH_UPGRADE ==="
+            echo "$PATCH_UPGRADE" | jq . || echo "Invalid JSON"
 
             CANDIDATES=$(echo "$OFFICIAL_UPGRADE" | jq -c --argjson patch "$PATCH_UPGRADE" '
-              ($patch.upgradePaths // {}) as $paths |
+              ($patch.upgradePaths | objects // {}) as $paths |
               .upgradePaths // {} | to_entries | map(
                 .value.version as $official_version |
-                $paths[.key] as $patch_value |
+                ($paths[.key] | objects) as $patch_value |
                 select(
                   $patch_value != null and
                   $official_version != $patch_value.version and
-                  ( any( $paths[] | .version; . == $official_version ) | not ) and
+                  ( any( $paths[] | objects | .version; . == $official_version ) | not ) and
                   ( .key | test("^NEWEST6") or .key | test("^NEWESTa7") )
                 ) | {
                   majorVersion: (if .key | test("^NEWESTa7") then "7" else "6" end),
