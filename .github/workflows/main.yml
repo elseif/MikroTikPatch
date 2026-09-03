@@ -26,6 +26,8 @@ jobs:
     outputs:
       upgrades_v6: ${{ steps.set-matrix.outputs.upgrades_v6 }}
       upgrades_v7: ${{ steps.set-matrix.outputs.upgrades_v7 }}
+      patch_v6: ${{ steps.set-matrix.outputs.patch_v6 }}
+      patch_v7: ${{ steps.set-matrix.outputs.patch_v7 }}
     steps:
       - name: Fetch and compare versions
         id: set-matrix
@@ -47,7 +49,7 @@ jobs:
                   $patch_value != null and
                   $official_version != $patch_value.version and
                   (any($paths[]; .version == $official_version) | not) and
-                  (.key | test("^NEWES(6|a7)") ) and 
+                  (.key | test("^NEWEST(6|a7)") ) and 
                   (.key | test("\\.(stable|development|long-term)$"))
                 ) |
                 {
@@ -76,7 +78,7 @@ jobs:
             ')
           fi
 
-          VERSION_FILTER="${{ github.event.inputs.version || 'all' }}"
+          VERSION_FILTER="${{ inputs.version || 'all' }}"
           V6_MATRIX=$(echo "$CANDIDATES" | jq -c 'map(select(.majorVersion == "6" ))')
           V7_MATRIX=$(echo "$CANDIDATES" | jq -c 'map(select(.majorVersion == "7" ))')
           if [[ "$VERSION_FILTER" == "v6" ]]; then
@@ -84,8 +86,11 @@ jobs:
           elif [[ "$VERSION_FILTER" == "v7" ]]; then
             V6_MATRIX='[]'
           fi
-          echo "upgrades_v6=$V6_MATRIX" >> $GITHUB_OUTPUT
-          echo "upgrades_v7=$V7_MATRIX" >> $GITHUB_OUTPUT
+          echo "upgrades_v6=$V6_MATRIX" >> "$GITHUB_OUTPUT"
+          echo "upgrades_v7=$V7_MATRIX" >> "$GITHUB_OUTPUT"
+          echo "patch_v6=$(jq 'length > 0' <<< "$V6_MATRIX")" >> "$GITHUB_OUTPUT"
+          echo "patch_v7=$(jq 'length > 0' <<< "$V7_MATRIX")" >> "$GITHUB_OUTPUT"
+
           echo "=== Upgrades V6 ==="
           echo "$V6_MATRIX" | jq .
 
@@ -94,7 +99,7 @@ jobs:
 
   Patch_V6:
     needs: Check_Versions
-    if: ${{ needs.Check_Versions.outputs.upgrades_v6 != '[]' }}
+    if: ${{ needs.Check_Versions.outputs.patch_v6 == 'true' }}
     uses: ./.github/workflows/patch_v6.yml
     strategy:
       matrix:
@@ -103,12 +108,12 @@ jobs:
     with:
       channel: ${{ matrix.target.channel }}
       version: ${{ matrix.target.version }}
-      release: ${{ github.event_name == 'workflow_dispatch' && inputs.release || github.event_name != 'workflow_dispatch' && true }}
+      release: ${{ github.event_name != 'workflow_dispatch' || inputs.release }}
     secrets: inherit
 
   Patch_V7:
     needs: Check_Versions
-    if: ${{ needs.Check_Versions.outputs.upgrades_v7 != '[]' }}
+    if: ${{ needs.Check_Versions.outputs.patch_v7 == 'true' }}
     uses: ./.github/workflows/patch_v7.yml
     strategy:
       matrix:
@@ -117,5 +122,5 @@ jobs:
     with:
       channel: ${{ matrix.target.channel }}
       version: ${{ matrix.target.version }}
-      release: ${{ github.event_name == 'workflow_dispatch' && inputs.release || github.event_name != 'workflow_dispatch' && true }}
+      release: ${{ github.event_name != 'workflow_dispatch' || inputs.release }}
     secrets: inherit
