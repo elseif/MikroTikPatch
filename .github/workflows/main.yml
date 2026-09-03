@@ -35,7 +35,7 @@ jobs:
           echo "=== OFFICIAL_UPGRADE ==="
           echo "$OFFICIAL_UPGRADE" | jq .
 
-          if [[ "${{ github.event_name }}" != "workflow_dispatch" ]]; then
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             PATCH_UPGRADE=$(curl -s https://upgrade.mikrotik.ltd/routeros/upgrade.json)
             echo "$PATCH_UPGRADE" | jq -e . >/dev/null 2>&1 || { echo "ERROR: PATCH_UPGRADE is not valid JSON" >&2; exit 1; }
             echo "=== PATCH_UPGRADE ==="
