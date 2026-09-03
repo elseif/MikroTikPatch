@@ -33,7 +33,7 @@ jobs:
           OFFICIAL_UPGRADE=$(curl -s https://upgrade.mikrotik.com/routeros/upgrade.json)
           echo "$OFFICIAL_UPGRADE" | jq -e . >/dev/null 2>&1 || { echo "ERROR: OFFICIAL_UPGRADE is not valid JSON" >&2; exit 1; }
 
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          if [[ "${{ github.event_name }}" != "workflow_dispatch" ]]; then
             PATCH_UPGRADE=$(curl -s https://upgrade.mikrotik.ltd/routeros/upgrade.json)
             echo "$PATCH_UPGRADE" | jq -e . >/dev/null 2>&1 || { echo "ERROR: PATCH_UPGRADE is not valid JSON" >&2; exit 1; }
 
@@ -87,30 +87,30 @@ jobs:
           echo "Upgrades V6: $V6_MATRIX"
           echo "Upgrades V7: $V7_MATRIX"
 
-  Patch_V6:
-    needs: Check_Versions
-    if: ${{ needs.Check_Versions.outputs.upgrades_v6 != '[]' }}
-    uses: ./.github/workflows/patch_v6.yml
-    strategy:
-      matrix:
-        target: ${{ fromJson(needs.Check_Versions.outputs.upgrades_v6) }}
-      fail-fast: false
-    with:
-      channel: ${{ matrix.target.channel }}
-      version: ${{ matrix.target.version }}
-      release: ${{ github.event_name == 'workflow_dispatch' && inputs.release || github.event_name != 'workflow_dispatch' && true }}
-    secrets: inherit
+  # Patch_V6:
+  #   needs: Check_Versions
+  #   if: ${{ needs.Check_Versions.outputs.upgrades_v6 != '[]' }}
+  #   uses: ./.github/workflows/patch_v6.yml
+  #   strategy:
+  #     matrix:
+  #       target: ${{ fromJson(needs.Check_Versions.outputs.upgrades_v6) }}
+  #     fail-fast: false
+  #   with:
+  #     channel: ${{ matrix.target.channel }}
+  #     version: ${{ matrix.target.version }}
+  #     release: ${{ github.event_name == 'workflow_dispatch' && inputs.release || github.event_name != 'workflow_dispatch' && true }}
+  #   secrets: inherit
 
-  Patch_V7:
-    needs: Check_Versions
-    if: ${{ needs.Check_Versions.outputs.upgrades_v7 != '[]' }}
-    uses: ./.github/workflows/patch_v7.yml
-    strategy:
-      matrix:
-        target: ${{ fromJson(needs.Check_Versions.outputs.upgrades_v7) }}
-      fail-fast: false
-    with:
-      channel: ${{ matrix.target.channel }}
-      version: ${{ matrix.target.version }}
-      release: ${{ github.event_name == 'workflow_dispatch' && inputs.release || github.event_name != 'workflow_dispatch' && true }}
-    secrets: inherit
+  # Patch_V7:
+  #   needs: Check_Versions
+  #   if: ${{ needs.Check_Versions.outputs.upgrades_v7 != '[]' }}
+  #   uses: ./.github/workflows/patch_v7.yml
+  #   strategy:
+  #     matrix:
+  #       target: ${{ fromJson(needs.Check_Versions.outputs.upgrades_v7) }}
+  #     fail-fast: false
+  #   with:
+  #     channel: ${{ matrix.target.channel }}
+  #     version: ${{ matrix.target.version }}
+  #     release: ${{ github.event_name == 'workflow_dispatch' && inputs.release || github.event_name != 'workflow_dispatch' && true }}
+  #   secrets: inherit
