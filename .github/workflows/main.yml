@@ -2,7 +2,7 @@
 name: Patch Mikrotik RouterOS
 on:
   schedule:
-    - cron: "00 * * * *"   # Every hour at minute 00 (UTC)
+    - cron: "25 * * * *"   # Every hour at minute 25 (UTC)
   workflow_dispatch:  
     inputs:
       version:
