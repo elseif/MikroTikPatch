@@ -946,7 +946,7 @@ jobs:
         **Architecture**: $ARCH
         **Channel**: $CHANNEL
 
-        <details><summary><strong>RouterOS</strong></summary>
+        <details open><summary><strong>RouterOS</strong></summary>
 
         | Type | File |
         |------|------|
@@ -965,7 +965,7 @@ jobs:
         echo "" >> "$RELEASE_BODY"
 
         if [ "$ARCH" == "x86" ] || [ "$ARCH" == "arm64" ]; then
-          echo "<details><summary><strong>Cloud Hosted Router (CHR)</strong></summary>" >> "$RELEASE_BODY"
+          echo "<details open><summary><strong>Cloud Hosted Router (CHR)</strong></summary>" >> "$RELEASE_BODY"
           echo "" >> "$RELEASE_BODY"
           if [ "$ARCH" == "x86" ]; then
             echo "| Platform | UEFI | Legacy BIOS |" >> "$RELEASE_BODY"
