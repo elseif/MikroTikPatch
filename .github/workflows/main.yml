@@ -73,6 +73,7 @@ jobs:
               )
           ')
           fi
+          echo "CANDIDATES: $CANDIDATES"
 
           VERSION_FILTER="${{ github.event.inputs.version || 'all' }}"
           V6_MATRIX=$(echo "$CANDIDATES" | jq -c 'map(select(.majorVersion == "6" ))')
