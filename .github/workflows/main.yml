@@ -64,7 +64,7 @@ jobs:
             ' || echo '[]')
           else
             CANDIDATES=$(echo "$OFFICIAL_UPGRADE" | jq -c '
-              .upgradePaths // {} | to_entries | map(
+              (.upgradePaths | objects // {}) | to_entries | map(
                 select( .key | test("^NEWEST6") or .key | test("^NEWESTa7") )
                 | {
                     majorVersion: (if .key | test("^NEWESTa7") then "7" else "6" end),
