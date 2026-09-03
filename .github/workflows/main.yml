@@ -32,14 +32,10 @@ jobs:
         run: |
           OFFICIAL_UPGRADE=$(curl -s https://upgrade.mikrotik.com/routeros/upgrade.json)
           echo "$OFFICIAL_UPGRADE" | jq -e . >/dev/null 2>&1 || { echo "ERROR: OFFICIAL_UPGRADE is not valid JSON" >&2; exit 1; }
-          echo "=== OFFICIAL_UPGRADE ==="
-          echo "$OFFICIAL_UPGRADE" | jq .
 
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             PATCH_UPGRADE=$(curl -s https://upgrade.mikrotik.ltd/routeros/upgrade.json)
             echo "$PATCH_UPGRADE" | jq -e . >/dev/null 2>&1 || { echo "ERROR: PATCH_UPGRADE is not valid JSON" >&2; exit 1; }
-            echo "=== PATCH_UPGRADE ==="
-            echo "$PATCH_UPGRADE" | jq .
 
             CANDIDATES=$(echo "$OFFICIAL_UPGRADE" | jq -c --argjson patch "$PATCH_UPGRADE" '
               ($patch.upgradePaths // {}) as $paths |
@@ -52,10 +48,11 @@ jobs:
                   $patch_value != null and
                   $official_version != $patch_value.version and
                   (any($paths[]; .version == $official_version) | not) and
-                  (.key | test("^NEWEST6|^NEWESTa7"))
+                  (.key | test("^NEWES(6|a7)") ) and 
+                  (.key | test("\\.(stable|development|long-term)$"))
                 ) |
                 {
-                  majorVersion: (if .key | test("^NEWESTa7") then "7" else "6" end),
+                  majorVersion: (.value.version | split(".")[0]),
                   channel: (.key | split(".")[1]),
                   version: .value.version
                 }
@@ -63,30 +60,28 @@ jobs:
             ')
           else
             CANDIDATES=$(echo "$OFFICIAL_UPGRADE" | jq -c '
-              .upgradePaths // {}| to_entries | 
-              map(
-                  select((.key | test("^NEWEST6")) or (.key | test("^NEWESTa7"))) |
-                  {
-                    majorVersion: (if (.key | test("^NEWESTa7"))  then "7" else "6"  end),
-                    channel: (.key | split(".")[1]),
-                    version: .value.version
-                  }
-                )
-            ')
+            .upgradePaths // {} | to_entries | 
+            map(
+                select(
+                  ( (.key | test("^NEWEST(6|a7)") ) and (.key | test("\\.(stable|development|long-term)$"))
+                ) |
+                {
+                  majorVersion: (.value.version | split(".")[0]),
+                  channel: (.key | split(".")[1]),
+                  version: .value.version
+                }
+              )
+          ')
           fi
 
-          VERSION_FILTER="${{ inputs.version || 'all' }}"
+          VERSION_FILTER="${{ github.event.inputs.version || 'all' }}"
+          V6_MATRIX=$(echo "$CANDIDATES" | jq -c 'map(select(.majorVersion == "6" ))')
+          V7_MATRIX=$(echo "$CANDIDATES" | jq -c 'map(select(.majorVersion == "7" ))')
           if [[ "$VERSION_FILTER" == "v6" ]]; then
-            V6_MATRIX=$(echo "$CANDIDATES" | jq -c 'map(select(.majorVersion == "6"))')
             V7_MATRIX='[]'
           elif [[ "$VERSION_FILTER" == "v7" ]]; then
             V6_MATRIX='[]'
-            V7_MATRIX=$(echo "$CANDIDATES" | jq -c 'map(select(.majorVersion == "7"))')
-          else
-            V6_MATRIX=$(echo "$CANDIDATES" | jq -c 'map(select(.majorVersion == "6"))')
-            V7_MATRIX=$(echo "$CANDIDATES" | jq -c 'map(select(.majorVersion == "7"))')
           fi
-
           echo "upgrades_v6=$V6_MATRIX" >> $GITHUB_OUTPUT
           echo "upgrades_v7=$V7_MATRIX" >> $GITHUB_OUTPUT
           echo "Upgrades V6: $V6_MATRIX"
