@@ -2,17 +2,20 @@ name: Patch RouterOS v6
 on:
   workflow_call:  
     inputs:
+      version:
+        required: true
+        type: string
       channels:
         required: true
         type: string
-      version:
-        required: false
+      archs:
+        required: true
         type: string
       buildtime:
-        required: false
+        required: true
         type: string
       release:
-        required: false
+        required: true
         type: boolean
 
 env:
@@ -38,10 +41,14 @@ env:
 jobs:
   Patch_RouterOS:
     runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        arch: ${{ fromJson( inputs.archs ) }}
+      fail-fast: false
     env:
       TZ: 'Asia/Shanghai'
       CHANNELS: ${{ inputs.channels }}
-      ARCH: "x86"
+      ARCH: ${{ matrix.arch }}
       VERSION: ${{ inputs.version }}
       BUILD_TIME: ${{ inputs.buildtime }}
       RELEASE: ${{ inputs.release }}

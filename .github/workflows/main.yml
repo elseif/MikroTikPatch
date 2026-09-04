@@ -230,6 +230,7 @@ jobs:
     with:
       version: ${{ matrix.target.version }}
       channels:  ${{ toJson(matrix.target.channels) }}
+      archs: ${{ needs.Prepare_Patch.outputs.archs }}
       buildtime: ${{ inputs.buildtime }}
       release: ${{ github.event_name != 'workflow_dispatch' || inputs.release }}
     secrets: inherit

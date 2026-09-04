@@ -2,20 +2,20 @@ name: Patch RouterOS v7
 on:
   workflow_call:  
     inputs:
+      version:
+        required: true
+        type: string
       channels:
         required: true
         type: string
       archs:
         required: true
         type: string
-      version:
-        required: false
-        type: string
       buildtime:
-        required: false
+        required: true
         type: string
       release:
-        required: false
+        required: true
         type: boolean
 
 env:
