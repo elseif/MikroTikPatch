@@ -6,7 +6,7 @@ on:
   workflow_dispatch:  
     inputs:
       channels:
-        description: 'JSON array of channels, e.g. ["stable","long-term"]'
+        description: 'JSON array of channels, e.g. ["stable","long-term","development","testing"]'
         required: true
         default: '["stable"]'
         type: string
@@ -221,7 +221,7 @@ jobs:
 
   Patch_V6:
     needs: Prepare_Patch
-    if: ${{ needs.Prepare_Patch.outputs.patch_v6 == 'true' }}
+    if: needs.Prepare_Patch.result == 'success' && needs.Prepare_Patch.outputs.patch_v6 == 'true'
     uses: ./.github/workflows/patch_v6.yml
     strategy:
       matrix:
@@ -237,7 +237,7 @@ jobs:
 
   Patch_V7:
     needs: Prepare_Patch
-    if: ${{ needs.Prepare_Patch.outputs.patch_v7 == 'true' }}
+    if: needs.Prepare_Patch.result == 'success' && needs.Prepare_Patch.outputs.patch_v7 == 'true'
     uses: ./.github/workflows/patch_v7.yml
     strategy:
       matrix:
