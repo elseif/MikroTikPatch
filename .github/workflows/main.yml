@@ -44,12 +44,12 @@ on:
           - v6
           - v7
       version:
-        description: 'Optional fixed version (e.g. 7.xx.x), empty for latest'
+        description: '(e.g. 7.xx.x), empty for latest'
         required: false
         default: ''
         type: string
       buildtime:
-        description: "Custom build time, leave empty for original"
+        description: "build imestamp, leave empty for original"
         required: false
         default: ''
         type: string
@@ -59,7 +59,7 @@ on:
         default: false
         type: boolean
       force:
-        description: 'Force patch even if version already patched'
+        description: 'Force patch even if already patched'
         required: false
         default: false
         type: boolean
