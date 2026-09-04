@@ -43,7 +43,11 @@ on:
         required: false
         default: false
         type: boolean
-
+      force:
+        description: 'Force patch even if version already patched'
+        required: false
+        default: false
+        type: boolean
 
 
 
@@ -65,6 +69,7 @@ jobs:
             CHANNELS='${{ inputs.channels }}'
             VERSION_INPUT='${{ inputs.version }}'
             MAJOR_VERSION='${{ inputs.major_version }}'
+            FORCE="${{ inputs.force || 'false' }}"
 
             echo "$CHANNELS" | jq -e '
               type=="array" and
@@ -95,6 +100,7 @@ jobs:
             CHANNELS='["stable","long-term","development","testing"]'
             VERSION_INPUT=""
             MAJOR_VERSION="all"
+            FORCE="false"
           fi
 
           ARCH_INPUT="${{ inputs.arch || 'all' }}"
@@ -114,6 +120,7 @@ jobs:
           fi
 
           echo "Major Version: $MAJOR_VERSION"
+          echo "Force: $FORCE"
           echo "Architectures:"
           echo "$ARCHS" | jq .
           echo "Channels:"
@@ -172,29 +179,31 @@ jobs:
           echo "Candidates:"
           echo "$CANDIDATES" | jq .
 
-          if [[ "${{ github.event_name }}" != "workflow_dispatch" ]]; then
+          if [[ "$FORCE" == "true" ]]; then
+            echo "Force mode enabled: skip patched version check"
+          else
+            echo "Checking patched versions"
             PATCH_UPGRADE=$(curl -fsSL https://upgrade.mikrotik.ltd/routeros/upgrade.json) || { echo "ERROR: Failed to fetch PATCH_UPGRADE" >&2; exit 1; }
             echo "$PATCH_UPGRADE" | jq -e . >/dev/null 2>&1 || { echo "ERROR: PATCH_UPGRADE is not valid JSON" >&2; exit 1; }
-            PATCH_VERSIONS=$(echo "$PATCH_UPGRADE" |  jq -c '
-                [.upgradePaths[].version] | unique
-              ')
 
-            FILTERED=$(echo "$CANDIDATES" | jq -c --argjson patched "$PATCH_VERSIONS" '
-              map(
-                select(
-                  (.version as $v | ($patched | index($v))) != null
-                )
-              )
+            PATCH_VERSIONS=$(echo "$PATCH_UPGRADE" | jq -c '
+                [.upgradePaths[].version] | unique
             ')
-            echo "Filtered versions (already patched, skipped):"
-            echo "$FILTERED" | jq .
+
+            ALREADY_PATCHED=$(echo "$CANDIDATES" | jq -c --argjson patched "$PATCH_VERSIONS" '
+                map(select(
+                    (.version as $v | ($patched | index($v))) != null
+                ))
+            ')
+
+            echo "Already patched:"
+            echo "$ALREADY_PATCHED" | jq .
+
 
             CANDIDATES=$(echo "$CANDIDATES" | jq -c --argjson patched "$PATCH_VERSIONS" '
-                map(
-                  select(
+                map(select(
                     (.version as $v | ($patched | index($v))) == null
-                  )
-                )
+                ))
             ')
 
             echo "Candidates after filter:"
