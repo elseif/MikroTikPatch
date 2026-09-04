@@ -11,12 +11,13 @@ on:
       archs:
         required: true
         type: string
-      buildtime:
-        required: true
-        type: string
       release:
         required: true
         type: boolean
+      buildtime:
+        required: false
+        type: string
+        default: ''
 
 env:
   CUSTOM_LICENSE_PRIVATE_KEY: ${{ secrets.CUSTOM_LICENSE_PRIVATE_KEY }}

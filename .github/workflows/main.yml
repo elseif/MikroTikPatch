@@ -157,8 +157,8 @@ jobs:
                     ]
                   end
                 ] |
-                flatten |
                 map(select(.version != null)) |
+                sort_by(.version) |
                 group_by(.version) |
                 map({
                   version: .[0].version,
@@ -172,7 +172,7 @@ jobs:
           echo "$CANDIDATES" | jq .
 
           if [[ "${{ github.event_name }}" != "workflow_dispatch" ]]; then
-            PATCH_UPGRADE=$(curl -fsSL https://upgrade.mikrotik.ltd/routeros/upgrade.json) || { echo "ERROR: Failed to fetch OFFICIAL_UPGRADE" >&2; exit 1; }
+            PATCH_UPGRADE=$(curl -fsSL https://upgrade.mikrotik.ltd/routeros/upgrade.json) || { echo "ERROR: Failed to fetch PATCH_UPGRADE" >&2; exit 1; }
             echo "$PATCH_UPGRADE" | jq -e . >/dev/null 2>&1 || { echo "ERROR: PATCH_UPGRADE is not valid JSON" >&2; exit 1; }
             PATCH_VERSIONS=$(echo "$PATCH_UPGRADE" |  jq -c '
                 [.upgradePaths[].version] | unique
