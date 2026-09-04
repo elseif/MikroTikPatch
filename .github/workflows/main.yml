@@ -5,11 +5,26 @@ on:
     - cron: "25 * * * *"   # Every hour at minute 25 (UTC)
   workflow_dispatch:  
     inputs:
-      channels:
-        description: 'JSON array of channels, e.g. ["stable","long-term","development","testing"]'
-        required: true
-        default: '["stable"]'
-        type: string
+      stable:
+        description: 'Build stable channel'
+        required: false
+        type: boolean
+        default: true
+      long_term:
+        description: 'Build long-term channel'
+        required: false
+        type: boolean
+        default: false
+      development:
+        description: 'Build development channel'
+        required: false
+        type: boolean
+        default: false
+      testing:
+        description: 'Build testing channel'
+        required: false
+        type: boolean
+        default: false
       arch:
         description: 'Architectures (x86, arm64)'
         required: true
@@ -66,19 +81,19 @@ jobs:
         id: prepare
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            CHANNELS='${{ inputs.channels }}'
+            channels=()
+            [[ "${{ inputs.stable }}" == "true" ]] && channels+=("stable")
+            [[ "${{ inputs.long_term }}" == "true" ]] && channels+=("long-term")
+            [[ "${{ inputs.development }}" == "true" ]] && channels+=("development")
+            [[ "${{ inputs.testing }}" == "true" ]] && channels+=("testing")
+            if [ ${#channels[@]} -eq 0 ]; then
+                echo "ERROR: At least one channel must be selected"
+                exit 1
+            fi
+            CHANNELS=$(printf '%s\n' "${channels[@]}" | jq -Rsc 'split("\n")[:-1]')
             VERSION_INPUT='${{ inputs.version }}'
             MAJOR_VERSION='${{ inputs.major_version }}'
             FORCE="${{ inputs.force || 'false' }}"
-
-            echo "$CHANNELS" | jq -e '
-              type=="array" and
-              all(.[]; type=="string")
-            ' >/dev/null || {
-              echo "ERROR: channels must be JSON array"
-              exit 1
-            }
-            CHANNELS=$(echo "$CHANNELS" | jq -c 'unique')  
 
             if [[ -n "$VERSION_INPUT" && "$MAJOR_VERSION" != "all" ]]; then
               case "$MAJOR_VERSION" in
@@ -205,9 +220,6 @@ jobs:
                     (.version as $v | ($patched | index($v))) == null
                 ))
             ')
-
-            echo "Candidates after filter:"
-            echo "$CANDIDATES" | jq .
           fi
 
           V6_MATRIX=$(echo "$CANDIDATES" | jq -c 'map(select(.version | startswith("6.")))')
