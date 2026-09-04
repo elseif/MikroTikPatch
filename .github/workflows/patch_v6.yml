@@ -501,8 +501,8 @@ jobs:
         while read -r CHANNEL
         do
           REMOTE_CMD="$REMOTE_CMD
-        ln -sfn /rw/disk/$REMOTE_PATH/$VERSION/info /rw/disk/$REMOTE_PATH/NEWEST6.$CHANNEL"
-        ln -sfn /rw/disk/$REMOTE_PATH/$VERSION/info /rw/disk/$REMOTE_PATH/NEWESTa6.$CHANNEL"
+        ln -sfn /root/$REMOTE_PATH/$VERSION/info /rw/disk/$REMOTE_PATH/NEWEST6.$CHANNEL"
+        ln -sfn /root/$REMOTE_PATH/$VERSION/info /rw/disk/$REMOTE_PATH/NEWESTa6.$CHANNEL"
         done < <(echo "$CHANNELS" | jq -r '.[]')
 
         REMOTE_CMD="$REMOTE_CMD
