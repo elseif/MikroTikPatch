@@ -1,62 +1,22 @@
 name: Patch RouterOS v7
 on:
-  workflow_dispatch:
-    inputs:
-      channel:
-        description: 'Channel (stable, long-term, development)'
-        required: true
-        default: 'stable'
-        type: choice
-        options:
-        - stable
-        - long-term
-        - development
-      arch:
-        description: 'Architecture (x86, arm64)'
-        required: true
-        default: 'all'
-        type: choice
-        options:
-        - all
-        - x86
-        - arm64
-      version:
-        description: "Specify version (e.g., 7.xx.x), empty for latest"
-        required: false
-        default: ''
-        type: string
-      buildtime:
-        description: "Custom build time, leave empty for original"
-        required: false
-        default: ''
-        type: string
-      release:
-        description: "Release to Upload "
-        required: false
-        default: false
-        type: boolean
-
   workflow_call:  
     inputs:
-      channel:
+      channels:
         required: true
         type: string
-      arch:
-        required: false
+      archs:
+        required: true
         type: string
-        default: 'all'
       version:
         required: false
         type: string
-        default: ''
       buildtime:
         required: false
         type: string
-        default: ''
       release:
         required: false
         type: boolean
-        default: false
 
 env:
   CUSTOM_LICENSE_PRIVATE_KEY: ${{ secrets.CUSTOM_LICENSE_PRIVATE_KEY }}
@@ -79,77 +39,26 @@ env:
   CUSTOM_CLOUD2_URL: ${{ secrets.CUSTOM_CLOUD2_URL }}
   
 jobs:
-  Prepare_Patch:
-    runs-on: ubuntu-24.04
-    outputs:
-      VERSION: ${{ steps.prepare.outputs.VERSION }}
-      BUILD_TIME: ${{ steps.prepare.outputs.BUILD_TIME }}
-      ARCHS: ${{ steps.prepare.outputs.ARCHS }}
-      RELEASE: ${{ steps.prepare.outputs.RELEASE }}
-      SKIP_BUILD: ${{ steps.prepare.outputs.SKIP_BUILD }}
-    steps:
-    - name: Prepare Patch for ${{ inputs.channel }}
-      id: prepare
-      run: |
-        CHANNEL="${{ inputs.channel }}"
-        ARCH_INPUT="${{ inputs.arch }}"
-        VERSION="${{ inputs.version }}"
-        RELEASE="${{ inputs.release }}"
-        BUILD_TIME="${{ inputs.buildtime }}"
-
-        if [ "$ARCH_INPUT" == "all" ]; then
-          ARCHS='["x86", "arm64"]'
-        else
-          ARCHS=$(jq -c -n --arg arch "$ARCH_INPUT" '[$arch]')
-        fi
-
-        SKIP_BUILD=false
-        if [ -z "$VERSION" ]; then
-          echo "Checking latest version from $CHANNEL channel..."
-          TIMESTAMP=$(date +%s)
-          NEWEST=$(wget -nv -O - "https://${{ env.MIKRO_UPGRADE_URL }}/routeros/NEWESTa7.$CHANNEL?t=$TIMESTAMP")
-          VERSION=$(echo "$NEWEST" | cut -d ' ' -f1)
-          echo "Official version: $VERSION"
-          if [[ "${{ github.event_name }}" != "workflow_dispatch" ]]; then
-            PATCH_NEWEST=$(wget -nv -O - "https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/NEWESTa7.$CHANNEL?t=$TIMESTAMP" 2>/dev/null || echo "")
-            PATCH_VERSION=$(echo "$PATCH_NEWEST" | cut -d ' ' -f1)
-            echo "Patch version: ${PATCH_VERSION:-none}"
-            if [ "$PATCH_VERSION" == "$VERSION" ]; then
-              echo "No new version for $CHANNEL, skipping..."
-              SKIP_BUILD=true
-            else
-              echo "New version $VERSION available, building..."
-            fi
-          fi
-        fi
-        echo "SKIP_BUILD=$SKIP_BUILD" >> $GITHUB_OUTPUT
-        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-        echo "BUILD_TIME=$BUILD_TIME" >> $GITHUB_OUTPUT
-        echo "ARCHS=$ARCHS" >> $GITHUB_OUTPUT
-        echo "RELEASE=$RELEASE" >> $GITHUB_OUTPUT
-        echo "Version: $VERSION, Archs: $ARCHS"
-
   Patch_RouterOS:
-    needs: Prepare_Patch
-    if: needs.Prepare_Patch.outputs.SKIP_BUILD == 'false'
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        arch: ${{ fromJson(needs.Prepare_Patch.outputs.ARCHS) }}
+        arch: ${{ fromJson( inputs.archs ) }}
       fail-fast: false
     env:
       TZ: 'Asia/Shanghai'
-      CHANNEL: ${{ inputs.channel }}
+      CHANNELS: ${{ inputs.channels }}
       ARCH: ${{ matrix.arch }}
-      VERSION: ${{ needs.Prepare_Patch.outputs.VERSION }}
-      BUILD_TIME: ${{ needs.Prepare_Patch.outputs.BUILD_TIME }}
-      BUILD_DIR: "/tmp/build/${{ needs.Prepare_Patch.outputs.VERSION }}"
-      PUBLISH_DIR: "${{ github.workspace }}/publish/${{ needs.Prepare_Patch.outputs.VERSION }}"
+      VERSION: ${{ inputs.version }}
+      BUILD_TIME: ${{ inputs.buildtime }}
+      RELEASE: ${{ inputs.release }}
+      BUILD_DIR: "/tmp/build/${{ inputs.version }}"
+      PUBLISH_DIR: "${{ github.workspace }}/publish/${{ inputs.version }}"
       ARCH_EXT: ""
       PACKAGES: ""
     steps:
     - uses: actions/checkout@v6
-    - name: Setup environment
+    - name: Setup environment 
       run: |
         sudo apt-get update > /dev/null
         sudo apt-get install -y zip unzip squashfs-tools jq > /dev/null
@@ -182,7 +91,7 @@ jobs:
 
     - name: Build Squashfs for Option and Python Package
       run: |
-        echo "Creating Option Package Squashfs for channel: $CHANNEL, arch: $ARCH"
+        echo "Creating Option Package Squashfs for arch: $ARCH"
         mkdir -p $BUILD_DIR/option-root/bin/
         install -m 755 ./busybox/busybox_$ARCH $BUILD_DIR/option-root/bin/busybox
         install -m 755 ./keygen/keygen_$ARCH $BUILD_DIR/option-root/bin/keygen
@@ -341,7 +250,7 @@ jobs:
         rm -rf $BUILD_DIR/all_packages
 
     - name: Cache NetInstall ${{ env.VERSION }}
-      if: matrix.arch == 'x86' && needs.Prepare_Patch.outputs.RELEASE == 'true'
+      if: matrix.arch == 'x86' && env.RELEASE == 'true'
       id: cache-netinstall
       uses: actions/cache@v5
       with:
@@ -351,12 +260,12 @@ jobs:
     - name: Get netinstall ${{ env.VERSION }}
       if: |
         steps.cache-netinstall.outputs.cache-hit != 'true' && 
-        matrix.arch == 'x86' && needs.Prepare_Patch.outputs.RELEASE == 'true'
+        matrix.arch == 'x86' && env.RELEASE == 'true'
       run: |
         wget -nv -O $BUILD_DIR/netinstall-$VERSION.zip https://download.mikrotik.com/routeros/$VERSION/netinstall-$VERSION.zip
     
     - name: Patch netinstall ${{ env.VERSION }}
-      if: matrix.arch == 'x86' && needs.Prepare_Patch.outputs.RELEASE == 'true'
+      if: matrix.arch == 'x86' && env.RELEASE == 'true'
       run: |
         unzip $BUILD_DIR/netinstall-$VERSION.zip -d $BUILD_DIR/
         python3 patch.py netinstall $BUILD_DIR/netinstall.exe
@@ -886,7 +795,7 @@ jobs:
         rm -rf $BUILD_DIR/chr
 
     - name: Upload Files as Artifact (No Release)
-      if: needs.Prepare_Patch.outputs.RELEASE == 'false'
+      if: env.RELEASE == 'false'
       uses: actions/upload-artifact@v7
       with:
         name: mikrotik-${{ env.VERSION }}${{ env.ARCH_EXT }}
@@ -895,7 +804,7 @@ jobs:
           ${{ env.PUBLISH_DIR }}/*.iso
 
     - name: Generate SHA256 checksum files
-      if: needs.Prepare_Patch.outputs.RELEASE == 'true'
+      if: env.RELEASE == 'true'
       run: |
         (
           cd $PUBLISH_DIR
@@ -908,7 +817,7 @@ jobs:
         )
 
     - name: Delete Release tag ${{ env.VERSION }}${{ env.ARCH_EXT }}
-      if: needs.Prepare_Patch.outputs.RELEASE == 'true'
+      if: env.RELEASE == 'true'
       run: |
         HEADER="Authorization: token ${{ secrets.GITHUB_TOKEN }}"
         RELEASE_INFO=$(curl -s -H "$HEADER" https://api.github.com/repos/${{ github.repository }}/releases/tags/$VERSION$ARCH_EXT)
@@ -926,7 +835,7 @@ jobs:
         fi
 
     - name: Generate Release Body 
-      if: needs.Prepare_Patch.outputs.RELEASE == 'true'
+      if: env.RELEASE == 'true'
       run: |
         RELEASE_BODY="$BUILD_DIR/RELEASE_BODY.md"
         BASE_URL="https://github.com/${{ github.repository }}/releases/download/$VERSION$ARCH_EXT"
@@ -945,7 +854,7 @@ jobs:
         cat > "$RELEASE_BODY" << EOF
         **Build Time**: $BUILD_TIME_UTC ($BUILD_TIME)
         **Architecture**: $ARCH
-        **Channel**: $CHANNEL
+        **Channel**: $CHANNELS
 
         <details open><summary><strong>RouterOS</strong></summary>
 
@@ -1010,7 +919,7 @@ jobs:
         cat "$RELEASE_BODY"
 
     - name: Create Release tag ${{ env.VERSION }}${{ env.ARCH_EXT }}
-      if: needs.Prepare_Patch.outputs.RELEASE == 'true'
+      if: env.RELEASE == 'true'
       uses: softprops/action-gh-release@v3
       with:
         name: "RouterOS ${{ env.VERSION }}${{ env.ARCH_EXT }}"
@@ -1018,8 +927,8 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         body_path: ${{env.BUILD_DIR}}/RELEASE_BODY.md
         tag_name: ${{ env.VERSION }}${{ env.ARCH_EXT }}
-        make_latest:  ${{ env.CHANNEL == 'stable' && matrix.arch == 'x86'}} 
-        prerelease: ${{ env.CHANNEL == 'development' || env.CHANNEL == 'testing'}}
+        make_latest:  ${{ contains(env.CHANNELS, 'stable') && matrix.arch == 'x86' }}
+        prerelease:  ${{ contains(env.CHANNELS,'development') || contains(env.CHANNELS,'testing') }}
         files: |
           ${{env.PUBLISH_DIR}}/*.zip
           ${{env.PUBLISH_DIR}}/*.zip.sha256
@@ -1029,7 +938,7 @@ jobs:
           ${{env.PUBLISH_DIR}}/routeros*.npk.sha256
 
     - name: Upload Files
-      if: needs.Prepare_Patch.outputs.RELEASE == 'true'
+      if: env.RELEASE == 'true'
       run: |
         sudo apt-get install -y knockd lftp > /dev/null
         knock -4  ${{ secrets.SSH_SERVER }} ${{ secrets.SSH_KNOCK_PORT }} 
@@ -1050,7 +959,10 @@ jobs:
         rm -f $PUBLISH_DIR/*.zip.sha256
         rm -f $PUBLISH_DIR/*.iso.sha256
         echo $VERSION $BUILD_TIME | tee $PUBLISH_DIR/info
-        touch $PUBLISH_DIR/$CHANNEL
+        echo "$CHANNELS" | jq -r '.[]' | while read -r CHANNEL
+        do
+            touch "$PUBLISH_DIR/$CHANNEL"
+        done
         REMOTE_PATH=${{ secrets.SSH_DIRECTORY }}/$VERSION
         SERVER=${{ secrets.SSH_SERVER }}
         USER=${{ secrets.SSH_USERNAME }}
@@ -1064,7 +976,7 @@ jobs:
         EOF
 
     - name: Clear Cloudflare cache
-      if: needs.Prepare_Patch.outputs.RELEASE == 'true'
+      if: env.RELEASE == 'true'
       run: |
         curl --request POST --url "https://api.cloudflare.com/client/v4/zones/fe6831ed6dc9e6235e69ef2a31f2e7fe/purge_cache" \
             --header "Authorization: Bearer 9GDQkzU51QXaqzp1qMjyFKpyeJyOdnNoG9GZQaGP" \
@@ -1072,15 +984,12 @@ jobs:
             --data '{"purge_everything": true}'
 
   Update_Release:
-    needs: [Prepare_Patch,Patch_RouterOS]
-    if: |
-      needs.Prepare_Patch.outputs.SKIP_BUILD == 'false' && 
-      needs.Patch_RouterOS.result == 'success' &&
-      needs.Prepare_Patch.outputs.RELEASE == 'true' 
+    needs: [Patch_RouterOS]
+    if: needs.Patch_RouterOS.result == 'success' && inputs.release == true
     runs-on: ubuntu-24.04
     env:
-      CHANNEL: ${{ inputs.channel }}
-      VERSION: ${{ needs.Prepare_Patch.outputs.VERSION }}
+      CHANNELS: ${{ inputs.channels }}
+      VERSION: ${{ inputs.version }}
     steps:
     - name: Update Release
       run: |
@@ -1103,9 +1012,21 @@ jobs:
         USER=${{ secrets.SSH_USERNAME }}
         PASS=${{ secrets.SSH_PASSWORD }}
         PORT=${{ secrets.SSH_PORT }}
-        sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no -p $PORT $USER@$SERVER \
-          "bash /rw/disk/$REMOTE_PATH/packages.sh /rw/disk/$REMOTE_PATH/$VERSION; \
-          ln -sf /root/$REMOTE_PATH/$VERSION/info /rw/disk/$REMOTE_PATH/NEWESTa7.$CHANNEL; \
-          chown -R 32768:32768 /rw/disk/$REMOTE_PATH"
+
+        REMOTE_CMD="
+        set -e
+        bash /rw/disk/$REMOTE_PATH/packages.sh /rw/disk/$REMOTE_PATH/$VERSION
+        "
+
+        while read -r CHANNEL
+        do
+          REMOTE_CMD="$REMOTE_CMD
+        ln -sfn /rw/disk/$REMOTE_PATH/$VERSION/info /rw/disk/$REMOTE_PATH/NEWESTa7.$CHANNEL"
+        done < <(echo "$CHANNELS" | jq -r '.[]')
+
+        REMOTE_CMD="$REMOTE_CMD
+        chown -R 32768:32768 /rw/disk/$REMOTE_PATH
+        "
+        sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no -p $PORT $USER@$SERVER "$REMOTE_CMD"
         
         echo "✅ Updated: packages.csv"

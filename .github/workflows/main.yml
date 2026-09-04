@@ -5,8 +5,22 @@ on:
     - cron: "25 * * * *"   # Every hour at minute 25 (UTC)
   workflow_dispatch:  
     inputs:
-      version:
-        description: 'Select Version (v6/v7/all)'
+      channels:
+        description: 'JSON array of channels, e.g. ["stable","long-term"]'
+        required: true
+        default: '["stable"]'
+        type: string
+      arch:
+        description: 'Architectures (x86, arm64)'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+        - all
+        - x86
+        - arm64
+      major_version:
+        description: 'RouterOS major version'
         required: true
         default: 'all'
         type: choice
@@ -14,80 +28,185 @@ on:
           - all
           - v6
           - v7
+      version:
+        description: 'Optional fixed version (e.g. 7.xx.x), empty for latest'
+        required: false
+        default: ''
+        type: string
+      buildtime:
+        description: "Custom build time, leave empty for original"
+        required: false
+        default: ''
+        type: string
       release:
         description: 'Release'
         required: false
-        default: true
+        default: false
         type: boolean
+
+
+
+
 jobs:
 
-  Check_Versions:
+  Prepare_Patch:
     runs-on: ubuntu-latest
     outputs:
-      upgrades_v6: ${{ steps.set-matrix.outputs.upgrades_v6 }}
-      upgrades_v7: ${{ steps.set-matrix.outputs.upgrades_v7 }}
-      patch_v6: ${{ steps.set-matrix.outputs.patch_v6 }}
-      patch_v7: ${{ steps.set-matrix.outputs.patch_v7 }}
+      upgrades_v6: ${{ steps.prepare.outputs.upgrades_v6 }}
+      upgrades_v7: ${{ steps.prepare.outputs.upgrades_v7 }}
+      patch_v6: ${{ steps.prepare.outputs.patch_v6 }}
+      patch_v7: ${{ steps.prepare.outputs.patch_v7 }}
+      archs: ${{ steps.prepare.outputs.archs }}
     steps:
-      - name: Fetch and compare versions
-        id: set-matrix
+      - name: Prepare Patch
+        id: prepare
         run: |
-          OFFICIAL_UPGRADE=$(curl -s https://upgrade.mikrotik.com/routeros/upgrade.json)
-          echo "$OFFICIAL_UPGRADE" | jq -e . >/dev/null 2>&1 || { echo "ERROR: OFFICIAL_UPGRADE is not valid JSON" >&2; exit 1; }
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            CHANNELS='${{ inputs.channels }}'
+            VERSION_INPUT='${{ inputs.version }}'
+            MAJOR_VERSION='${{ inputs.major_version }}'
 
-          if [[ "${{ github.event_name }}" != "workflow_dispatch" ]]; then
-            PATCH_UPGRADE=$(curl -s https://upgrade.mikrotik.ltd/routeros/upgrade.json)
-            echo "$PATCH_UPGRADE" | jq -e . >/dev/null 2>&1 || { echo "ERROR: PATCH_UPGRADE is not valid JSON" >&2; exit 1; }
+            echo "$CHANNELS" | jq -e '
+              type=="array" and
+              all(.[]; type=="string")
+            ' >/dev/null || {
+              echo "ERROR: channels must be JSON array"
+              exit 1
+            }
+            CHANNELS=$(echo "$CHANNELS" | jq -c 'unique')  
 
-            CANDIDATES=$(echo "$OFFICIAL_UPGRADE" | jq -c --argjson patch "$PATCH_UPGRADE" '
-              ($patch.upgradePaths // {}) as $paths |
-              .upgradePaths // {} | to_entries |
-              map(
-                .value.version as $official_version |
-                ($paths[.key] // null) as $patch_value |
-                select(
-                  $patch_value != null and
-                  $official_version != $patch_value.version and
-                  (any($paths[]; .version == $official_version) | not) and
-                  ((.key | test("^NEWEST6")) or (.key | test("^NEWESTa7"))) and 
-                  (.key | test("\\.(stable|development|long-term)$"))
-                ) |
-                {
-                  majorVersion: (.value.version | split(".")[0]),
-                  channel: (.key | split(".")[1]),
-                  version: .value.version
-                }
-              )
+            if [[ -n "$VERSION_INPUT" && "$MAJOR_VERSION" != "all" ]]; then
+              case "$MAJOR_VERSION" in
+                v6)
+                  if [[ ! "$VERSION_INPUT" =~ ^6\. ]]; then
+                    echo "ERROR: $VERSION_INPUT is not RouterOS v6"
+                    exit 1
+                  fi
+                  ;;
+                v7)
+                  if [[ ! "$VERSION_INPUT" =~ ^7\. ]]; then
+                    echo "ERROR: $VERSION_INPUT is not RouterOS v7"
+                    exit 1
+                  fi
+                  ;;
+              esac
+            fi
+          else
+            CHANNELS='["stable","long-term","development","testing"]'
+            VERSION_INPUT=""
+            MAJOR_VERSION="all"
+          fi
+
+          ARCH_INPUT="${{ inputs.arch || 'all' }}"
+
+          if [[ "$ARCH_INPUT" == "all" ]]; then
+              if [[ "$MAJOR_VERSION" == "v6" ]]; then
+                  ARCHS='["x86"]'
+              else
+                  ARCHS='["x86","arm64"]'
+              fi
+          else
+              if [[ "$ARCH_INPUT" == "arm64" && "$MAJOR_VERSION" == "v6" ]]; then
+                  echo "ERROR: RouterOS v6 does not support arm64"
+                  exit 1
+              fi
+              ARCHS=$(jq -c -n --arg arch "$ARCH_INPUT" '[$arch]')
+          fi
+
+          echo "Major Version: $MAJOR_VERSION"
+          echo "Architectures:"
+          echo "$ARCHS" | jq .
+          echo "Channels:"
+          echo "$CHANNELS" | jq .
+
+
+          if [[ -n "$VERSION_INPUT" ]]; then
+            echo "Using fixed version: $VERSION_INPUT"
+            CANDIDATES=$(jq -cn  --arg version "$VERSION_INPUT" --argjson channels "$CHANNELS" '
+              [{ version:$version, channels:$channels}]
             ')
           else
-            CANDIDATES=$(echo "$OFFICIAL_UPGRADE" | jq -c '
-              .upgradePaths // {} | to_entries | 
-              map(
-                select(
-                  ((.key | test("^NEWEST6")) or (.key | test("^NEWESTa7")))
-                  and
-                  (.key | test("\\.(stable|development|long-term)$"))
-                )
-                |
-                {
-                  majorVersion: (.value.version | split(".")[0]),
-                  channel: (.key | split(".")[1]),
-                  version: .value.version
-                }
-              )
-            ')
+            echo "Resolving version from channels"
+            OFFICIAL_UPGRADE=$(curl -fsSL https://upgrade.mikrotik.com/routeros/upgrade.json) || { echo "ERROR: Failed to fetch OFFICIAL_UPGRADE" >&2; exit 1; }
+            echo "$OFFICIAL_UPGRADE" | jq -e . >/dev/null 2>&1 || { echo "ERROR: OFFICIAL_UPGRADE is not valid JSON" >&2; exit 1; }
+
+            CANDIDATES=$(  echo "$OFFICIAL_UPGRADE" |
+              jq -c --argjson channels "$CHANNELS" --arg major "$MAJOR_VERSION" '
+                [
+                  $channels[] as $c |
+                  if $major == "v6" then
+                    {
+                      version: .upgradePaths["NEWEST6."+ $c].version,
+                      channel: $c
+                    }
+                  elif $major == "v7" then
+                    {
+                      version: .upgradePaths["NEWESTa7."+ $c].version,
+                      channel: $c
+                    }
+                  else
+                    [
+                      {
+                        version: .upgradePaths["NEWEST6."+ $c].version,
+                        channel: $c
+                      },
+                      {
+                        version: .upgradePaths["NEWESTa7."+ $c].version,
+                        channel: $c
+                      }
+                    ]
+                  end
+                ] |
+                flatten |
+                map(select(.version != null)) |
+                group_by(.version) |
+                map({
+                  version: .[0].version,
+                  channels: map(.channel)
+                })
+              '
+            )
           fi
 
-          VERSION_FILTER="${{ inputs.version || 'all' }}"
-          V6_MATRIX=$(echo "$CANDIDATES" | jq -c 'map(select(.majorVersion == "6" ))')
-          V7_MATRIX=$(echo "$CANDIDATES" | jq -c 'map(select(.majorVersion == "7" ))')
-          if [[ "$VERSION_FILTER" == "v6" ]]; then
-            V7_MATRIX='[]'
-          elif [[ "$VERSION_FILTER" == "v7" ]]; then
-            V6_MATRIX='[]'
+          echo "Candidates:"
+          echo "$CANDIDATES" | jq .
+
+          if [[ "${{ github.event_name }}" != "workflow_dispatch" ]]; then
+            PATCH_UPGRADE=$(curl -fsSL https://upgrade.mikrotik.ltd/routeros/upgrade.json) || { echo "ERROR: Failed to fetch OFFICIAL_UPGRADE" >&2; exit 1; }
+            echo "$PATCH_UPGRADE" | jq -e . >/dev/null 2>&1 || { echo "ERROR: PATCH_UPGRADE is not valid JSON" >&2; exit 1; }
+            PATCH_VERSIONS=$(echo "$PATCH_UPGRADE" |  jq -c '
+                [.upgradePaths[].version] | unique
+              ')
+
+            FILTERED=$(echo "$CANDIDATES" | jq -c --argjson patched "$PATCH_VERSIONS" '
+              map(
+                select(
+                  (.version as $v | ($patched | index($v))) != null
+                )
+              )
+            ')
+            echo "Filtered versions (already patched, skipped):"
+            echo "$FILTERED" | jq .
+
+            CANDIDATES=$(echo "$CANDIDATES" | jq -c --argjson patched "$PATCH_VERSIONS" '
+                map(
+                  select(
+                    (.version as $v | ($patched | index($v))) == null
+                  )
+                )
+            ')
+
+            echo "Candidates after filter:"
+            echo "$CANDIDATES" | jq .
           fi
+
+          V6_MATRIX=$(echo "$CANDIDATES" | jq -c 'map(select(.version | startswith("6.")))')
+          V7_MATRIX=$(echo "$CANDIDATES" | jq -c 'map(select(.version | startswith("7.")))')
+
           echo "upgrades_v6=$V6_MATRIX" >> "$GITHUB_OUTPUT"
           echo "upgrades_v7=$V7_MATRIX" >> "$GITHUB_OUTPUT"
+          echo "archs=$ARCHS" >> "$GITHUB_OUTPUT"
+          
           echo "patch_v6=$(jq 'length > 0' <<< "$V6_MATRIX")" >> "$GITHUB_OUTPUT"
           echo "patch_v7=$(jq 'length > 0' <<< "$V7_MATRIX")" >> "$GITHUB_OUTPUT"
 
@@ -97,30 +216,36 @@ jobs:
           echo "=== Upgrades V7 ==="
           echo "$V7_MATRIX" | jq .
 
+          echo "=== Architectures ==="
+          echo "$ARCHS" | jq .
+
   Patch_V6:
-    needs: Check_Versions
-    if: ${{ needs.Check_Versions.outputs.patch_v6 == 'true' }}
+    needs: Prepare_Patch
+    if: ${{ needs.Prepare_Patch.outputs.patch_v6 == 'true' }}
     uses: ./.github/workflows/patch_v6.yml
     strategy:
       matrix:
-        target: ${{ fromJson(needs.Check_Versions.outputs.upgrades_v6) }}
+        target: ${{ fromJson(needs.Prepare_Patch.outputs.upgrades_v6) }}
       fail-fast: false
     with:
-      channel: ${{ matrix.target.channel }}
       version: ${{ matrix.target.version }}
+      channels:  ${{ toJson(matrix.target.channels) }}
+      buildtime: ${{ inputs.buildtime }}
       release: ${{ github.event_name != 'workflow_dispatch' || inputs.release }}
     secrets: inherit
 
   Patch_V7:
-    needs: Check_Versions
-    if: ${{ needs.Check_Versions.outputs.patch_v7 == 'true' }}
+    needs: Prepare_Patch
+    if: ${{ needs.Prepare_Patch.outputs.patch_v7 == 'true' }}
     uses: ./.github/workflows/patch_v7.yml
     strategy:
       matrix:
-        target: ${{ fromJson(needs.Check_Versions.outputs.upgrades_v7) }}
+        target: ${{ fromJson(needs.Prepare_Patch.outputs.upgrades_v7) }}
       fail-fast: false
     with:
-      channel: ${{ matrix.target.channel }}
       version: ${{ matrix.target.version }}
+      channels:  ${{ toJson(matrix.target.channels) }}
+      archs: ${{ needs.Prepare_Patch.outputs.archs }}
+      buildtime: ${{ inputs.buildtime }}
       release: ${{ github.event_name != 'workflow_dispatch' || inputs.release }}
     secrets: inherit

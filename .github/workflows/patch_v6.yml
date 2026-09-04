@@ -1,47 +1,19 @@
 name: Patch RouterOS v6
 on:
-  workflow_dispatch:
-    inputs:
-      channel:
-        description: 'Channel (stable, long-term)'
-        required: true
-        default: 'stable'
-        type: choice
-        options:
-          - stable
-          - long-term
-      version:
-        description: "Specify version (e.g., 6.49.19), empty for latest"
-        required: false
-        default: ''
-        type: string
-      buildtime:
-        description: "Custom build time, leave empty for original"
-        required: false
-        default: ''
-        type: string
-      release:
-        description: "Release to Upload "
-        required: false
-        default: false
-        type: boolean
   workflow_call:  
     inputs:
-      channel:
+      channels:
         required: true
         type: string
       version:
         required: false
         type: string
-        default: ''
       buildtime:
         required: false
         type: string
-        default: ''
       release:
         required: false
         type: boolean
-        default: false
 
 env:
   CUSTOM_LICENSE_PRIVATE_KEY: ${{ secrets.CUSTOM_LICENSE_PRIVATE_KEY }}
@@ -64,67 +36,17 @@ env:
   CUSTOM_CLOUD2_URL: ${{ secrets.CUSTOM_CLOUD2_URL }}
 
 jobs:
-  Prepare_Patch:
-    runs-on: ubuntu-24.04
-    outputs:
-      VERSION: ${{ steps.prepare.outputs.VERSION }}
-      BUILD_TIME: ${{ steps.prepare.outputs.BUILD_TIME }}
-      ARCHS: ${{ steps.prepare.outputs.ARCHS }}
-      RELEASE: ${{ steps.prepare.outputs.RELEASE }}
-      SKIP_BUILD: ${{ steps.prepare.outputs.SKIP_BUILD }}
-    steps:
-    - name: Prepare Patch for ${{ inputs.channel }}
-      id: prepare
-      run: |
-        CHANNEL="${{ inputs.channel }}"
-        VERSION="${{ inputs.version }}"
-        RELEASE="${{ inputs.release }}"
-        BUILD_TIME="${{ inputs.buildtime }}"
-        ARCHS='["x86"]'
-
-        SKIP_BUILD=false
-        if [ -z "$VERSION" ]; then
-          echo "Checking latest version from $CHANNEL channel..."
-          TIMESTAMP=$(date +%s)
-          NEWEST=$(wget -nv -O - "https://${{ env.MIKRO_UPGRADE_URL }}/routeros/NEWEST6.$CHANNEL?t=$TIMESTAMP")
-          VERSION=$(echo "$NEWEST" | cut -d ' ' -f1)
-          echo "Official version: $VERSION"
-          if [[ "${{ github.event_name }}" != "workflow_dispatch" ]]; then
-            PATCH_NEWEST=$(wget -nv -O - "https://${{ env.CUSTOM_UPGRADE_URL }}/routeros/NEWEST6.$CHANNEL?t=$TIMESTAMP" 2>/dev/null || echo "")
-            PATCH_VERSION=$(echo "$PATCH_NEWEST" | cut -d ' ' -f1)
-            echo "Patch version: ${PATCH_VERSION:-none}"
-            if [ "$PATCH_VERSION" == "$VERSION" ]; then
-              echo "No new version for $CHANNEL, skipping..."
-              SKIP_BUILD=true
-            else
-              echo "New version $VERSION available, building..."
-            fi
-          fi
-        fi
-        echo "SKIP_BUILD=$SKIP_BUILD" >> $GITHUB_OUTPUT
-        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-        echo "BUILD_TIME=$BUILD_TIME" >> $GITHUB_OUTPUT
-        echo "ARCHS=$ARCHS" >> $GITHUB_OUTPUT
-        echo "RELEASE=$RELEASE" >> $GITHUB_OUTPUT
-        echo "Version: $VERSION, Archs: $ARCHS"
-        
-
   Patch_RouterOS:
-    needs: Prepare_Patch
-    if: needs.Prepare_Patch.outputs.SKIP_BUILD == 'false'
     runs-on: ubuntu-24.04
-    strategy:
-      matrix:
-        arch: ${{ fromJson(needs.Prepare_Patch.outputs.ARCHS) }}
-      fail-fast: false
     env:
       TZ: 'Asia/Shanghai'
-      CHANNEL: ${{ inputs.channel }}
-      ARCH: ${{ matrix.arch }}
-      VERSION: ${{ needs.Prepare_Patch.outputs.VERSION }}
-      BUILD_TIME: ${{ needs.Prepare_Patch.outputs.BUILD_TIME }}
-      BUILD_DIR: "/tmp/build/${{ needs.Prepare_Patch.outputs.VERSION }}"
-      PUBLISH_DIR: "${{ github.workspace }}/publish/${{ needs.Prepare_Patch.outputs.VERSION }}"
+      CHANNELS: ${{ inputs.channels }}
+      ARCH: "x86"
+      VERSION: ${{ inputs.version }}
+      BUILD_TIME: ${{ inputs.buildtime }}
+      RELEASE: ${{ inputs.release }}
+      BUILD_DIR: "/tmp/build/${{ inputs.version }}}"
+      PUBLISH_DIR: "${{ github.workspace }}/publish/${{ inputs.version }}"
       ARCH_EXT: ""
       PACKAGES: ""
     steps:
@@ -157,7 +79,7 @@ jobs:
 
     - name: Create Squashfs for Option Package
       run: |
-        echo "Creating Option Package Squashfs for channel: $CHANNEL, arch: $ARCH"
+        echo "Creating Option Package Squashfs for arch: $ARCH"
         mkdir -p $BUILD_DIR/option-root/bin/
         cp ./busybox/busybox_$ARCH $BUILD_DIR/option-root/bin/busybox
         chmod +x $BUILD_DIR/option-root/bin/busybox
@@ -428,7 +350,7 @@ jobs:
         rm $BUILD_DIR/chr-$VERSION$ARCH_EXT.*
 
     - name: Upload Files as Artifact (No Release)
-      if: needs.Prepare_Patch.outputs.RELEASE == 'false'
+      if: env.RELEASE == 'false'
       uses: actions/upload-artifact@v7
       with:
         name: mikrotik-${{ env.VERSION }}${{ env.ARCH_EXT }}
@@ -437,7 +359,7 @@ jobs:
           ${{ env.PUBLISH_DIR }}/*.iso
         
     - name: Generate SHA256 checksum files
-      if: needs.Prepare_Patch.outputs.RELEASE == 'true'
+      if: env.RELEASE == 'true'
       run: |
         (
           cd $PUBLISH_DIR
@@ -450,7 +372,7 @@ jobs:
         ) 
         
     - name: Delete Release tag ${{ env.VERSION }}${{ env.ARCH_EXT }}
-      if: needs.Prepare_Patch.outputs.RELEASE == 'true'
+      if: env.RELEASE == 'true'
       run: |
         sed -i "1i Build Time:$BUILD_TIME" $PUBLISH_DIR/CHANGELOG
         HEADER="Authorization: token ${{ secrets.GITHUB_TOKEN }}"
@@ -469,7 +391,7 @@ jobs:
         fi
         
     - name: Create Release tag ${{ env.VERSION }}${{ env.ARCH_EXT }}
-      if: needs.Prepare_Patch.outputs.RELEASE == 'true'
+      if: env.RELEASE == 'true'
       uses: softprops/action-gh-release@v3
       with:
         name: "RouterOS ${{ env.VERSION }}${{ env.ARCH_EXT }}"
@@ -488,7 +410,7 @@ jobs:
           ${{env.PUBLISH_DIR}}/routeros*.npk.sha256
 
     - name: Upload Files
-      if: needs.Prepare_Patch.outputs.RELEASE == 'true'
+      if: env.RELEASE == 'true'
       run: |
         sudo apt-get install -y knockd lftp > /dev/null
         knock -4  ${{ secrets.SSH_SERVER }} ${{ secrets.SSH_KNOCK_PORT }} 
@@ -510,7 +432,11 @@ jobs:
         rm -f $PUBLISH_DIR/*.iso.sha256
         sed -i '1d' $PUBLISH_DIR/CHANGELOG
         echo $VERSION $BUILD_TIME | tee $PUBLISH_DIR/info
-        touch $PUBLISH_DIR/$CHANNEL
+        echo "$CHANNELS" | jq -r '.[]' | while read -r CHANNEL
+        do
+            touch "$PUBLISH_DIR/$CHANNEL"
+        done
+
         REMOTE_PATH=${{ secrets.SSH_DIRECTORY }}/$VERSION
         SERVER=${{ secrets.SSH_SERVER }}
         USER=${{ secrets.SSH_USERNAME }}
@@ -524,7 +450,7 @@ jobs:
         EOF
 
     - name: Clear Cloudflare cache
-      if: needs.Prepare_Patch.outputs.RELEASE == 'true'
+      if: env.RELEASE == 'true'
       run: |
         curl --request POST --url "https://api.cloudflare.com/client/v4/zones/fe6831ed6dc9e6235e69ef2a31f2e7fe/purge_cache" \
             --header "Authorization: Bearer 9GDQkzU51QXaqzp1qMjyFKpyeJyOdnNoG9GZQaGP" \
@@ -533,15 +459,12 @@ jobs:
 
 
   Update_Release:
-    needs: [Prepare_Patch,Patch_RouterOS]
-    if: |
-      needs.Prepare_Patch.outputs.SKIP_BUILD == 'false' && 
-      needs.Patch_RouterOS.result == 'success' &&
-      needs.Prepare_Patch.outputs.RELEASE == 'true' 
+    needs: [Patch_RouterOS]
+    if: needs.Patch_RouterOS.result == 'success' && inputs.release == true
     runs-on: ubuntu-24.04
     env:
-      CHANNEL: ${{ inputs.channel }}
-      VERSION: ${{ needs.Prepare_Patch.outputs.VERSION }}
+      CHANNELS: ${{ inputs.channels }}
+      VERSION: ${{ inputs.version }}
     steps:
     - name: Update Release
       run: |
@@ -564,8 +487,19 @@ jobs:
         USER=${{ secrets.SSH_USERNAME }}
         PASS=${{ secrets.SSH_PASSWORD }}
         PORT=${{ secrets.SSH_PORT }}
-        sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no -p $PORT $USER@$SERVER \
-          "ln -sf /root/$REMOTE_PATH/$VERSION/info /rw/disk/$REMOTE_PATH/NEWEST6.$CHANNEL; \
-          ln -sf /root/$REMOTE_PATH/$VERSION/info /rw/disk/$REMOTE_PATH/NEWESTa6.$CHANNEL; \
-          chown -R 32768:32768 /rw/disk/$REMOTE_PATH"
+
+        REMOTE_CMD="
+
+        while read -r CHANNEL
+        do
+          REMOTE_CMD="$REMOTE_CMD
+        ln -sfn /rw/disk/$REMOTE_PATH/$VERSION/info /rw/disk/$REMOTE_PATH/NEWEST6.$CHANNEL"
+        ln -sfn /rw/disk/$REMOTE_PATH/$VERSION/info /rw/disk/$REMOTE_PATH/NEWESTa6.$CHANNEL"
+        done < <(echo "$CHANNELS" | jq -r '.[]')
+
+        REMOTE_CMD="$REMOTE_CMD
+        chown -R 32768:32768 /rw/disk/$REMOTE_PATH
+        "
+        sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no -p $PORT $USER@$SERVER "$REMOTE_CMD"
+
         echo "✅ Updated release info."
