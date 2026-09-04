@@ -157,6 +157,7 @@ jobs:
                     ]
                   end
                 ] |
+                flatten | 
                 map(select(.version != null)) |
                 sort_by(.version) |
                 group_by(.version) |
