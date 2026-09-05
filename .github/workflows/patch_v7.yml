@@ -930,8 +930,8 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         body_path: ${{env.BUILD_DIR}}/RELEASE_BODY.md
         tag_name: ${{ env.VERSION }}${{ env.ARCH_EXT }}
-        make_latest:  ${{ contains(env.CHANNELS, 'stable') && matrix.arch == 'x86' }}
-        prerelease:  ${{ contains(env.CHANNELS,'development') || contains(env.CHANNELS,'testing') }}
+        make_latest:  ${{ contains(fromJSON(env.CHANNELS), 'stable') && env.ARCH == 'x86' }}
+        prerelease: ${{ !contains(fromJSON(env.CHANNELS), 'stable') && !contains(fromJSON(env.CHANNELS), 'long-term') }}
         files: |
           ${{env.PUBLISH_DIR}}/*.zip
           ${{env.PUBLISH_DIR}}/*.zip.sha256

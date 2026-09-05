@@ -382,7 +382,6 @@ jobs:
     - name: Delete Release tag ${{ env.VERSION }}${{ env.ARCH_EXT }}
       if: env.RELEASE == 'true'
       run: |
-        sed -i "1i Build Time:$BUILD_TIME" $PUBLISH_DIR/CHANGELOG
         HEADER="Authorization: token ${{ secrets.GITHUB_TOKEN }}"
         RELEASE_INFO=$(curl -s -H "$HEADER" https://api.github.com/repos/${{ github.repository }}/releases/tags/$VERSION$ARCH_EXT)
         RELEASE_ID=$(echo $RELEASE_INFO | jq -r '.id')
@@ -398,6 +397,77 @@ jobs:
             echo "Release not found for tag: $VERSION$ARCH_EXT)"
         fi
         
+    - name: Generate Release Body 
+      if: env.RELEASE == 'true'
+      run: |
+        RELEASE_BODY="$BUILD_DIR/RELEASE_BODY.md"
+        BASE_URL="https://github.com/${{ github.repository }}/releases/download/$VERSION$ARCH_EXT"
+        BUILD_TIME_UTC=$(date -u -d "@$BUILD_TIME" "+%Y-%m-%d %H:%M:%S UTC" 2>/dev/null || echo "Invalid timestamp")
+
+        link_file() {
+          local file="$1"
+          if [ -f "$file" ]; then
+            local basename=$(basename "$file")
+            echo "[$basename]($BASE_URL/$basename)"
+          else
+            echo "N/A"
+          fi
+        }
+        CHANNELS_TEXT=$(echo "$CHANNELS" | jq -r 'map("`\(.)`") | join(" ")')
+        ARCH_TEXT="\`$ARCH\`"
+
+        cat > "$RELEASE_BODY" << EOF
+        **Build Time**: $BUILD_TIME_UTC ($BUILD_TIME)
+        **Architecture**: $ARCH_TEXT
+        **Channel**: $CHANNELS_TEXT
+
+        <details open><summary><strong>RouterOS</strong></summary>
+
+        | Type | File |
+        |------|------|
+        EOF
+        
+        echo "| Main package | $(link_file "$PUBLISH_DIR/routeros-${VERSION}${ARCH_EXT}.npk") |" >> "$RELEASE_BODY"
+        echo "| Extra packages	 | $(link_file "$PUBLISH_DIR/all_packages-$ARCH-$VERSION.zip") |" >> "$RELEASE_BODY"
+        echo "| ISO Image | $(link_file "$PUBLISH_DIR/mikrotik-${VERSION}${ARCH_EXT}.iso") |" >> "$RELEASE_BODY"
+        echo "| Install Image | $(link_file "$PUBLISH_DIR/install-image-$VERSION.zip") |" >> "$RELEASE_BODY"
+        echo "| Netinstall | $(link_file "$PUBLISH_DIR/netinstall-$VERSION.zip") |" >> "$RELEASE_BODY"
+        echo "</details>" >> "$RELEASE_BODY"
+        echo "" >> "$RELEASE_BODY"
+
+        echo "<details open><summary><strong>Cloud Hosted Router (CHR)</strong></summary>" >> "$RELEASE_BODY"
+        echo "" >> "$RELEASE_BODY"
+        echo "| Platform | Legacy BIOS |" >> "$RELEASE_BODY"
+        echo "|--------|------|" >> "$RELEASE_BODY"
+        formats=("img" "ova" "qcow2" "vdi" "vhd" "vhdx" "vmdk")
+        declare -A FORMAT_PLATFORM=(
+          ["img"]="Raw disk image"
+          ["ova"]="Open Virtual Appliance"
+          ["qcow2"]="QEMU/KVM"
+          ["vdi"]="VirtualBox"
+          ["vhd"]="Hyper-V (legacy)"
+          ["vhdx"]="Hyper-V"
+          ["vmdk"]="VMware"
+        )
+
+        for fmt in "${formats[@]}"; do
+          platform="${FORMAT_PLATFORM[$fmt]}"
+          link=$(link_file "$PUBLISH_DIR/chr-$VERSION$ARCH_EXT.$fmt.zip")
+            echo "| $platform | $link |" >> "$RELEASE_BODY"
+          fi
+        done
+        echo "</details>" >> "$RELEASE_BODY"
+        echo "" >> "$RELEASE_BODY"
+        
+        echo "<details><summary><strong>Changelog</strong></summary>" >> "$RELEASE_BODY"
+        echo "" >> "$RELEASE_BODY"
+        echo "<pre>" >> "$RELEASE_BODY"
+        cat "$PUBLISH_DIR/CHANGELOG" >> "$RELEASE_BODY"
+        echo "</pre>" >> "$RELEASE_BODY"
+        echo "</details>" >> "$RELEASE_BODY"
+        echo "📄 Release body content:"
+        cat "$RELEASE_BODY"
+
     - name: Create Release tag ${{ env.VERSION }}${{ env.ARCH_EXT }}
       if: env.RELEASE == 'true'
       uses: softprops/action-gh-release@v3
@@ -405,7 +475,7 @@ jobs:
         name: "RouterOS ${{ env.VERSION }}${{ env.ARCH_EXT }}"
         repository: ${{ github.repository }}
         token: ${{ secrets.GITHUB_TOKEN }}
-        body_path: ${{env.PUBLISH_DIR}}/CHANGELOG
+        body_path: ${{env.BUILD_DIR}}/RELEASE_BODY.md
         tag_name: ${{ env.VERSION }}${{ env.ARCH_EXT }}
         make_latest: false
         prerelease:  false
@@ -438,7 +508,6 @@ jobs:
         rm -f $PUBLISH_DIR/*.iso
         rm -f $PUBLISH_DIR/*.zip.sha256
         rm -f $PUBLISH_DIR/*.iso.sha256
-        sed -i '1d' $PUBLISH_DIR/CHANGELOG
         echo $VERSION $BUILD_TIME | tee $PUBLISH_DIR/info
         echo "$CHANNELS" | jq -r '.[]' | while read -r CHANNEL
         do
