@@ -24,6 +24,12 @@ def replace_key(old,new,data,name=''):
     old_chunks = [bytes([old[i]]) for i in key_map]
     new_chunks = [bytes([new[i]]) for i in key_map]
     data =  replace_chunks(old_chunks, new_chunks, data,name)
+    key_map = [0, 1, 2, 3, 4, 6, 5, 7]
+    _old_chunks = [old[i:i+4] for i in range(0, len(old), 4)]
+    old_chunks = [_old_chunks[i] for i in key_map]
+    _new_chunks = [new[i:i+4] for i in range(0, len(new), 4)]
+    new_chunks = [_new_chunks[i] for i in key_map]
+    data =  replace_chunks(old_chunks, new_chunks, data,name,20)
     arch = os.getenv('ARCH') or 'x86'
     arch = arch.replace('-', '')
     if arch in ['arm64','arm']:
@@ -115,22 +121,30 @@ def patch_initrd_xz(initrd_xz:bytes,key_dict:dict,ljust=True):
     new_initrd = initrd  
     for old_public_key,new_public_key in key_dict.items():
         new_initrd = replace_key(old_public_key,new_public_key,new_initrd,'initrd')
+
+
     preset = 6
-    new_initrd_xz = lzma.compress(new_initrd,check=lzma.CHECK_CRC32,filters=[{"id": lzma.FILTER_LZMA2, "preset": preset }] )
-    while len(new_initrd_xz) > len(initrd_xz) and preset < 9:
-        print(f'preset:{preset}')
-        print(f'new initrd xz size:{len(new_initrd_xz)}')
-        print(f'old initrd xz size:{len(initrd_xz)}')
+    while True:
+        new_initrd_xz = lzma.compress(new_initrd,check=lzma.CHECK_CRC32,filters= [{"id": lzma.FILTER_LZMA2,"preset": preset }] )
+        print(f'preset:{preset},initrd xz new size:{len(new_initrd_xz)},old size:{len(initrd_xz)}')
         preset += 1
-        new_initrd_xz = lzma.compress(new_initrd,check=lzma.CHECK_CRC32,filters=[{"id": lzma.FILTER_LZMA2, "preset": preset }] )
+        if len(new_initrd_xz) <= len(initrd_xz) or preset > 9:
+            break
     if len(new_initrd_xz) > len(initrd_xz):
-        new_initrd_xz = lzma.compress(new_initrd,check=lzma.CHECK_CRC32,filters=[{"id": lzma.FILTER_LZMA2, "preset": 9 | lzma.PRESET_EXTREME,'dict_size': 32*1024*1024,"lc": 4,"lp": 0, "pb": 0,}] )
+        new_initrd_xz=lzma.compress(
+                            new_initrd,
+                            check=lzma.CHECK_CRC32,
+                            filters=[{
+                                "id":lzma.FILTER_LZMA2,
+                                "lc": 2,
+                                "lp": 2,
+                                "pb": 3,
+                                "mf":lzma.MF_BT4,
+                            }])
+        print(f'initrd xz new size:{len(new_initrd_xz)},old size:{len(initrd_xz)}')
+    assert len(new_initrd_xz) <= len(initrd_xz),'new initrd xz size is too big'        
     if ljust:
-        print(f'preset:{preset}')
-        print(f'new initrd xz size:{len(new_initrd_xz)}')
-        print(f'old initrd xz size:{len(initrd_xz)}')
         print(f'ljust size:{len(initrd_xz)-len(new_initrd_xz)}')
-        assert len(new_initrd_xz) <= len(initrd_xz),'new initrd xz size is too big'
         new_initrd_xz = new_initrd_xz.ljust(len(initrd_xz),b'\0')
     return new_initrd_xz
 
