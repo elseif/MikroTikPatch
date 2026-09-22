@@ -4,8 +4,8 @@ import pefile
 from elftools.elf.elffile import ELFFile
 from npk import NovaPackage,NpkPartID,NpkFileContainer
 
-def replace_chunks(old_chunks,new_chunks,data,name):
-    pattern_parts = [re.escape(chunk) + b'(.{0,6})' for chunk in old_chunks[:-1]]
+def replace_chunks(old_chunks,new_chunks,data,name,gap_size=8):
+    pattern_parts = [re.escape(chunk) + f'(.{{0,{gap_size}}})'.encode() for chunk in old_chunks[:-1]]
     pattern_parts.append(re.escape(old_chunks[-1])) 
     pattern_bytes = b''.join(pattern_parts)
     pattern = re.compile(pattern_bytes, flags=re.DOTALL) 
