@@ -134,7 +134,7 @@ show_system_info() {
 
 confirm_storage() {
     # STORAGE=$(lsblk | grep disk | head -1 | awk '{print $1}')
-    STORAGE="/dev/$(ls /sys/block | grep -vE '^(zram|loop|ram|sr|fd|dm-)' | head -1)"
+    STORAGE=$(ls /sys/block | grep -vE '^(zram|loop|ram|sr|fd|dm-)' | head -1)
     ask_until "$MSG_STORAGE_DEVICE" "$STORAGE"
     STORAGE=$resp
 }
