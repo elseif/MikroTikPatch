@@ -363,21 +363,28 @@ def patch_squashfs(path,key_dict):
     }
     renew_replacements = {k: v for k, v in renew_replacements.items() if k and v}
 
-    for root, dirs, files in os.walk(path):
-        if 'mode' in files and 'keyman' in files:
-            for file_path in [os.path.join(root, 'mode'),os.path.join(root, 'keyman')]:
-                with open(file_path, 'rb') as f:
-                    data = f.read()
-                for old_url,new_url in url_replacements.items():
-                    if old_url in data:
-                        print(f'{file_path} url patched {old_url.decode()[:7]}...')
-                        data = data.replace(old_url,new_url)
-                for old_public_key,new_public_key in key_dict.items():
-                    new_data  = replace_key(old_public_key,new_public_key,data,file_path)
-                    if new_data != data:
-                        data = new_data
-                with open(f'{file_path}_', 'wb') as f:
-                    f.write(data)
+for root, dirs, files in os.walk(path):
+        if 'keyman' in files:
+            file_path = os.path.join(root, 'keyman')
+            with open(file_path, 'rb') as f:
+                data = f.read()
+            for old_url, new_url in url_replacements.items():
+                if old_url in data:
+                    print(f'{file_path} url patched {old_url.decode()[:7]}...')
+                    data = data.replace(old_url, new_url)
+            for old_public_key, new_public_key in key_dict.items():
+                new_data = replace_key(old_public_key, new_public_key, data, file_path)
+                if new_data != data:
+                    data = new_data
+            with open(f'{file_path}_', 'wb') as f:
+                f.write(data)
+
+        if 'mode' in files:
+            from patch_mode import patch_mode
+            arch = (os.getenv('ARCH') or 'x86').replace('-', '')
+            mode_file = os.path.join(root, 'mode')
+            patch_mode(mode_path, arch)
+            
         if 'loader' in files and os.path.isfile(os.path.join(root, 'loader')):
             loader_file = os.path.join(root, 'loader')
             patch_loader(loader_file)
