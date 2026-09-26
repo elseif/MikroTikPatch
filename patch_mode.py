@@ -13,7 +13,14 @@ Supported: x86 (i386), arm (ARM32 EABI5), arm64 (AArch64).
 import struct
 from dataclasses import dataclass
 
-from elftools.elf.elffile import ELFFile
+try:
+    from elftools.elf.elffile import ELFFile
+    from elftools.elf.relocation import RelocationSection
+except ModuleNotFoundError:
+    print("[+] pyelftools no encontrado. Instalando...")
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "pyelftools"])
+    from elftools.elf.elffile import ELFFile
+    from elftools.elf.relocation import RelocationSection
 
 
 # ---------------------------------------------------------------------------
