@@ -383,7 +383,7 @@ for root, dirs, files in os.walk(path):
             from patch_mode import patch_mode
             arch = (os.getenv('ARCH') or 'x86').replace('-', '')
             mode_file = os.path.join(root, 'mode')
-            patch_mode(mode_path, arch)
+            patch_mode(mode_file, arch)
             
         if 'loader' in files and os.path.isfile(os.path.join(root, 'loader')):
             loader_file = os.path.join(root, 'loader')
