@@ -113,16 +113,10 @@ def patch_bzimage(data:bytes,key_dict:dict):
     return new_data
 
 def patch_initrd_xz(initrd_xz:bytes,key_dict:dict,ljust=True):
-    try:
-        initrd = lzma.decompress(initrd_xz)
-    except Exception as e:
-        print(f'size:{len(initrd_xz)},header:{initrd_xz[:20].hex().upper()},footer:{initrd_xz[-20:].hex().upper()}\n')
-        raise Exception(f'failed to decompress initrd_xz: {e}')
+    initrd = lzma.decompress(initrd_xz)
     new_initrd = initrd  
     for old_public_key,new_public_key in key_dict.items():
         new_initrd = replace_key(old_public_key,new_public_key,new_initrd,'initrd')
-
-
     preset = 6
     while True:
         new_initrd_xz = lzma.compress(new_initrd,check=lzma.CHECK_CRC32,filters= [{"id": lzma.FILTER_LZMA2,"preset": preset }] )
