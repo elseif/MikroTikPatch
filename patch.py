@@ -119,7 +119,7 @@ def patch_initrd_xz(initrd_xz:bytes,key_dict:dict,ljust=True):
         new_initrd = replace_key(old_public_key,new_public_key,new_initrd,'initrd')
     preset = 6
     while True:
-        new_initrd_xz = lzma.compress(new_initrd,check=lzma.CHECK_CRC32,filters= [{"id": lzma.FILTER_LZMA2,"preset": preset }] )
+        new_initrd_xz = lzma.compress(new_initrd,check=lzma.CHECK_CRC32,filters=[{"id": lzma.FILTER_LZMA2,"preset": preset | lzma.PRESET_EXTREME}])
         print(f'preset:{preset},initrd xz new size:{len(new_initrd_xz)},old size:{len(initrd_xz)}')
         preset += 1
         if len(new_initrd_xz) <= len(initrd_xz) or preset > 9:
