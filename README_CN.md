@@ -98,8 +98,8 @@ cat /ram/startup.catlog | grep 'Hello'
 ---
 ## 💖 感谢赞助
 [![Powered by DartNode](https://dartnode.com/branding/DN-Open-Source-sm.png)](https://dartnode.com "Powered by DartNode - Free VPS for Open Source")
-[DartNode(aff)](https://dartnode.com?aff=SnazzyLobster067)  | [ZMTO(aff)](https://console.zmto.com/?affid=1588) | [Vultr(aff)](https://www.vultr.com/?ref=9807160-9J)
-
+[DartNode(aff)](https://dartnode.com?aff=SnazzyLobster067)
+[ZMTO(aff)](https://console.zmto.com/?affid=1588) 
 
 
 
