@@ -1,0 +1,40 @@
+# .github/workflows/patch_v7_mipsbe.yml
+name: Build Patched RouterOS v7 MIPSBE
+
+on:
+  workflow_dispatch:
+    inputs:
+      routeros_version:
+        description: 'RouterOS Version (e.g., 7.16.2)'
+        required: true
+        default: '7.16.2'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-python_version: '3.x'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pycryptodome
+
+      - name: Download and Patch MIPSBE
+        run: |
+          # تعديل مصفوفة المعماريات المدعومة برمجياً في ملف البناء لضمان معالجة mipsbe
+          python patch.py --arch mipsbe --version ${{ github.event.inputs.routeros_version }}
+
+      - name: Upload Patched Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: routeros-${{ github.event.inputs.routeros_version }}-patched-mipsbe
+          path: |
+            *.npk
+            netinstall*
